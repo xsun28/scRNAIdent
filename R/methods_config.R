@@ -1,0 +1,1 @@
+methods.config.scmap <- c(nfeatures=500)
