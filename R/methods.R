@@ -55,9 +55,6 @@ assign.chetah <- function(train_data, test_data){
 
 
 
-
-
-
 ### clustering using Seurat
 cluster.seurat <- function(data) {
   require(Seurat)
@@ -88,6 +85,12 @@ cluster.tscan <- function(data) {
     lpsmclust <- exprmclust(procdata)
   unname(lpsmclust$clusterid)
 }
+
+
+
+
+
+
 
 
 ### clustering using SC3

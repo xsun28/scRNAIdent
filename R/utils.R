@@ -26,6 +26,7 @@ utils.get_dataset_paths <- function(data_home,dataset_names){
 ###filter out cells with all 0s reads and genes with all 0s reads
 utils.filter <- function(data,filter_gene=TRUE, filter_cells=TRUE){
   require(SingleCellExperiment)
+  stopifnot(is(data,"SingleCellExperiment"))
   if(filter_gene & filter_cells){
     return(data[rowData(data)$count>0,colData(data)$detected>0])
   }else if (filter_cell){
@@ -44,7 +45,13 @@ utils.sampler <- function(data,sample_num,types){
   data[,unlist(sample_idx)]
 }
 
-###select different sequencing depth cells
-utils.seqDepthSelector <- function(data, depth_quantile){
-  
+###select different sequencing depth cells, right means take the deeper sequencing data
+utils.seqDepthSelector <- function(data, quantile,right=TRUE){
+  require(SingleCellExperiment)
+  stopifnot(is(data,"SingleCellExperiment"))
+  if(right){
+    return(data[,which(percent_rank(colData(data)$sum)>=quantile)])
+  }else{
+    return(data[,which(percent_rank(colData(data)$sum)<=quantile)])
+  }
 }
