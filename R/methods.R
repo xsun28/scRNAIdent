@@ -3,18 +3,18 @@ source("R/methods_config.R")
 run_assign_methods <- function(method,train_data, test_data){
   switch(method,
          scmap = assign.scmap(train_data, test_data),
-         
+         chetah = assign.chetah(train_data, test_data),
          stop("No such assigning method")
   )
   
 }
 
-run_cluster_methods <- function(method,data,k){
+run_cluster_methods <- function(method,data){
   switch(method,
-         sc3 = cluster.sc3(data, k),
-         seurat = cluster.seurat(data, k),
-         cidr = cluster.cidr(data, k),
-         tscan = cluster.tscan(data, k),
+         sc3 = cluster.sc3(data),
+         seurat = cluster.seurat(data),
+         cidr = cluster.cidr(data),
+         tscan = cluster.tscan(data),
          stop("No such cluster method")
   )
 }
@@ -35,24 +35,60 @@ assign.scmap <- function(train_data, test_data){
   results <- scmapCluster(projection=test_data, index_list=list(metadata(train_data)$scmap_cluster_index))
   results$combined_labs
 }
+
 ###assigning using chetah
 assign.chetah <- function(train_data, test_data){
+    require(SingleCellExperiment)
+    require(CHETAH)
+    stopifnot(is(train_data,"SingleCellExperiment"))
+    stopifnot(is(test_data,"SingleCellExperiment"))
+    colData(train_data)$celltypes <- colData(train_data)$label
   
+    #run classifier
+    test_data <- CHETAHclassifier(input = test_data, ref_cells = train_data)
+    
+    ## Extract celltypes:
+    #CHETAH generates generic names for the intermediate types: “Unassigned” for cells that are classified to the very first node, 
+    #and “Node1”, “Node2”, etc for the additional nodes
+    unname(test_data$celltype_CHETAH)
 }
 
+
+
+
+
+
 ### clustering using Seurat
-cluster.seurat <- function(counts, K) {
+cluster.seurat <- function(data) {
   require(Seurat)
+  stopifnot(is(data,"SingleCellExperiment"))
+  cnts <- counts(data)
+  m_config <- methods.config.seurat
   ## PCA dimention redcution
-  seuset = CreateSeuratObject( counts )
-  seuset = NormalizeData(object = seuset)
-  seuset = FindVariableFeatures(object = seuset)
-  seuset = ScaleData(object = seuset)
-  seuset = RunPCA(object = seuset)
-  seuset = FindNeighbors(object = seuset)
-  seuset = FindClusters(object = seuset)
-  return(seuset@active.ident)
+  seuset <- CreateSeuratObject(cnts, project='simple_accuracy')
+  seuset <- NormalizeData(object = seuset)
+  seuset <- FindVariableFeatures(object = seuset,nfeatures = m_config[['nfeatures']])
+  seuset <- ScaleData(object = seuset)
+  seuset <- RunPCA(object = seuset)
+  seuset <- FindNeighbors(object = seuset,dims = 1:m_config[['pc_dims']])
+  seuset <- FindClusters(object = seuset, resolution = m_config[['resolution']])
+  unname(seuset$seurat_clusters)
 }
+
+### TSCAN
+cluster.tscan <- function(data) {
+  require(TSCAN)
+  stopifnot(is(data,"SingleCellExperiment"))
+  cnts <- counts(data)
+  m_config <- methods.config.tscan
+  procdata <- preprocess(as.matrix(cnts),cvcutoff=m_config[['cvcutoff']])
+  if(!is_null(m_config[['k']]) )
+    lpsmclust <- exprmclust(procdata, clusternum=m_config[['k']])
+  else
+    lpsmclust <- exprmclust(procdata)
+  unname(lpsmclust$clusterid)
+}
+
 
 ### clustering using SC3
 cluster.sc3 <- function(counts, K) {
@@ -121,14 +157,4 @@ cluster.cidr <- function(counts, K) {
   return(sData@clusters)
 }
 
-### TSCAN
-cluster.tscan <- function(counts, K) {
-  require(TSCAN)
-  procdata <- preprocess(counts, cvcutoff=0.5)
-  if( !missing(K) )
-    lpsmclust <- exprmclust(procdata, clusternum=K)
-  else
-    lpsmclust <- exprmclust(procdata)
-  
-  return(lpsmclust$clusterid)
-}
+

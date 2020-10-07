@@ -23,13 +23,13 @@ analysis.cluster.ARI <- function(true,pred){
 ###Adjusted mutual information
 analysis.cluster.AMI <- function(true,pred){
   require(aricode)
-  ARI(true,pred)
+  AMI(true,pred)
 }
 
 ###Fowlkes Mallows index
 analysis.cluster.FMI <- function(true,pred){
   require(dendextend)
-  FM_index(combined_results$scmap,combined_results$label)[[1]]
+  FM_index(true,pred)[[1]]
 }
 
 
