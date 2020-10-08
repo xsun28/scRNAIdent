@@ -4,10 +4,10 @@ source("R/utils.R")
 source("R/data_constructor.R")
 source("R/methods.R")
 source("R/analysis.R")
-
+source("R/output.R")
 ##Wrapper
 runExperiments <- function(experiment=c("simple_accuracy","cell_number", "sequencing_depth","cell_types", "batch_effects")){
-  switch(experiments,
+  switch(experiment,
          simple_accuracy = experiments.simple_accuracy(experiment),
          cell_number = experiments.cell_number(experiment),
          sequencing_depth = experiments.equencing_depth(experiment),
@@ -54,7 +54,9 @@ experiments.base <- function(experiment, exp_config){
 ###simple accuracy experiment
 experiments.simple_accuracy <- function(experiment){
   exp_config <- experiments.parameters[[experiment]]
-  experiments.base(experiment,exp_config)
+  results <- experiments.base(experiment,exp_config)
+  output.sink(experiment,results)
+  results
 }
 
 
@@ -79,7 +81,9 @@ experiments.cell_number <- function(experiment){
   }
   combined_assign_results <- bind_rows(combined_assign_results)
   combined_cluster_results <- bind_rows(combined_cluster_results)
-  list(assign_results=combined_assign_results,cluster_results=combined_cluster_results)
+  final_results <- list(assign_results=combined_assign_results,cluster_results=combined_cluster_results)
+  output.sink(experiment,final_results)
+  final_results
 }
 
 ###experiments with different sequencing depth
@@ -102,7 +106,9 @@ experiments.sequencing_depth <- function(experiment){
   
   combined_assign_results <- bind_rows(shallow_results$assign_results,deep_results$assign_results)
   combined_cluster_results <- bind_rows(shallow_results$cluster_results,deep_results$cluster_results)
-  list(assign_results=combined_assign_results,cluster_results=combined_cluster_results)
+  final_results <- list(assign_results=combined_assign_results,cluster_results=combined_cluster_results)
+  output.sink(experiment,final_results)
+  final_results
 }
 
 
