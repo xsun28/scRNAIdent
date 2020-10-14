@@ -55,3 +55,33 @@ utils.seqDepthSelector <- function(data, quantile,right=TRUE){
     return(data[,which(percent_rank(colData(data)$sum)<=quantile)])
   }
 }
+
+###label unassigned cells in the tibble results
+utils.label_unassigned <- function(assign_results){
+  cell_types <- unique(assign_results$label)
+  f <- function(x){
+    x[which(!x%in% cell_types)] <- 'unassigned'
+    x
+  }
+  map(assign_results,~f(.))
+}
+
+###select assigned cells by all methods from tibble results
+utils.select_assigned <- function(assign_results){
+    if("label" %in% names(assign_results)){
+      assign_results1 <- select(assign_results,-label)
+    }
+    labeled_idx <- reduce(map(assign_results1,~which(.!='unassigned')),intersect)
+    assign_results[labeled_idx,]
+}
+
+###select unassigned cells by all methods from tibble results
+utils.select_unassigned <- function(assign_results){
+  if("label" %in% names(assign_results)){
+    assign_results1 <- select(assign_results,-label)
+  }
+  labeled_idx <- reduce(map(assign_results1,~which(.!='unassigned')),intersect)
+  assign_results[-labeled_idx,]
+}
+
+
