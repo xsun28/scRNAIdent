@@ -1,5 +1,5 @@
 source('R/config.R')
-
+library(purrr)
 ###load a dataset
 utils.load_dataset <- function(file_name){
   data_path <- paste(data_home,file_name,sep='')

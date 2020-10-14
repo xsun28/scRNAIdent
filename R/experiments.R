@@ -5,6 +5,7 @@ source("R/data_constructor.R")
 source("R/methods.R")
 source("R/analysis.R")
 source("R/output.R")
+library(tidyverse)
 ##Wrapper
 runExperiments <- function(experiment=c("simple_accuracy","cell_number", "sequencing_depth","cell_types", "batch_effects")){
   switch(experiment,
@@ -19,6 +20,8 @@ runExperiments <- function(experiment=c("simple_accuracy","cell_number", "sequen
 
 ###base function for all experiments
 experiments.base <- function(experiment, exp_config){
+  require(stringr)
+  require(readr)
   if(missing(exp_config)){
     exp_config <- experiments.parameters[[experiment]]
   }
@@ -30,8 +33,7 @@ experiments.base <- function(experiment, exp_config){
     constructor.data_constructor(config=exp_config,experiment = experiment,if_train = TRUE)
   cluster_results <- experiments.run_cluster(cluster_methods,data,exp_config)
   
-  print("finish prediction for cluster methods, start analyzing")
-  cluster_analysis_results <- analysis.run(cluster_results, cluster_methods,exp_config$metrics)
+  print("finish prediction for cluster methods")
   ##assigning methods
   assign_methods <- methods$assign
   if_cv <- exp_config$cv
@@ -46,15 +48,22 @@ experiments.base <- function(experiment, exp_config){
               constructor.data_constructor(config=exp_config,experiment = experiment,if_train = FALSE)
     assign_results <- experiments.run_asssign(assign_methods,train_data,test_data,exp_config)
   }
-  print("finish prediction for assign methods, start analyzing")
-  assign_analysis_results <- analysis.run(assign_results,assign_methods,exp_config$metrics)
-  list(assign_results=assign_analysis_results,cluster_results=cluster_analysis_results)
+  print("finish prediction for assign methods")
+  list(assign_results=assign_results,cluster_results=cluster_results)
 }
+
+
+
 
 ###simple accuracy experiment
 experiments.simple_accuracy <- function(experiment){
   exp_config <- experiments.parameters[[experiment]]
   results <- experiments.base(experiment,exp_config)
+  
+  cluster_analysis_results <- analysis.run(cluster_results, cluster_methods,exp_config$metrics)
+  assign_analysis_results <- analysis.run(assign_results,assign_methods,exp_config$metrics)
+  list(assign_results=assign_analysis_results,cluster_results=cluster_analysis_results)
+  
   output.sink(experiment,results)
   results
 }
