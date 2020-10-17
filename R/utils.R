@@ -1,9 +1,33 @@
 source('R/config.R')
-library(purrr)
+library(tidyverse)
+library(stringr)
 ###load a dataset
-utils.load_dataset <- function(file_name){
-  data_path <- paste(data_home,file_name,sep='')
-  return(read_rds(data_path))    
+utils.load_datasets <- function(file_names){
+  data_paths <- paste(data_home,file_names,sep='')
+  print(str_glue('data path is {data_paths}'))
+  if(length(data_paths)==1){return(read_rds(data_paths))}
+  sces <- list()
+  for(i in seq_along(data_paths)){
+    sces[i] <- read_rds(data_paths[[i]])
+  }
+  utils.combine_SCEdatasets(sces)
+}
+
+
+###combine multiple singlecellexperiment into one
+utils.combine_SCEdatasets <- function(sces){
+    colDatas <- purrr::reduce((map(sces,~colData(.))),rbind)
+    intersected_genes <- purrr::reduce(map(sces,~rownames(rowData(.))),intersect)
+    metaDatas <- purrr::reduce((map(sces,~metadata(.))),bind_rows)
+    allcounts <- purrr::reduce(map(sces,~counts(.)[intersected_genes,]),function(x,y){
+                                                                            utils.col2rowNames(merge(x,y,by=0,all=FALSE),1)
+                                                                          })
+    sce<-SingleCellExperiment(list(counts=as.matrix(allcounts)),
+                              colData=colDatas,
+                              metadata=metaDatas)
+    sce <- addPerCellQC(sce)
+    rowData(sce) <- tibble(count=nexprs(sce,byrow=TRUE))
+    sce
 }
 
 ###convert count matrix to singlecellexperiment object and add cell-,gene-level metadata
@@ -67,21 +91,34 @@ utils.label_unassigned <- function(assign_results){
 }
 
 ###select assigned cells by all methods from tibble results
-utils.select_assigned <- function(assign_results){
+utils.select_assigned <- function(results){
+    assign_results <- results$assign_results
     if("label" %in% names(assign_results)){
       assign_results1 <- select(assign_results,-label)
     }
-    labeled_idx <- reduce(map(assign_results1,~which(.!='unassigned')),intersect)
-    assign_results[labeled_idx,]
+    labeled_idx <- purrr::reduce(map(assign_results1,~which(.!='unassigned')),intersect)
+    map(results,~.[labeled_idx,])
 }
 
 ###select unassigned cells by all methods from tibble results
-utils.select_unassigned <- function(assign_results){
+utils.select_unassigned <- function(results){
+  assign_results <- results$assign_results
   if("label" %in% names(assign_results)){
     assign_results1 <- select(assign_results,-label)
   }
-  labeled_idx <- reduce(map(assign_results1,~which(.!='unassigned')),intersect)
-  assign_results[-labeled_idx,]
+  labeled_idx <- purrr::reduce(map(assign_results1,~which(.!='unassigned')),intersect)
+  map(results,~.[-labeled_idx,])
 }
 
+###convert column into rownames
+utils.col2rowNames <- function(data,col){
+  stopifnot(is(data,"data.frame"))
+  rownames(data) <- data[,col]
+  data[,col] <- NULL
+  data
+}
 
+###remove batch effects
+utils.remove_batch_effects <- function(data1, data2){
+  
+}

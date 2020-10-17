@@ -6,6 +6,8 @@ raw_datasets <- list(PBMC="PBMC_AllCells_withLabels.Rdata",
                  pancreas=c("Muraro_pancreas.Rdata","Segerstolpe_pancreas.Rdata","Xin_pancreas.Rdata"))
 
 datasets <- list(PBMC="PBMC_AllCells_withLabels.RDS",
-                 pancreas=c("Muraro_pancreas_clean.RDS","Segerstolpe_pancreas_clean.RDS","Xin_pancreas_clean.RDS"))
+                 pancreas=list(muraro="Muraro_pancreas_clean.RDS",
+                               seger="Segerstolpe_pancreas_clean.RDS",
+                               xin="Xin_pancreas_clean.RDS"))
 
 
