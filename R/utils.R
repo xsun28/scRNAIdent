@@ -10,24 +10,31 @@ utils.load_datasets <- function(file_names){
   for(i in seq_along(data_paths)){
     sces[i] <- read_rds(data_paths[[i]])
   }
-  utils.combine_SCEdatasets(sces)
+  sces
 }
 
 
 ###combine multiple singlecellexperiment into one
-utils.combine_SCEdatasets <- function(sces){
-    colDatas <- purrr::reduce((map(sces,~colData(.))),rbind)
+utils.combine_SCEdatasets <- function(sces,if_combined=TRUE){
+    require(purrr)
+    require(SingleCellExperiment)
     intersected_genes <- purrr::reduce(map(sces,~rownames(rowData(.))),intersect)
-    metaDatas <- purrr::reduce((map(sces,~metadata(.))),bind_rows)
-    allcounts <- purrr::reduce(map(sces,~counts(.)[intersected_genes,]),function(x,y){
-                                                                            utils.col2rowNames(merge(x,y,by=0,all=FALSE),1)
-                                                                          })
-    sce<-SingleCellExperiment(list(counts=as.matrix(allcounts)),
-                              colData=colDatas,
-                              metadata=metaDatas)
-    sce <- addPerCellQC(sce)
-    rowData(sce) <- tibble(count=nexprs(sce,byrow=TRUE))
-    sce
+    if(if_combined){
+      colDatas <- purrr::reduce((map(sces,~colData(.))),rbind)
+     
+      metaDatas <- purrr::reduce((map(sces,~metadata(.))),bind_rows)
+      allcounts <- purrr::reduce(map(sces,~counts(.)[intersected_genes,]),function(x,y){
+                                                                              utils.col2rowNames(merge(x,y,by=0,all=FALSE),1)
+                                                                            })
+      sce<-SingleCellExperiment(list(counts=as.matrix(allcounts)),
+                                colData=colDatas,
+                                metadata=metaDatas)
+      sce <- addPerCellQC(sce)
+      rowData(sce) <- tibble(count=nexprs(sce,byrow=TRUE))
+      return(sce)
+    }else{
+      return(map(sces,~.[intersected_genes,]))
+    }
 }
 
 ###convert count matrix to singlecellexperiment object and add cell-,gene-level metadata
@@ -118,7 +125,16 @@ utils.col2rowNames <- function(data,col){
   data
 }
 
-###remove batch effects
-utils.remove_batch_effects <- function(data1, data2){
-  
+###remove batch effects using MNN
+utils.remove_batch_effects <- function(batches){
+  require(batchelor)
+  require(scater)
+  require(scran)
+  f.out <- NULL
+  batches <- multiBatchNorm(batches)
+  decs <- map(batches,modelGeneVar)
+  combined.decs <- do.call('combineVar',decs)
+  chosen.hvgs <- combined.decs$bio > 0
+  f.out <- fastMNN(batches,subset.row=chosen.hvgs)
+  map(batches,~f.out[,colnames(.)])
 }
