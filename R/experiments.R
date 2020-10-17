@@ -29,7 +29,7 @@ experiments.base <- function(experiment, exp_config){
   methods <- experiments.methods[[experiment]]
   ##clustering methods
   cluster_methods <- methods$cluster
-  data <- utils.load_dataset(experiments.cluster.data[[experiment]]) %>%
+  data <- utils.load_datasets(experiments.cluster.data[[experiment]]) %>%
     constructor.data_constructor(config=exp_config,experiment = experiment,if_train = TRUE)
   cluster_results <- experiments.run_cluster(cluster_methods,data,exp_config)
   
@@ -38,18 +38,34 @@ experiments.base <- function(experiment, exp_config){
   assign_methods <- methods$assign
   if_cv <- exp_config$cv
   if(if_cv){###if intra-dataset using cross-validation
-    data <- utils.load_dataset(experiments.assign.data$train_dataset[[experiment]]) %>%
+    data <- utils.load_datasets(experiments.assign.data$train_dataset[[experiment]]) %>%
               constructor.data_constructor(config=exp_config,experiment = experiment,if_train = TRUE)
     assign_results <- experiments.run_asssign(assign_methods,data,NA,exp_config)
   }else{###if inter-dataset 
-    train_data <- utils.load_dataset(experiments.assign.data$train_dataset[[experiment]]) %>%
+    train_data <- utils.load_datasets(experiments.assign.data$train_dataset[[experiment]]) %>%
               constructor.data_constructor(config=exp_config,experiment = experiment,if_train = TRUE)
-    test_data <- utils.load_dataset(experiments.assign.data$test_dataset[[experiment]]) %>%
+    test_data <- utils.load_datasets(experiments.assign.data$test_dataset[[experiment]]) %>%
               constructor.data_constructor(config=exp_config,experiment = experiment,if_train = FALSE)
     assign_results <- experiments.run_asssign(assign_methods,train_data,test_data,exp_config)
   }
   print("finish prediction for assign methods")
-  list(assign_results=assign_results,cluster_results=cluster_results)
+  print("start analyzing assigned/unassigned assigning/clustering methods")
+  results <- list(assign_results=assign_results,cluster_results=cluster_results)
+  assigned_results <- utils.select_assigned(results)
+  unassigned_results <- utils.select_unassigned(results)
+  cluster_analysis_assigned_results <- analysis.run(assigned_results$cluster_results,cluster_methods,exp_config$metrics)
+  cluster_analysis_assigned_results$assigned <- TRUE
+  assign_analysis_assigned_results <- analysis.run(assigned_results$assign_results,assign_methods,exp_config$metrics)
+  assign_analysis_assigned_results$assigned <- TRUE
+  
+  cluster_analysis_unassigned_results <- analysis.run(unassigned_results$cluster_results,cluster_methods,exp_config$metrics)
+  cluster_analysis_unassigned_results$assigned <- FALSE
+  assign_analysis_unassigned_results <- analysis.run(unassigned_results$assign_results,assign_methods,exp_config$metrics)
+  assign_analysis_unassigned_results$assigned <- FALSE
+  report_results <- list(assigned_assign_results=assign_analysis_assigned_results,
+                         assigned_cluster_results=cluster_analysis_assigned_results,
+                         unassigned_assign_results=assign_analysis_unassigned_results,
+                         unassigned_cluster_results=cluster_analysis_unassigned_results)
 }
 
 
@@ -58,14 +74,9 @@ experiments.base <- function(experiment, exp_config){
 ###simple accuracy experiment
 experiments.simple_accuracy <- function(experiment){
   exp_config <- experiments.parameters[[experiment]]
-  results <- experiments.base(experiment,exp_config)
-  
-  cluster_analysis_results <- analysis.run(cluster_results, cluster_methods,exp_config$metrics)
-  assign_analysis_results <- analysis.run(assign_results,assign_methods,exp_config$metrics)
-  list(assign_results=assign_analysis_results,cluster_results=cluster_analysis_results)
-  
-  output.sink(experiment,results)
-  results
+  report_results <- experiments.base(experiment,exp_config)
+  output.sink(experiment,report_results)
+  report_results
 }
 
 
@@ -80,13 +91,11 @@ experiments.cell_number <- function(experiment){
     num <- cell_numbers[[i]]
     print(str_glue('starting sample num:{num}'))
     config <- list(sample_num=num, cv=exp_config$cv, cv_fold=exp_config$cv_fold, metrics=exp_config$metrics)
-    results <- experiments.base(experiment,config)
-    cluster_results <- results$cluster_results
-    assign_results <- results$assign_results
-    cluster_results$sample_num <- num
-    assign_results$sample_num <- num
-    combined_assign_results[[i]] <- assign_results
-    combined_cluster_results[[i]] <- cluster_results
+    results <- experiments.base(experiment,config) %>% 
+      map(~{.$sample_num<-num
+              return(.)})
+    combined_assign_results[[i]] <- bind_rows(results[grepl(".*_assign_.*",names(results))])
+    combined_cluster_results[[i]] <- bind_rows(results[grepl(".*cluster.*",names(results))])
   }
   combined_assign_results <- bind_rows(combined_assign_results)
   combined_cluster_results <- bind_rows(combined_cluster_results)
@@ -113,8 +122,10 @@ experiments.sequencing_depth <- function(experiment){
     map(~{.$quantile<-deep_quant 
     return(.)})
   
-  combined_assign_results <- bind_rows(shallow_results$assign_results,deep_results$assign_results)
-  combined_cluster_results <- bind_rows(shallow_results$cluster_results,deep_results$cluster_results)
+  combined_assign_results <- bind_rows(bind_rows(shallow_results[grepl(".*_assign_.*",names(shallow_results))]),
+                                       bind_rows(deep_results[grepl(".*_assign_.*",names(deep_results))]))
+  combined_cluster_results <- bind_rows(bind_rows(shallow_results[grepl(".*_cluster_.*",names(shallow_results))]),
+                                        bind_rows(deep_results[grepl(".*_cluster_.*",names(deep_results))]))
   final_results <- list(assign_results=combined_assign_results,cluster_results=combined_cluster_results)
   output.sink(experiment,final_results)
   final_results
