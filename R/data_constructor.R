@@ -40,3 +40,10 @@ constructor.sequencing_depth <- function(data,config,if_train){
   }
   data
 }
+
+constructor.batch_effects <- function(data,config,if_train){
+  sces <- utils.combine_SCEdatasets(data,if_combined=FALSE)
+  if(config$remove_batch){
+    sces_no_be <- utils.remove_batch_effects(sces)
+  }
+}
