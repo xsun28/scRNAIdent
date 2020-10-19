@@ -3,7 +3,7 @@ source("R/config.R")
 ####Wrapper
 constructor.data_constructor <- function(data,config,experiment,if_train=TRUE){
   require(SingleCellExperiment)
-  stopifnot(is(data,"SingleCellExperiment"))
+  #stopifnot(is(data,"SingleCellExperiment"))
   switch(experiment,
     simple_accuracy = constructor.simple_accuracy(data,config,if_train),
     cell_number = constructor.cell_number(data,config,if_train),
@@ -42,8 +42,21 @@ constructor.sequencing_depth <- function(data,config,if_train){
 }
 
 constructor.batch_effects <- function(data,config,if_train){
-  sces <- utils.combine_SCEdatasets(data,if_combined=FALSE)
-  if(config$remove_batch){
-    sces_no_be <- utils.remove_batch_effects(sces)
+  if(is_list(data)&length(data)>1){
+    data <- utils.combine_SCEdatasets(data,if_combined = TRUE)
+  }else if(is_list(data)&length(data)==1){
+    data <- data[[1]]
+  }
+  if(if_train){
+    data <- utils.filter(data)
+    if(!is.na(config$sample_num)){
+      data <- utils.sampler(data, sample_num=config$sample_num,types=unique(colData(data)$label))
+    }
+    return(data)
+  }else{
+    return(utils.filter(data,filter_gene=FALSE))
   }
 }
+
+
+

@@ -1,13 +1,14 @@
 source('R/config.R')
 
 experiments.cluster.data <- list(simple_accuracy=datasets$PBMC, cell_number=datasets$PBMC, sequencing_depth=datasets$PBMC,
-                         cell_types=datasets$PBMC, batch_effects=datasets$pancreas)
+                         cell_types=datasets$PBMC,batch_effects_no_free=datasets$pancreas, 
+                         batch_effects_free=batch_effects_free_datasets$pancreas)
 
 experiments.assign.data <- list(
   train_dataset=list(simple_accuracy=datasets$PBMC, cell_number=datasets$PBMC, sequencing_depth=datasets$PBMC,
-                     cell_types=datasets$PBMC, batch_effects=datasets$pancreas),
+                     cell_types=datasets$PBMC),
   test_dataset=list(simple_accuracy=datasets$PBMC, cell_number=datasets$PBMC, sequencing_depth=datasets$PBMC,
-                    cell_types=datasets$PBMC, batch_effects=datasets$pancreas)
+                    cell_types=datasets$PBMC)
   )
   
 experiments.methods <- list(
@@ -23,5 +24,5 @@ experiments.parameters <- list(
   cell_number=list(sample_num=c(100,200,400,700),cv=TRUE,cv_fold=5,metrics=c('ARI','AMI','FMI')),
   sequencing_depth=list(quantile=list(low=0.2,high=0.8),cv=TRUE,cv_fold=5,metrics=c('ARI','AMI','FMI')),
   cell_types=list(),
-  batch_effects=list(remove_batch=FALSE,cv=FALSE,metrics=c('ARI','AMI','FMI'))
+  batch_effects=list(sample_num=NA,cv=FALSE,metrics=c('ARI','AMI','FMI'))
 )

@@ -18,15 +18,16 @@ utils.load_datasets <- function(file_names){
 utils.combine_SCEdatasets <- function(sces,if_combined=TRUE){
     require(purrr)
     require(SingleCellExperiment)
+    require(scater)
     intersected_genes <- purrr::reduce(map(sces,~rownames(rowData(.))),intersect)
     if(if_combined){
-      colDatas <- purrr::reduce((map(sces,~colData(.))),rbind)
+      colDatas <- purrr::reduce((map(sces,~colData(.)[,c('label','sampleId')])),rbind)
      
       metaDatas <- purrr::reduce((map(sces,~metadata(.))),bind_rows)
-      allcounts <- purrr::reduce(map(sces,~counts(.)[intersected_genes,]),function(x,y){
+      allcounts <- purrr::reduce(map(sces,~as.matrix(counts(.)[intersected_genes,])),function(x,y){
                                                                               utils.col2rowNames(merge(x,y,by=0,all=FALSE),1)
                                                                             })
-      sce<-SingleCellExperiment(list(counts=as.matrix(allcounts)),
+      sce <- SingleCellExperiment(list(counts=as.matrix(allcounts)),
                                 colData=colDatas,
                                 metadata=metaDatas)
       sce <- addPerCellQC(sce)
@@ -60,7 +61,7 @@ utils.filter <- function(data,filter_gene=TRUE, filter_cells=TRUE){
   stopifnot(is(data,"SingleCellExperiment"))
   if(filter_gene & filter_cells){
     return(data[rowData(data)$count>0,colData(data)$detected>0])
-  }else if (filter_cell){
+  }else if (filter_cells){
     return(data[,colData(data)$detected>0])
   }else if(filter_gene){
     return(data[rowData(data)$count>0,])
@@ -101,9 +102,9 @@ utils.label_unassigned <- function(assign_results){
 utils.select_assigned <- function(results){
     assign_results <- results$assign_results
     if("label" %in% names(assign_results)){
-      assign_results1 <- select(assign_results,-label)
+      assign_results <- select(assign_results,-label)
     }
-    labeled_idx <- purrr::reduce(map(assign_results1,~which(.!='unassigned')),intersect)
+    labeled_idx <- purrr::reduce(map(assign_results,~which(.!='unassigned')),intersect)
     map(results,~.[labeled_idx,])
 }
 
@@ -111,9 +112,9 @@ utils.select_assigned <- function(results){
 utils.select_unassigned <- function(results){
   assign_results <- results$assign_results
   if("label" %in% names(assign_results)){
-    assign_results1 <- select(assign_results,-label)
+    assign_results <- select(assign_results,-label)
   }
-  labeled_idx <- purrr::reduce(map(assign_results1,~which(.!='unassigned')),intersect)
+  labeled_idx <- purrr::reduce(map(assign_results,~which(.!='unassigned')),intersect)
   map(results,~.[-labeled_idx,])
 }
 
@@ -130,11 +131,23 @@ utils.remove_batch_effects <- function(batches){
   require(batchelor)
   require(scater)
   require(scran)
-  f.out <- NULL
   batches <- multiBatchNorm(batches)
   decs <- map(batches,modelGeneVar)
   combined.decs <- do.call('combineVar',decs)
   chosen.hvgs <- combined.decs$bio > 0
   f.out <- fastMNN(batches,subset.row=chosen.hvgs)
   map(batches,~f.out[,colnames(.)])
+}
+
+####append one singlecellexperiment onto another
+utils.append_sce <- function(sce1,sce2){
+  colDatas <- rbind(colData(sce1),colData(sce2))
+  metaDatas <- bind_rows(metadata(sce1),metadata(sce2))
+  allcounts <- utils.col2rowNames(merge(as.matrix(counts(sce1)),as.matrix(counts(sce2)),by=0),1)  
+
+  sce <- SingleCellExperiment(list(counts=as.matrix(allcounts)),
+                              colData=colDatas,
+                              metadata=metaDatas)
+  rowData(sce) <- tibble(count=nexprs(sce,byrow=TRUE))
+  return(sce)
 }
