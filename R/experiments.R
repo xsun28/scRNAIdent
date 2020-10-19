@@ -5,7 +5,9 @@ source("R/data_constructor.R")
 source("R/methods.R")
 source("R/analysis.R")
 source("R/output.R")
+source("R/preprocess_data.R")
 library(tidyverse)
+
 ##Wrapper
 runExperiments <- function(experiment=c("simple_accuracy","cell_number", "sequencing_depth","cell_types", "batch_effects")){
   switch(experiment,
@@ -27,13 +29,8 @@ experiments.base <- function(experiment, exp_config){
   }
   print(str_glue("experiment {experiment} configuration: {exp_config}"))
   methods <- experiments.methods[[experiment]]
-  ##clustering methods
-  cluster_methods <- methods$cluster
-  data <- utils.load_datasets(experiments.cluster.data[[experiment]]) %>%
-    constructor.data_constructor(config=exp_config,experiment = experiment,if_train = TRUE)
-  cluster_results <- experiments.run_cluster(cluster_methods,data,exp_config)
   
-  print("finish prediction for cluster methods")
+
   ##assigning methods
   assign_methods <- methods$assign
   if_cv <- exp_config$cv
@@ -46,9 +43,20 @@ experiments.base <- function(experiment, exp_config){
               constructor.data_constructor(config=exp_config,experiment = experiment,if_train = TRUE)
     test_data <- utils.load_datasets(experiments.assign.data$test_dataset[[experiment]]) %>%
               constructor.data_constructor(config=exp_config,experiment = experiment,if_train = FALSE)
+    data <- utils.append_sce(train_data,test_data) ##using same dataset for clustering below
     assign_results <- experiments.run_asssign(assign_methods,train_data,test_data,exp_config)
   }
   print("finish prediction for assign methods")
+  
+  
+  ##clustering methods
+  cluster_methods <- methods$cluster
+    # data <- utils.load_datasets(experiments.cluster.data[[experiment]]) %>%
+    #   constructor.data_constructor(config=exp_config,experiment = experiment,if_train = TRUE,seed)
+  cluster_results <- experiments.run_cluster(cluster_methods,data,exp_config)
+  print("finish prediction for cluster methods")
+  
+  
   print("start analyzing assigned/unassigned assigning/clustering methods")
   results <- list(assign_results=assign_results,cluster_results=cluster_results)
   assigned_results <- utils.select_assigned(results)
@@ -131,7 +139,24 @@ experiments.sequencing_depth <- function(experiment){
   final_results
 }
 
-
+####experiments of inter-datasets with batch effects removed or not
+experiments.batch_effects <- function(experiment){
+  exp_config <- experiments.parameters[[experiment]]
+  raw_data <- utils.load_datasets(experiments.cluster.data$batch_effects_no_free)
+  
+  ###not remove batch effects
+  experiments.cluster.data[[experiment]] <- map(raw_data,~{str_glue("{metadata(.)}_intersected.RDS")})
+  preprocess.intersect_sces(raw_data,experiments.cluster.data[[experiment]])
+  train_datasets_combinations <- combn(experiments.cluster.data[[experiment]],length(experiments.cluster.data[[experiment]])-1)
+  for(i in 1:dim(train_datasets_combinations)[2]){
+    experiments.assign.data$train_dataset[[experiment]] <- train_datasets_combinations[,i]
+    experiments.assign.data$test_dataset[[experiment]] <- setdiff(experiments.cluster.data$batch_effects,train_datasets_combinations[,i]) 
+    experiments.base(experiment, exp_config)
+  }
+  ###remove batch effects from dataset and save
+  data <- utils.load_datasets(experiments.cluster.data[[experiment]]) 
+  
+}
 
 #######
 
