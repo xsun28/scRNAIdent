@@ -1,5 +1,5 @@
 source("R/methods_config.R")
-
+source("R/config.R")
 run_assign_methods <- function(method,train_data, test_data){
   switch(method,
          scmap = assign.scmap(train_data, test_data),
@@ -54,12 +54,35 @@ assign.chetah <- function(train_data, test_data){
 }
 
 ###assigning using cellassign
-assign.cellassign <- function(train_data, test_data){
+assign.cellassign <- function(train_data, test_data=NULL){
   require(tensorflow)
   require(cellassign)
-
-  markers<- read.csv("hsPBMC_markers_cellassign.csv")
-  markers[,1:2]
+  require(scran)
+  m_config <- methods.config.cellassign
+  
+  rownames(train_data) <- rowData(train_data)$geneName
+  markers<- read.csv(str_glue("{data_home}hsPBMC_markers_cellassign.csv"))
+  markers_mat <- matrix(0, nrow(markers), length(unique(markers$CellType)))
+  for(i in 1:nrow(markers)) {
+    idx0 <- match(markers$CellType[i], unique(markers$CellType))
+    markers_mat[i, idx0] <- 1
+  }
+  rownames(markers_mat) <- markers$Marker
+  colnames(markers_mat) <- unique(markers$CellType)
+  matchidx <- match(markers[,1], rowData(train_data)$geneName)
+  markers_mat <- markers_mat[!is.na(matchidx),]
+  counts(data) <- as.matrix(counts(data))
+  data$celltypes <- colData(data)$label
+  s <- computeSumFactors(data) %>% 
+    sizeFactors()
+  
+  fit <- cellassign(exprs_obj = data[na.omit(matchidx),], 
+                    marker_gene_info = markers_mat, 
+                    s = s, 
+                    learning_rate = m_config$learning_rate, 
+                    shrinkage = m_config$shrinkage,
+                    verbose = FALSE)
+  fit$cell_type
 }
 
 ### clustering using Seurat
@@ -94,43 +117,36 @@ cluster.tscan <- function(data) {
 }
 
 ### SC3
-cluster.sc3 <- function(data, K) {
+cluster.sc3 <- function(data) {
   require(SC3)
-  
-}
-
-
-
-
-
-
-
-
-
-### clustering using SC3
-cluster.sc3 <- function(counts, K) {
-  require(SC3)
-  sce = SingleCellExperiment(
-    assays = list(
-      counts = as.matrix(counts),
-      logcounts = log2(as.matrix(counts) + 1)
-    )
-  )
-  rowData(sce)$feature_symbol <- rownames(sce)
-  sce = sce[!duplicated(rowData(sce)$feature_symbol), ]
-  sce = sc3_prepare(sce)
-  if( missing(K) ) { ## estimate number of clusters
-    sce = sc3_estimate_k(sce)
-    K = metadata(sce)$sc3$k_estimation
+  stopifnot(is(data,"SingleCellExperiment"))
+  counts(data) <- as.matrix(counts(data))
+  data <- logNormCounts(data)
+  m_config <- methods.config.sc3
+  k <- m_config$k
+  rowData(data)$feature_symbol <- rownames(data)
+  data <- data[!duplicated(rowData(data)$feature_symbol),]
+  data <- sc3_prepare(data)
+  if(is_null(k)){
+    data <- sc3_estimate_k(data)## estimate number of clusters
+    k <- metadata(sce)$sc3$k_estimation
   }
-  
-  sce = sc3_calc_dists(sce)
-  sce = sc3_calc_transfs(sce)
-  sce = sc3_kmeans(sce, ks = K)
-  sce = sc3_calc_consens(sce)
-  colTb = colData(sce)[,1]
-  return(colTb)
+  data <- sc3_calc_dists(data)
+  data <- sc3_calc_transfs(data)
+  data <- sc3_kmeans(data, ks = k)
+  data <- sc3_calc_consens(data)
+  colTb = colData(data)[,1]
 }
+
+
+
+
+
+
+
+
+
+
 
 ### Monocle
 cluster.monocle <- function(counts, K) {
