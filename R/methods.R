@@ -53,7 +53,10 @@ assign.chetah <- function(train_data, test_data){
     unname(test_data$celltype_CHETAH)
 }
 
-
+###assigning using cellassign
+assign.cellassign <- function(train_data, test_data){
+  
+}
 
 ### clustering using Seurat
 cluster.seurat <- function(data) {
@@ -85,6 +88,13 @@ cluster.tscan <- function(data) {
     lpsmclust <- exprmclust(procdata)
   unname(lpsmclust$clusterid)
 }
+
+### SC3
+cluster.sc3 <- function(data, K) {
+  require(SC3)
+  
+}
+
 
 
 

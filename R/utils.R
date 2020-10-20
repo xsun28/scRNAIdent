@@ -21,7 +21,8 @@ utils.combine_SCEdatasets <- function(sces,if_combined=TRUE){
     require(scater)
     intersected_genes <- purrr::reduce(map(sces,~rownames(rowData(.))),intersect)
     if(if_combined){
-      colDatas <- purrr::reduce((map(sces,~colData(.)[,c('label','sampleId')])),rbind)
+      colDatas_cols <- if('batch' %in% colnames(colData(sces[[1]]))) c('batch','label','sampleId') else c('label','sampleId')
+      colDatas <- purrr::reduce((map(sces,~colData(.)[,colDatas_cols])),rbind)
      
       metaDatas <- purrr::reduce((map(sces,~metadata(.))),bind_rows)
       allcounts <- purrr::reduce(map(sces,~as.matrix(counts(.)[intersected_genes,])),function(x,y){
@@ -56,9 +57,15 @@ utils.get_dataset_paths <- function(data_home,dataset_names){
 }
 
 ###filter out cells with all 0s reads and genes with all 0s reads
-utils.filter <- function(data,filter_gene=TRUE, filter_cells=TRUE){
+utils.filter <- function(data,filter_gene=TRUE, filter_cells=TRUE, filter_cell_type=TRUE){
   require(SingleCellExperiment)
   stopifnot(is(data,"SingleCellExperiment"))
+  threshold <- 10
+  if(filter_cell_type){
+    cell_type_num <- table(colData(data)$label)
+    cell_types_kept <- names(cell_type_num[cell_type_num>threshold])
+    data <- data[,colData(data)$label %in% cell_types_kept]
+  }
   if(filter_gene & filter_cells){
     return(data[rowData(data)$count>0,colData(data)$detected>0])
   }else if (filter_cells){
@@ -99,22 +106,31 @@ utils.label_unassigned <- function(assign_results){
 }
 
 ###select assigned cells by all methods from tibble results
+
 utils.select_assigned <- function(results){
-    assign_results <- results$assign_results
-    if("label" %in% names(assign_results)){
-      assign_results <- select(assign_results,-label)
-    }
-    labeled_idx <- purrr::reduce(map(assign_results,~which(.!='unassigned')),intersect)
-    map(results,~.[labeled_idx,])
+  assign_results <- results$assign_results
+  cluster_results <- results$cluster_results
+  if("label" %in% names(assign_results)){
+    assign_results <- select(assign_results,-label)
+    cluster_results <- select(cluster_results,-label)
+  }
+  labeled_idx_assign <- purrr::reduce(map(assign_results,~which(.!='unassigned')),intersect)
+  labeled_idx_cluster <- purrr::reduce(map(cluster_results,~which(!is.na(.))),intersect)
+  labeled_idx <- intersect(labeled_idx_assign, labeled_idx_cluster)
+  map(results,~.[labeled_idx,])
 }
 
 ###select unassigned cells by all methods from tibble results
 utils.select_unassigned <- function(results){
   assign_results <- results$assign_results
+  cluster_results <- results$cluster_results
   if("label" %in% names(assign_results)){
     assign_results <- select(assign_results,-label)
+    cluster_results <- select(cluster_results,-label)
   }
-  labeled_idx <- purrr::reduce(map(assign_results,~which(.!='unassigned')),intersect)
+  labeled_idx_assign <- purrr::reduce(map(assign_results,~which(.!='unassigned')),intersect)
+  labeled_idx_cluster <- purrr::reduce(map(cluster_results,~which(!is.na(.))),intersect)
+  labeled_idx <- intersect(labeled_idx_assign, labeled_idx_cluster)
   map(results,~.[-labeled_idx,])
 }
 
@@ -136,7 +152,15 @@ utils.remove_batch_effects <- function(batches){
   combined.decs <- do.call('combineVar',decs)
   chosen.hvgs <- combined.decs$bio > 0
   f.out <- fastMNN(batches,subset.row=chosen.hvgs)
-  map(batches,~f.out[,colnames(.)])
+  sces_batch_free <- map(batches,~f.out[,colnames(.)])
+  add_col_row_data <- function(x,y){
+    colData(x)[,c('label','sampleId')] <- colData(y)[,c('label','sampleId')]
+    rowData(x)[,'count'] <- rowData(y)[,'count']
+    counts(x) <- assays(x)$reconstructed
+    metadata(x) <- metadata(y)
+    x <- addPerCellQC(x)
+  }
+  map2(sces_batch_free,batches,add_col_row_data)
 }
 
 ####append one singlecellexperiment onto another
