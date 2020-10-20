@@ -55,7 +55,11 @@ assign.chetah <- function(train_data, test_data){
 
 ###assigning using cellassign
 assign.cellassign <- function(train_data, test_data){
-  
+  require(tensorflow)
+  require(cellassign)
+
+  markers<- read.csv("hsPBMC_markers_cellassign.csv")
+  markers[,1:2]
 }
 
 ### clustering using Seurat
