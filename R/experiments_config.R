@@ -16,7 +16,9 @@ experiments.methods <- list(
   cell_number=list(cluster=c('seurat','tscan'),assign=c('scmap','chetah')),
   sequencing_depth=list(cluster=c('seurat','tscan'),assign=c('scmap','chetah')),
   cell_types=list(cluster=c('sc3','seurat','tscan'),assign=c('scmap','chetah','garnet','cellassign')),
-  batch_effects=list(cluster=c('seurat','tscan'),assign=c('scmap','chetah'))
+  batch_effects=list(cluster=c('seurat','tscan'),assign=c('scmap','chetah'),
+                     cluster_batch_free=c('tscan'),
+                     assign_batch_free=c('chetah'))
 )
 
 experiments.parameters <- list(
@@ -24,5 +26,5 @@ experiments.parameters <- list(
   cell_number=list(sample_num=c(100,200,400,700),cv=TRUE,cv_fold=5,metrics=c('ARI','AMI','FMI')),
   sequencing_depth=list(quantile=list(low=0.2,high=0.8),cv=TRUE,cv_fold=5,metrics=c('ARI','AMI','FMI')),
   cell_types=list(),
-  batch_effects=list(sample_num=NA,cv=FALSE,metrics=c('ARI','AMI','FMI'))
+  batch_effects=list(sample_num=NA,cv=FALSE,remove_batch=FALSE,metrics=c('ARI','AMI','FMI'))
 )

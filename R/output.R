@@ -17,13 +17,19 @@ output.simple_accuracy <- function(results){
 }
 
 output.cell_number <- function(results){
-  print('start cell number results')
+  print('start writing cell number results')
   write_rds(results,paste(result_home,'cell_number_results.rds',sep = ''))
   write_csv(rownames_to_column(bind_rows(results),'method'),paste(result_home,'cell_number_results.csv',sep = ''))
 }
 
 output.sequencing_depth <- function(results){
-  print('start sequencing depth results')
+  print('start writing sequencing depth results')
   write_rds(results,paste(result_home,'sequencing_depth_results.rds',sep = ''))
   write_csv(rownames_to_column(bind_rows(results),'method'),paste(result_home,'sequencing_depth_results.csv',sep = ''))
+}
+
+output.batch_effects <- function(results){
+  print('start writing batch effects results')
+  write_rds(results,paste(result_home,'batch_effects_results.rds',sep = ''))
+  write_csv(rownames_to_column(results,'method'),paste(result_home,'batch_effects_results.csv',sep = ''))
 }

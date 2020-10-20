@@ -20,8 +20,8 @@ runExperiments <- function(experiment=c("simple_accuracy","cell_number", "sequen
          )
 }
 
-###base function for all experiments
-experiments.base <- function(experiment, exp_config){
+###base function for assigning methods for all experiments
+experiments.base.assign <- function(experiment, exp_config){
   require(stringr)
   require(readr)
   if(missing(exp_config)){
@@ -30,34 +30,53 @@ experiments.base <- function(experiment, exp_config){
   print(str_glue("experiment {experiment} configuration: {exp_config}"))
   methods <- experiments.methods[[experiment]]
   
-
   ##assigning methods
   assign_methods <- methods$assign
   if_cv <- exp_config$cv
+  
   if(if_cv){###if intra-dataset using cross-validation
     data <- utils.load_datasets(experiments.assign.data$train_dataset[[experiment]]) %>%
-              constructor.data_constructor(config=exp_config,experiment = experiment,if_train = TRUE)
-    assign_results <- experiments.run_asssign(assign_methods,data,NA,exp_config)
+      constructor.data_constructor(config=exp_config,experiment = experiment,if_train = TRUE)
+    assign_results <- experiments.run_assign(assign_methods,data,NA,exp_config)
   }else{###if inter-dataset 
     train_data <- utils.load_datasets(experiments.assign.data$train_dataset[[experiment]]) %>%
-              constructor.data_constructor(config=exp_config,experiment = experiment,if_train = TRUE)
+      constructor.data_constructor(config=exp_config,experiment = experiment,if_train = TRUE)
     test_data <- utils.load_datasets(experiments.assign.data$test_dataset[[experiment]]) %>%
-              constructor.data_constructor(config=exp_config,experiment = experiment,if_train = FALSE)
+      constructor.data_constructor(config=exp_config,experiment = experiment,if_train = FALSE)
     data <- utils.append_sce(train_data,test_data) ##using same dataset for clustering below
-    assign_results <- experiments.run_asssign(assign_methods,train_data,test_data,exp_config)
+    assign_results <- experiments.run_assign(assign_methods,train_data,test_data,exp_config)
   }
   print("finish prediction for assign methods")
+  list(assign_results=assign_results,assign_data=data)
+}
   
-  
+###base function for assigning methods for all experiments
+experiments.base.cluster <- function(experiment, exp_config,data){
+  require(stringr)
+  require(readr)
+  if(missing(exp_config)){
+    exp_config <- experiments.parameters[[experiment]]
+  }
+  methods <- experiments.methods[[experiment]]
   ##clustering methods
   cluster_methods <- methods$cluster
-    # data <- utils.load_datasets(experiments.cluster.data[[experiment]]) %>%
-    #   constructor.data_constructor(config=exp_config,experiment = experiment,if_train = TRUE,seed)
+  # data <- utils.load_datasets(experiments.cluster.data[[experiment]]) %>%
+  #   constructor.data_constructor(config=exp_config,experiment = experiment,if_train = TRUE,seed)
   cluster_results <- experiments.run_cluster(cluster_methods,data,exp_config)
   print("finish prediction for cluster methods")
-  
-  
+  cluster_results
+}
+
+###base function 
+experiments.base.analyze <- function(assign_results,cluster_results,exp_config){
   print("start analyzing assigned/unassigned assigning/clustering methods")
+  if(missing(exp_config)){
+    exp_config <- experiments.parameters[[experiment]]
+  }
+  methods <- experiments.methods[[experiment]]
+  cluster_methods <- methods$cluster
+  assign_methods <- methods$assign
+  
   results <- list(assign_results=assign_results,cluster_results=cluster_results)
   assigned_results <- utils.select_assigned(results)
   unassigned_results <- utils.select_unassigned(results)
@@ -76,7 +95,14 @@ experiments.base <- function(experiment, exp_config){
                          unassigned_cluster_results=cluster_analysis_unassigned_results)
 }
 
-
+###base function for all experiments except batch effects
+experiments.base <- function(experiment, exp_config){
+  assign_data_results <- experiments.base.assign(experiment,exp_config)
+  assign_results <- assign_data_results$assign_results
+  assign_data <- assign_data_results$assign_data
+  cluster_results <- experiments.base.cluster(experiment,exp_config,assign_data)
+  report_results <- experiments.base.analyze(assign_results,cluster_results)
+}
 
 
 ###simple accuracy experiment
@@ -148,19 +174,63 @@ experiments.batch_effects <- function(experiment){
   experiments.cluster.data[[experiment]] <- map(raw_data,~{str_glue("{metadata(.)}_intersected.RDS")})
   preprocess.intersect_sces(raw_data,experiments.cluster.data[[experiment]])
   train_datasets_combinations <- combn(experiments.cluster.data[[experiment]],length(experiments.cluster.data[[experiment]])-1)
+  total_assign_results <- vector('list',dim(train_datasets_combinations)[2])
+  assign_data <- NULL
   for(i in 1:dim(train_datasets_combinations)[2]){
     experiments.assign.data$train_dataset[[experiment]] <- train_datasets_combinations[,i]
     experiments.assign.data$test_dataset[[experiment]] <- setdiff(experiments.cluster.data$batch_effects,train_datasets_combinations[,i]) 
-    experiments.base(experiment, exp_config)
+    assign_data_results <- experiments.base.assign(experiment,exp_config)
+    assign_results <- assign_data_results$assign_results
+    total_assign_results[[i]] <- assign_results
+    if(is_null(assign_data)){
+      assign_data <- assign_data_results$assign_data
+    }
   }
-  ###remove batch effects from dataset and save
-  data <- utils.load_datasets(experiments.cluster.data[[experiment]]) 
+  total_assign_results <- bind_rows(total_assign_results)
+  cluster_results <- experiments.base.cluster(experiment,exp_config,assign_data)
+  report_results <- experiments.base.analyze(total_assign_results,cluster_results) %>%
+    map(~{ .$batch_effects_removed <- FALSE
+      return(.)})
   
+  ###remove batch effects from dataset and save
+  report_results_no_be <- NULL
+  if(exp_config$remove_batch){
+    data <- utils.load_datasets(experiments.cluster.data[[experiment]]) 
+    experiments.cluster.data[[experiment]] <- map(data,~{str_glue("{metadata(.)}_batch_effects_removed.RDS")})
+    preprocess.remove_batch_effects(data,experiments.cluster.data[[experiment]])
+    train_datasets_combinations <- combn(experiments.cluster.data[[experiment]],length(experiments.cluster.data[[experiment]])-1)
+    total_assign_results_no_be <- vector('list',dim(train_datasets_combinations)[2])
+    assign_data_no_be <- NULL
+    for(i in 1:dim(train_datasets_combinations_no_be)[2]){
+      experiments.assign.data$train_dataset[[experiment]] <- train_datasets_combinations[,i]
+      experiments.assign.data$test_dataset[[experiment]] <- setdiff(experiments.cluster.data[[experiment]],train_datasets_combinations[,i]) 
+      experiments.methods[[experiment]]$cluster <- experiments.methods[[experiment]]$cluster_batch_free
+      experiments.methods[[experiment]]$assign <- experiments.methods[[experiment]]$assign_batch_free
+      assign_data_results_no_be <- experiments.base.assign(experiment,exp_config)
+      assign_results_no_be <- assign_data_results_no_be$assign_results
+      total_assign_results_no_be[[i]] <- assign_results_no_be
+      if(is_null(assign_data_no_be)){
+        assign_data_no_be <- assign_data_results_no_be$assign_data
+      }
+    }
+    total_assign_results_no_be <- bind_rows(total_assign_results_no_be)
+    cluster_results_no_be <- experiments.base.cluster(experiment,exp_config,assign_data_no_be)
+    report_results_no_be <- experiments.base.analyze(total_assign_results_no_be,cluster_results_no_be) %>%
+      map(~{ .$batch_effects_removed <- TRUE
+      return(.)})
+  }
+  if(!is_null(report_results_no_be)){
+    report_results <- bind_rows(bind_rows(report_results),bind_rows(report_results_no_be))
+  }else{
+    report_results <- bind_rows(report_results)
+  }
+  output.sink(experiment,report_results)
+  report_results
 }
 
 #######
 
-experiments.run_asssign <- function(methods, train_data, test_data=NA, exp_config){
+experiments.run_assign <- function(methods, train_data, test_data=NA, exp_config){
   assign_results <- vector("list",length(methods))
   if_cv <- exp_config$cv
   if(if_cv){
