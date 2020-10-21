@@ -1,9 +1,11 @@
 source("R/methods_config.R")
 source("R/config.R")
-run_assign_methods <- function(method,train_data, test_data){
+source("R/marker_gene.R")
+run_assign_methods <- function(method,train_data, test_data,exp_config){
   switch(method,
          scmap = assign.scmap(train_data, test_data),
          chetah = assign.chetah(train_data, test_data),
+         cellassign = assign.cellassign(train_data,exp_config),
          stop("No such assigning method")
   )
   
@@ -54,14 +56,15 @@ assign.chetah <- function(train_data, test_data){
 }
 
 ###assigning using cellassign
-assign.cellassign <- function(train_data, test_data=NULL){
+assign.cellassign <- function(data,exp_config){
   require(tensorflow)
   require(cellassign)
   require(scran)
   m_config <- methods.config.cellassign
-  
-  rownames(train_data) <- rowData(train_data)$geneName
-  markers<- read.csv(str_glue("{data_home}hsPBMC_markers_cellassign.csv"))
+  marker_gene_file <- exp_config$marker_gene_file
+  if(is_null(marker_gene_file)) 
+    marker_gene_file <- generate_marker_genes(m_config$marker_gene_method)
+  markers<- read.csv(str_glue("{data_home}{marker_gene_file}"))
   markers_mat <- matrix(0, nrow(markers), length(unique(markers$CellType)))
   for(i in 1:nrow(markers)) {
     idx0 <- match(markers$CellType[i], unique(markers$CellType))
@@ -69,7 +72,7 @@ assign.cellassign <- function(train_data, test_data=NULL){
   }
   rownames(markers_mat) <- markers$Marker
   colnames(markers_mat) <- unique(markers$CellType)
-  matchidx <- match(markers[,1], rowData(train_data)$geneName)
+  matchidx <- match(markers[,1], rownames(data))
   markers_mat <- markers_mat[!is.na(matchidx),]
   counts(data) <- as.matrix(counts(data))
   data$celltypes <- colData(data)$label

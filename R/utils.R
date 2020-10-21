@@ -1,4 +1,5 @@
 source('R/config.R')
+source('R/dataset_config.R')
 library(tidyverse)
 library(stringr)
 ###load a dataset
@@ -60,10 +61,17 @@ utils.get_dataset_paths <- function(data_home,dataset_names){
 utils.filter <- function(data,filter_gene=TRUE, filter_cells=TRUE, filter_cell_type=TRUE){
   require(SingleCellExperiment)
   stopifnot(is(data,"SingleCellExperiment"))
-  threshold <- 10
+  study <- metadata(data)$study[[1]]
+  properties <- dataset.properties[[study]]
+  threshold <- properties$sample_threshold
+  if(!is_null(properties$cell_types)){
+    print(str_glue("only keep cell types with marker genes: {properties$cell_types}"))
+    data <- data[,colData(data)$label %in% properties$cell_types] ###if only keeps cell types with marker gene files
+  }
   if(filter_cell_type){
     cell_type_num <- table(colData(data)$label)
     cell_types_kept <- names(cell_type_num[cell_type_num>threshold])
+    print(str_glue("only keep cell types:{cell_types_kept} which have more cells than {threshold}"))
     data <- data[,colData(data)$label %in% cell_types_kept]
   }
   if(filter_gene & filter_cells){

@@ -2,6 +2,7 @@
 
 source("R/config.R")
 source("R/utils.R")
+source("R/dataset_config.R")
 preprocess_dataset <- function(dataset=c("PBMC","pancreas")) {
   switch(dataset,
          PBMC = preprocess_PBMC(dataset),
@@ -41,8 +42,8 @@ preprocess_pancreas <- function(dataset){
   dataset_paths <- utils.get_dataset_paths(raw_data_home,raw_datasets[[dataset]])
   new_dataset_path <- utils.get_dataset_paths(data_home,datasets[[dataset]])
   for(i in seq_along(dataset_paths)){
-    study <- unlist(str_split(raw_datasets[[dataset]][[i]],"\\."))[[1]]
-    print(str_glue('Preprocessing {study} dataset'))
+    study_name <- unlist(str_split(raw_datasets[[dataset]][[i]],"\\."))[[1]]
+    print(str_glue('Preprocessing {study_name} dataset'))
     x <- load(dataset_paths[[i]])
     cnt <- eval(as.name(x[[1]])) %>%
       as('sparseMatrix')
@@ -52,14 +53,14 @@ preprocess_pancreas <- function(dataset){
     genes <- map_chr(rownames(cnt),~str_split(.,"__")[[1]][1])
 
     data <- utils.convert_to_SingleCellExperiment(cnt,genes,colnames(cnt),tibble(label=labels,sampleId=sampleId),
-                                            list(study=study))
+                                            list(study='pancreas',study_name=study_name))
     write_rds(data,new_dataset_path[[i]])
   }
 }
 
 ##remove batch effects of datasets and saves
 preprocess.remove_batch_effects <- function(sces,file_names){
-  sces <- utils.remove_batch_effects(sces)
+  sces <- utils.remove_batch_effects(sces) 
   for(i in seq_along(sces)){
     path <- utils.get_dataset_paths(data_home,file_names[[i]])
     write_rds(sces[[i]],path)
