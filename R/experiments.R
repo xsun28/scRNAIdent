@@ -6,6 +6,7 @@ source("R/methods.R")
 source("R/analysis.R")
 source("R/output.R")
 source("R/preprocess_data.R")
+source("R/dataset_config.R")
 library(tidyverse)
 
 ##Wrapper
@@ -43,11 +44,25 @@ experiments.base.assign <- function(experiment, exp_config){
       constructor.data_constructor(config=exp_config,experiment = experiment,if_train = TRUE)
     test_data <- utils.load_datasets(experiments.assign.data$test_dataset[[experiment]]) %>%
       constructor.data_constructor(config=exp_config,experiment = experiment,if_train = FALSE)
-    data <- utils.append_sce(train_data,test_data) ##using same dataset for clustering below
+    data <- utils.append_sce(train_data,test_data) ##using same dataset for clustering and marker gene based  below
     assign_results <- experiments.run_assign(assign_methods,train_data,test_data,exp_config)
   }
   print("finish prediction for assign methods")
   list(assign_results=assign_results,assign_data=data)
+}
+
+experiments.base.marker_gene_assign <- function(experiment, exp_config, data){
+  require(stringr)
+  require(readr)
+  if(missing(exp_config)){
+    exp_config <- experiments.parameters[[experiment]]
+  }
+  methods <- experiments.methods[[experiment]]
+  ##clustering methods
+  maker_gene_assign_methods <- methods$marker_gene_assign
+  maker_gene_assign_results <- experiments.run_marker_gene_assign(maker_gene_assign_methods,data,exp_config)
+  print("finish prediction for marker gene assign methods")
+  maker_gene_assign_results
 }
   
 ###base function for assigning methods for all experiments
@@ -97,9 +112,14 @@ experiments.base.analyze <- function(assign_results,cluster_results,exp_config){
 
 ###base function for all experiments except batch effects
 experiments.base <- function(experiment, exp_config){
+  methods <- experiments.methods[[experiment]]
   assign_data_results <- experiments.base.assign(experiment,exp_config)
   assign_results <- assign_data_results$assign_results
   assign_data <- assign_data_results$assign_data
+  if(length(methods$marker_gene_assign)>=1){
+    marker_gene_assign_results <- experiments.base.marker_gene_assign(experiment,exp_config,assign_data)
+    assign_results <- bind_cols(assign_results,select(marker_gene_assign_results,-label))
+  }
   cluster_results <- experiments.base.cluster(experiment,exp_config,assign_data)
   report_results <- experiments.base.analyze(assign_results,cluster_results)
 }
@@ -169,9 +189,9 @@ experiments.sequencing_depth <- function(experiment){
 experiments.batch_effects <- function(experiment){
   exp_config <- experiments.parameters[[experiment]]
   raw_data <- utils.load_datasets(experiments.cluster.data$batch_effects_no_free)
-  
+  methods <- experiments.methods[[experiment]]
   ###not remove batch effects
-  experiments.cluster.data[[experiment]] <- map(raw_data,~{str_glue("{metadata(.)}_intersected.RDS")})
+  experiments.cluster.data[[experiment]] <- map(raw_data,~{str_glue("{metadata(.)$study_name}_intersected.RDS")})
   preprocess.intersect_sces(raw_data,experiments.cluster.data[[experiment]])
   train_datasets_combinations <- combn(experiments.cluster.data[[experiment]],length(experiments.cluster.data[[experiment]])-1)
   total_assign_results <- vector('list',dim(train_datasets_combinations)[2])
@@ -187,6 +207,10 @@ experiments.batch_effects <- function(experiment){
     }
   }
   total_assign_results <- bind_rows(total_assign_results)
+  if(length(methods$marker_gene_assign)>=1){
+    marker_gene_assign_results <- experiments.base.marker_gene_assign(experiment,exp_config,assign_data)
+    total_assign_results <- bind_cols(total_assign_results,select(marker_gene_assign_results,-label))
+  }
   cluster_results <- experiments.base.cluster(experiment,exp_config,assign_data)
   report_results <- experiments.base.analyze(total_assign_results,cluster_results) %>%
     map(~{ .$batch_effects_removed <- FALSE
@@ -196,7 +220,7 @@ experiments.batch_effects <- function(experiment){
   report_results_no_be <- NULL
   if(exp_config$remove_batch){
     data <- utils.load_datasets(experiments.cluster.data[[experiment]]) 
-    experiments.cluster.data[[experiment]] <- map(data,~{str_glue("{metadata(.)}_batch_effects_removed.RDS")})
+    experiments.cluster.data[[experiment]] <- map(data,~{str_glue("{metadata(.)$study_name}_batch_effects_removed.RDS")})
     preprocess.remove_batch_effects(data,experiments.cluster.data[[experiment]])
     train_datasets_combinations <- combn(experiments.cluster.data[[experiment]],length(experiments.cluster.data[[experiment]])-1)
     total_assign_results_no_be <- vector('list',dim(train_datasets_combinations)[2])
@@ -214,6 +238,10 @@ experiments.batch_effects <- function(experiment){
       }
     }
     total_assign_results_no_be <- bind_rows(total_assign_results_no_be)
+    if(length(methods$marker_gene_assign_batch_free)>=1){
+      marker_gene_assign_results_no_be <- experiments.base.marker_gene_assign(experiment,exp_config,assign_data_no_be)
+      total_assign_results_no_be <- bind_cols(total_assign_results_no_be,select(marker_gene_assign_results,-label))
+    }
     cluster_results_no_be <- experiments.base.cluster(experiment,exp_config,assign_data_no_be)
     report_results_no_be <- experiments.base.analyze(total_assign_results_no_be,cluster_results_no_be) %>%
       map(~{ .$batch_effects_removed <- TRUE
@@ -231,7 +259,6 @@ experiments.batch_effects <- function(experiment){
 #######
 
 experiments.run_assign <- function(methods, train_data, test_data=NA, exp_config){
-  assign_results <- vector("list",length(methods))
   if_cv <- exp_config$cv
   if(if_cv){
     cv_folds <- exp_config$cv_fold
@@ -243,12 +270,22 @@ experiments.run_assign <- function(methods, train_data, test_data=NA, exp_config
     results <- mutate(results,label=colData(test_data)$label)
     for(m in methods){
       print(str_glue('start assign method {m}'))
-      results[[m]] <- run_assign_methods(m,train_data,test_data)
+      results[[m]] <- run_assign_methods(m,train_data,test_data,exp_config)
     }
   }
   results
 }
 
+experiments.run_marker_gene_assign <- function(methods,data,exp_config){
+  results <- as_tibble(data.frame(matrix(nrow=dim(colData(data))[[1]],ncol=length(methods))))
+  colnames(results) <- methods
+  results <- mutate(results,label=colData(data)$label)
+  for(m in methods){
+    print(str_glue('start cluster method {m}'))
+    results[[m]] <- run_assign_methods(m,data,NULL,exp_config)
+  }
+  results
+}
 
 experiments.run_cluster <- function(methods,data,exp_config){
   results <- as_tibble(data.frame(matrix(nrow=dim(colData(data))[[1]],ncol=length(methods))))
@@ -276,7 +313,7 @@ experiments.run_cv <- function(methods, data,cv_folds){
     test_data <- data[,-folds[[i]]]
     for(m in methods){
       print(str_glue('start assign method {m} in {i}th fold of CV'))
-      pred_labels <- run_assign_methods(m,train_data,test_data)
+      pred_labels <- run_assign_methods(m,train_data,test_data,NULL)
       combined_results[[m]][-folds[[i]]] <- pred_labels
     }
   }
