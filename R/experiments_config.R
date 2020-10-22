@@ -12,11 +12,11 @@ experiments.assign.data <- list(
   )
   
 experiments.methods <- list(
-  simple_accuracy=list(cluster=c('seurat','tscan'),assign=c('scmap','chetah'),marker_gene_assign=c('cellassign')), 
-  cell_number=list(cluster=c('seurat','tscan'),assign=c('scmap','chetah')),
-  sequencing_depth=list(cluster=c('seurat','tscan'),assign=c('scmap','chetah')),
+  simple_accuracy=list(cluster=c('seurat','tscan','sc3'),assign=c('scmap','chetah'),marker_gene_assign=c('cellassign')), 
+  cell_number=list(cluster=c('seurat','tscan','sc3'),assign=c('scmap','chetah')),
+  sequencing_depth=list(cluster=c('seurat','tscan','sc3'),assign=c('scmap','chetah')),
   cell_types=list(cluster=c('sc3','seurat','tscan'),assign=c('scmap','chetah','garnet','cellassign')),
-  batch_effects=list(cluster=c('seurat','tscan'),assign=c('scmap','chetah'),marker_gene_assign=c('cellassign'),
+  batch_effects=list(cluster=c('seurat','tscan','sc3'),assign=c('scmap','chetah'),marker_gene_assign=c('cellassign'),
                      cluster_batch_free=c('tscan'), assign_batch_free=c(), marker_gene_assign_batch_free=c('cellassign')
                      )
 )
