@@ -1,20 +1,21 @@
-generate_marker_genes <- function(method,data){
+source('R/markergene_config.R')
+generate_marker_genes <- function(method,data,file_name){
   switch(method,
-         cellassign = markergene.cellassign(data),
-         seurat = markergene.seurat(data),
+         cellassign = markergene.cellassign(data,file_name),
+         seurat = markergene.seurat(data,file_name),
          stop("No such marker gene generating method")
   )
 }
-
-markergene.cellassign <- function(data){
+###using cell assign to find marker gene
+markergene.cellassign <- function(data,file_name){
   
   require(org.Hs.eg.db)
   require(edgeR)
-  ensembl_map <- dplyr::transmute(as_tibble(rowData(data)),ENSEMBLID=EnsembleId,SYMBOL=geneName)
+  rowData(data)$geneName <- rownames(data)
+  ensembl_map <- dplyr::transmute(as_tibble(rowData(data)),SYMBOL=geneName)
   #> 'select()' returned 1:1 mapping between keys and columns
   gene_annotations <- ensembl_map %>%
-    dplyr::rename(GeneID=ENSEMBLID,
-                  Symbol=SYMBOL)
+    dplyr::rename(Symbol=SYMBOL)
   cell_lines <- unique(colData(data)$label)
   dge <- DGEList(counts = counts(data), 
                  group = colData(data)$label, 
@@ -27,7 +28,10 @@ markergene.cellassign <- function(data){
   colnames(design) <- levels(dge_filt$samples$group)
   v <- voom(dge_filt, design)
   fit <- lmFit(v, design)
-  args <- map(1:ncol(combn(cell_lines,2)), ~{str_glue("{combn(cell_lines,2)[,.][[1]]} - {combn(cell_lines,2)[,.][[2]]}")})
+  args <- map(1:ncol(combn(cell_lines,2)), ~{ if(combn(cell_lines,2)[,.][[1]]==base_cell_type)
+                                                    return(str_glue("{combn(cell_lines,2)[,.][[2]]} - {combn(cell_lines,2)[,.][[1]]}"))
+                                              str_glue("{combn(cell_lines,2)[,.][[1]]} - {combn(cell_lines,2)[,.][[2]]}")
+                                              })
   args$levels <- design
   contrast.matrix <- do.call('makeContrasts',args)
 
@@ -39,14 +43,12 @@ markergene.cellassign <- function(data){
   ##########
   
   
-  
-  lfc_table <- tt_sig[,c("H2228...H1975", "HCC827...H1975")]
-  lfc_table <- lfc_table %>%
-    dplyr::mutate(H1975=0,
-                  H2228=H2228...H1975,
-                  HCC827=HCC827...H1975) %>%
-    dplyr::select(H1975, H2228, HCC827)
-  rownames(lfc_table) <- tt_sig$GeneID
+  #####how to determine the base cell type?????
+
+  diff_baseline_celltypes <- unlist(map(cell_lines[which(cell_lines!=base_cell_type)],~{str_glue("{.}...{base_cell_type}")}))
+  lfc_table <- tt_sig[,diff_baseline_celltypes]
+  colnames(lfc_table) <- map(diff_baseline_celltypes,~{str_split(.,"\\.\\.\\.")[[1]][1]})
+  lfc_table[[base_cell_type]] <- 0
   lfc_table <- as.matrix(lfc_table)
   lfc_table <- lfc_table - rowMins(lfc_table)
   lfc_table <- as.data.frame(lfc_table)
@@ -68,20 +70,43 @@ markergene.cellassign <- function(data){
   marker_gene_mat <- expr_mat_thres[(maxdiffs >= quantile(maxdiffs, c(.99))) 
                                     & (thres_vals <= log(2)),] %>%
     as.matrix
-  suppressMessages({
-    symbols <- plyr::mapvalues(
-      rownames(marker_gene_mat),
-      from = gene_annotations$GeneID,
-      to = gene_annotations$Symbol
-    )
-  })
-  
-  is_na <- is.na(symbols)
-  
-  marker_gene_mat <- marker_gene_mat[!is_na,]
-  rownames(marker_gene_mat) <- symbols[!is_na]
+  write_rds(marker_gene_mat,str_glue("{file_name}_cellassign.RDS"))
+  marker_gene_mat
 }
 
-markergene.seurat <- function(data){
-  
+###using seurat to find marker gene
+markergene.seurat <- function(data,file_name){
+  require(Seurat)
+  cnts <- counts(data)
+  seuset <- CreateSeuratObject(cnts, project='suerat_marker_gene')
+  seuset <- NormalizeData(object = seuset)
+  Labels <- colData(data)$label
+  Idents(seuset) <- Labels
+  marker_config <- markergene.config.seurat
+  DEgenes <- FindAllMarkers(seuset, only.pos = marker_config$only_pos, min.pct = marker_config$min_pct, logfc.threshold = marker_config$logfc_threshold)
+  Markers <- matrix(nrow = marker_config$marker_gene_num,ncol = length(unique(Labels)))
+  colnames(Markers) <- unique(Labels)
+  for (i in unique(Labels)){
+    TempList <- DEgenes$gene[((DEgenes$cluster == i) & (DEgenes$avg_logFC > 0))]
+    MarkerGenes <- DEgenes$p_val_adj[DEgenes$cluster == i]
+    print(MarkerGenes[1:marker_config$marker_gene_num])
+    if (length(TempList) >= marker_config$marker_gene_num){
+      Markers[,i] <- TempList[1:marker_config$marker_gene_num]
+    }
+    else{
+      if(length(TempList) > 0){
+        Markers[c(1:length(TempList)),i] <- TempList
+      }
+    }
+  }
+  selected_marker_genes <- unique(unlist(as.list(Markers)))
+  marker_gene_mat <- matrix(0, length(selected_marker_genes), length(unique(Labels)))
+  rownames(marker_gene_mat) <- selected_marker_genes
+  colnames(marker_gene_mat) <- unique(Labels)
+  for(type in colnames(Markers)){
+    type_marker_genes <- Markers[,type]
+    marker_gene_mat[,type][type_marker_genes] <- 1
+  }
+  write_rds(marker_gene_mat,str_glue("{file_name}_seurat.RDS"))
+  marker_gene_mat
 }

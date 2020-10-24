@@ -1,8 +1,7 @@
 source('R/config.R')
-
+source('R/dataset_config.R')
 experiments.cluster.data <- list(simple_accuracy=datasets$PBMC, cell_number=datasets$PBMC, sequencing_depth=datasets$PBMC,
-                         cell_types=datasets$PBMC,batch_effects_no_free=datasets$pancreas, 
-                         batch_effects_free=batch_effects_free_datasets$pancreas)
+                         cell_types=datasets$PBMC,batch_effects_no_free=datasets$pancreas)
 
 experiments.assign.data <- list(
   train_dataset=list(simple_accuracy=datasets$PBMC, cell_number=datasets$PBMC, sequencing_depth=datasets$PBMC,
@@ -17,7 +16,7 @@ experiments.methods <- list(
   sequencing_depth=list(cluster=c('seurat','tscan','sc3'),assign=c('scmap','chetah')),
   cell_types=list(cluster=c('sc3','seurat','tscan'),assign=c('scmap','chetah','garnet','cellassign')),
   batch_effects=list(cluster=c('seurat','tscan','sc3'),assign=c('scmap','chetah'),marker_gene_assign=c('cellassign'),
-                     cluster_batch_free=c('tscan'), assign_batch_free=c(), marker_gene_assign_batch_free=c('cellassign')
+                     cluster_batch_free=c('seurat','tscan'), assign_batch_free=c('chetah'), marker_gene_assign_batch_free=c('cellassign')
                      )
 )
 

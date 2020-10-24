@@ -1,4 +1,5 @@
 source("R/config.R")
+source("R/dataset_config.R")
 source("R/experiments_config.R")
 source("R/utils.R")
 source("R/data_constructor.R")
@@ -6,9 +7,8 @@ source("R/methods.R")
 source("R/analysis.R")
 source("R/output.R")
 source("R/preprocess_data.R")
-source("R/dataset_config.R")
 library(tidyverse)
-
+library(SingleCellExperiment)
 ##Wrapper
 runExperiments <- function(experiment=c("simple_accuracy","cell_number", "sequencing_depth","cell_types", "batch_effects")){
   switch(experiment,
@@ -230,6 +230,7 @@ experiments.batch_effects <- function(experiment){
       experiments.assign.data$test_dataset[[experiment]] <- setdiff(experiments.cluster.data[[experiment]],train_datasets_combinations[,i]) 
       experiments.methods[[experiment]]$cluster <- experiments.methods[[experiment]]$cluster_batch_free
       experiments.methods[[experiment]]$assign <- experiments.methods[[experiment]]$assign_batch_free
+
       assign_data_results_no_be <- experiments.base.assign(experiment,exp_config)
       assign_results_no_be <- assign_data_results_no_be$assign_results
       total_assign_results_no_be[[i]] <- assign_results_no_be
@@ -239,6 +240,7 @@ experiments.batch_effects <- function(experiment){
     }
     total_assign_results_no_be <- bind_rows(total_assign_results_no_be)
     if(length(methods$marker_gene_assign_batch_free)>=1){
+      experiments.methods[[experiment]]$marker_gene_assign <- experiments.methods[[experiment]]$marker_gene_assign_batch_free
       marker_gene_assign_results_no_be <- experiments.base.marker_gene_assign(experiment,exp_config,assign_data_no_be)
       total_assign_results_no_be <- bind_cols(total_assign_results_no_be,select(marker_gene_assign_results,-label))
     }

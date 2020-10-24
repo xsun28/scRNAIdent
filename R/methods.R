@@ -62,18 +62,27 @@ assign.cellassign <- function(data,exp_config){
   require(scran)
   m_config <- methods.config.cellassign
   marker_gene_file <- exp_config$marker_gene_file
-  if(is_null(marker_gene_file)) 
-    marker_gene_file <- generate_marker_genes(m_config$marker_gene_method)
-  markers<- read.csv(str_glue("{data_home}{marker_gene_file}"))
-  markers_mat <- matrix(0, nrow(markers), length(unique(markers$CellType)))
-  for(i in 1:nrow(markers)) {
-    idx0 <- match(markers$CellType[i], unique(markers$CellType))
-    markers_mat[i, idx0] <- 1
+  study <- metadata(data)$study[[1]]
+  if(is_null(marker_gene_file)){
+    if(!file.exists(str_glue("{data_home}{study}_markergene_{m_config$marker_gene_method}.RDS")))
+      markers_mat <- generate_marker_genes(m_config$marker_gene_method,data,str_glue("{data_home}{study}_markergene"))
+    else
+      markers_mat <- read_rds(str_glue("{data_home}{study}_markergene_{m_config$marker_gene_method}.RDS"))
+    matchidx <- match(rownames(markers_mat), rownames(data))
+    markers_mat <- markers_mat[!is.na(matchidx),]
+  }else{
+    markers<- read.csv(str_glue("{data_home}{marker_gene_file}"))
+    markers_mat <- matrix(0, nrow(markers), length(unique(markers$CellType)))
+    for(i in 1:nrow(markers)) {
+      idx0 <- match(markers$CellType[i], unique(markers$CellType))
+      markers_mat[i, idx0] <- 1
+    }
+    rownames(markers_mat) <- markers$Marker
+    colnames(markers_mat) <- unique(markers$CellType)
+    matchidx <- match(markers[,1], rownames(data))
+    markers_mat <- markers_mat[!is.na(matchidx),]
   }
-  rownames(markers_mat) <- markers$Marker
-  colnames(markers_mat) <- unique(markers$CellType)
-  matchidx <- match(markers[,1], rownames(data))
-  markers_mat <- markers_mat[!is.na(matchidx),]
+
   counts(data) <- as.matrix(counts(data))
   data$celltypes <- colData(data)$label
   s <- computeSumFactors(data) %>% 
