@@ -164,7 +164,7 @@ utils.remove_batch_effects <- function(batches){
   add_col_row_data <- function(x,y){
     colData(x)[,c('label','sampleId')] <- colData(y)[,c('label','sampleId')]
     rowData(x)[,'count'] <- rowData(y)[,'count']
-    counts(x) <- assays(x)$reconstructed
+    counts(x) <- exp(assays(x)$reconstructed)
     metadata(x) <- metadata(y)
     x <- addPerCellQC(x)
   }
