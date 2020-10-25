@@ -90,7 +90,10 @@ experiments.base.analyze <- function(assign_results,cluster_results,exp_config){
   }
   methods <- experiments.methods[[experiment]]
   cluster_methods <- methods$cluster
-  assign_methods <- methods$assign
+  if(!is_null(methods$marker_gene_assign))
+    assign_methods <- c(methods$assign,methods$marker_gene_assign)
+  else
+    assign_methods <- methods$assign
   
   results <- list(assign_results=assign_results,cluster_results=cluster_results)
   assigned_results <- utils.select_assigned(results)
@@ -191,14 +194,16 @@ experiments.batch_effects <- function(experiment){
   raw_data <- utils.load_datasets(experiments.cluster.data$batch_effects_no_free)
   methods <- experiments.methods[[experiment]]
   ###not remove batch effects
-  experiments.cluster.data[[experiment]] <- map(raw_data,~{str_glue("{metadata(.)$study_name}_intersected.RDS")})
+  experiments.cluster.data[[experiment]] <<- map(raw_data,~{str_glue("{metadata(.)$study_name}_intersected.RDS")})
   preprocess.intersect_sces(raw_data,experiments.cluster.data[[experiment]])
   train_datasets_combinations <- combn(experiments.cluster.data[[experiment]],length(experiments.cluster.data[[experiment]])-1)
   total_assign_results <- vector('list',dim(train_datasets_combinations)[2])
   assign_data <- NULL
   for(i in 1:dim(train_datasets_combinations)[2]){
-    experiments.assign.data$train_dataset[[experiment]] <- train_datasets_combinations[,i]
-    experiments.assign.data$test_dataset[[experiment]] <- setdiff(experiments.cluster.data$batch_effects,train_datasets_combinations[,i]) 
+    experiments.assign.data$train_dataset[[experiment]] <<- train_datasets_combinations[,i]
+    print(str_glue('train dataset is {experiments.assign.data$train_dataset[[experiment]]}'))
+    experiments.assign.data$test_dataset[[experiment]] <<- setdiff(experiments.cluster.data$batch_effects,train_datasets_combinations[,i]) 
+    print(str_glue('test dataset is {experiments.assign.data$test_dataset[[experiment]]}'))
     assign_data_results <- experiments.base.assign(experiment,exp_config)
     assign_results <- assign_data_results$assign_results
     total_assign_results[[i]] <- assign_results
@@ -220,16 +225,16 @@ experiments.batch_effects <- function(experiment){
   report_results_no_be <- NULL
   if(exp_config$remove_batch){
     data <- utils.load_datasets(experiments.cluster.data[[experiment]]) 
-    experiments.cluster.data[[experiment]] <- map(data,~{str_glue("{metadata(.)$study_name}_batch_effects_removed.RDS")})
+    experiments.cluster.data[[experiment]] <<- map(data,~{str_glue("{metadata(.)$study_name}_batch_effects_removed.RDS")})
     preprocess.remove_batch_effects(data,experiments.cluster.data[[experiment]])
-    train_datasets_combinations <- combn(experiments.cluster.data[[experiment]],length(experiments.cluster.data[[experiment]])-1)
+    train_datasets_combinations_no_be <- combn(experiments.cluster.data[[experiment]],length(experiments.cluster.data[[experiment]])-1)
     total_assign_results_no_be <- vector('list',dim(train_datasets_combinations)[2])
     assign_data_no_be <- NULL
     for(i in 1:dim(train_datasets_combinations_no_be)[2]){
-      experiments.assign.data$train_dataset[[experiment]] <- train_datasets_combinations[,i]
-      experiments.assign.data$test_dataset[[experiment]] <- setdiff(experiments.cluster.data[[experiment]],train_datasets_combinations[,i]) 
-      experiments.methods[[experiment]]$cluster <- experiments.methods[[experiment]]$cluster_batch_free
-      experiments.methods[[experiment]]$assign <- experiments.methods[[experiment]]$assign_batch_free
+      experiments.assign.data$train_dataset[[experiment]] <<- train_datasets_combinations[,i]
+      experiments.assign.data$test_dataset[[experiment]] <<- setdiff(experiments.cluster.data[[experiment]],train_datasets_combinations[,i]) 
+      experiments.methods[[experiment]]$cluster <<- experiments.methods[[experiment]]$cluster_batch_free
+      experiments.methods[[experiment]]$assign <<- experiments.methods[[experiment]]$assign_batch_free
 
       assign_data_results_no_be <- experiments.base.assign(experiment,exp_config)
       assign_results_no_be <- assign_data_results_no_be$assign_results
@@ -240,9 +245,9 @@ experiments.batch_effects <- function(experiment){
     }
     total_assign_results_no_be <- bind_rows(total_assign_results_no_be)
     if(length(methods$marker_gene_assign_batch_free)>=1){
-      experiments.methods[[experiment]]$marker_gene_assign <- experiments.methods[[experiment]]$marker_gene_assign_batch_free
+      experiments.methods[[experiment]]$marker_gene_assign <<- experiments.methods[[experiment]]$marker_gene_assign_batch_free
       marker_gene_assign_results_no_be <- experiments.base.marker_gene_assign(experiment,exp_config,assign_data_no_be)
-      total_assign_results_no_be <- bind_cols(total_assign_results_no_be,select(marker_gene_assign_results,-label))
+      total_assign_results_no_be <- bind_cols(total_assign_results_no_be,dplyr::select(marker_gene_assign_results_no_be,-label))
     }
     cluster_results_no_be <- experiments.base.cluster(experiment,exp_config,assign_data_no_be)
     report_results_no_be <- experiments.base.analyze(total_assign_results_no_be,cluster_results_no_be) %>%
@@ -283,7 +288,7 @@ experiments.run_marker_gene_assign <- function(methods,data,exp_config){
   colnames(results) <- methods
   results <- mutate(results,label=colData(data)$label)
   for(m in methods){
-    print(str_glue('start cluster method {m}'))
+    print(str_glue('start marker gene assign method {m}'))
     results[[m]] <- run_assign_methods(m,data,NULL,exp_config)
   }
   results
