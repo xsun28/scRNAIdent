@@ -69,9 +69,11 @@ preprocess.remove_batch_effects <- function(sces,file_names){
 
 ###intersect singlecellexperiments objects with different genes and save
 preprocess.intersect_sces <- function(sces,file_names){
-  sces <- utils.combine_SCEdatasets(sces,if_combined=FALSE)
-  for(i in seq_along(sces)){
-    path <- utils.get_dataset_paths(data_home,file_names[[i]])
-    write_rds(sces[[i]],path)
+  paths <- utils.get_dataset_paths(data_home,file_names)
+  if(sum(unlist(purrr::map(paths,file.exists)))>=1) {
+    print("intersected datasets already exist, skipping intersection")  
+    return()
   }
+  sces <- utils.combine_SCEdatasets(sces,if_combined=FALSE)
+  purrr::walk2(sces,paths,write_rds)
 }
