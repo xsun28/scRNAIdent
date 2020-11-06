@@ -1,3 +1,6 @@
+library(reticulate)
+use_condaenv('r-reticulate')
+library(tensorflow)
 source("R/config.R")
 source("R/dataset_config.R")
 source("R/experiments_config.R")
@@ -194,7 +197,10 @@ experiments.batch_effects <- function(experiment){
   raw_data <- utils.load_datasets(experiments.cluster.data$batch_effects_no_free)
   methods <- experiments.methods[[experiment]]
   ###not remove batch effects
-  experiments.cluster.data[[experiment]] <<- map(raw_data,~{str_glue("{metadata(.)$study_name}_intersected.RDS")})
+  print(str_glue("before global experiments.cluster.data {experiment} is {experiments.cluster.data[[experiment]]}"))
+  
+  experiments.cluster.data[[experiment]] <<- purrr::map(raw_data,~{str_glue("{metadata(.)$study_name}_intersected.RDS")})
+  print(str_glue("after global experiments.cluster.data {experiment} is {experiments.cluster.data[[experiment]]}"))
   preprocess.intersect_sces(raw_data,experiments.cluster.data[[experiment]])
   train_datasets_combinations <- combn(experiments.cluster.data[[experiment]],length(experiments.cluster.data[[experiment]])-1)
   total_assign_results <- vector('list',dim(train_datasets_combinations)[2])
@@ -228,11 +234,13 @@ experiments.batch_effects <- function(experiment){
     experiments.cluster.data[[experiment]] <<- map(data,~{str_glue("{metadata(.)$study_name}_batch_effects_removed.RDS")})
     preprocess.remove_batch_effects(data,experiments.cluster.data[[experiment]])
     train_datasets_combinations_no_be <- combn(experiments.cluster.data[[experiment]],length(experiments.cluster.data[[experiment]])-1)
-    total_assign_results_no_be <- vector('list',dim(train_datasets_combinations)[2])
+    total_assign_results_no_be <- vector('list',dim(train_datasets_combinations_no_be)[2])
     assign_data_no_be <- NULL
     for(i in 1:dim(train_datasets_combinations_no_be)[2]){
-      experiments.assign.data$train_dataset[[experiment]] <<- train_datasets_combinations[,i]
-      experiments.assign.data$test_dataset[[experiment]] <<- setdiff(experiments.cluster.data[[experiment]],train_datasets_combinations[,i]) 
+      experiments.assign.data$train_dataset[[experiment]] <<- train_datasets_combinations_no_be[,i]
+      print(str_glue('train dataset is {experiments.assign.data$train_dataset[[experiment]]}'))
+      experiments.assign.data$test_dataset[[experiment]] <<- setdiff(experiments.cluster.data[[experiment]],train_datasets_combinations_no_be[,i]) 
+      print(str_glue('test dataset is {experiments.assign.data$test_dataset[[experiment]]}'))
       experiments.methods[[experiment]]$cluster <<- experiments.methods[[experiment]]$cluster_batch_free
       experiments.methods[[experiment]]$assign <<- experiments.methods[[experiment]]$assign_batch_free
 

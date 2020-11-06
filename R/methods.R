@@ -3,7 +3,8 @@ source("R/config.R")
 source("R/marker_gene.R")
 run_assign_methods <- function(method,train_data, test_data,exp_config){
   switch(method,
-         scmap = assign.scmap(train_data, test_data),
+         scmap_cluster = assign.scmap_cluster(train_data, test_data),
+         scmap_cell = assign.scmap_cell(train_data, test_data),
          chetah = assign.chetah(train_data, test_data),
          cellassign = assign.cellassign(train_data,exp_config),
          stop("No such assigning method")
@@ -22,8 +23,8 @@ run_cluster_methods <- function(method,data){
 }
 
 
-####assigning using scmap
-assign.scmap <- function(train_data, test_data){
+####assigning using scmap cluster
+assign.scmap_cluster <- function(train_data, test_data){
   require(scmap)
   require(scater)
   stopifnot(is(train_data,"SingleCellExperiment"))
@@ -35,6 +36,23 @@ assign.scmap <- function(train_data, test_data){
   test_data <- logNormCounts(test_data)
   rowData(test_data)$feature_symbol <- rownames(test_data)
   results <- scmapCluster(projection=test_data, index_list=list(metadata(train_data)$scmap_cluster_index))
+  results$combined_labs
+}
+
+####assigning using scmap cell
+assign.scmap_cell <- function(train_data, test_data){
+  require(scmap)
+  require(scater)
+  stopifnot(is(train_data,"SingleCellExperiment"))
+  stopifnot(is(test_data,"SingleCellExperiment"))
+  train_data <- logNormCounts(train_data)
+  rowData(train_data)$feature_symbol <- rownames(train_data)
+  set.seed(1)
+  train_data <- selectFeatures(train_data,n_features=methods.config.scmap[['nfeatures']]) %>%
+    indexCell()
+  test_data <- logNormCounts(test_data)
+  rowData(test_data)$feature_symbol <- rownames(test_data)
+  results <- scmapCell(projection=test_data, index_list=list(metadata(train_data)$scmap_cell_index))
   results$combined_labs
 }
 
