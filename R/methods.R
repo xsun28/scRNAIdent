@@ -52,14 +52,12 @@ assign.scmap_cell <- function(train_data, test_data){
     indexCell()
   test_data <- logNormCounts(test_data)
   rowData(test_data)$feature_symbol <- rownames(test_data)
-  cell_index <- list(metadata(train_data)$scmap_cell_index)
-  names(cell_index) <- metadata(train_data)$study
-  cell_results <- scmapCell(projection=test_data, cell_index)
+  cell_results <- scmapCell(projection=test_data, index_list = list(metadata(train_data)$scmap_cell_index))
   clusters_results <- scmapCell2Cluster(
     cell_results, 
     list(
-      as.character(colData(test_data)$label)
-    )
+      as.character(colData(train_data)$label)
+    ),threshold = methods.config.scmap[['threshold']]
   )
   clusters_results$combined_labs
 }
