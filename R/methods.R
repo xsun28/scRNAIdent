@@ -47,7 +47,7 @@ assign.scmap_cell <- function(train_data, test_data){
   stopifnot(is(test_data,"SingleCellExperiment"))
   train_data <- logNormCounts(train_data)
   rowData(train_data)$feature_symbol <- rownames(train_data)
-  if(is_null(methods.config.scmap[['seed']]))
+  if(purrr::is_null(methods.config.scmap[['seed']]))
     set.seed(1)
   else
     set.seed(methods.config.scmap[['seed']])
@@ -90,7 +90,7 @@ assign.cellassign <- function(data,exp_config){
   m_config <- methods.config.cellassign
   marker_gene_file <- exp_config$marker_gene_file
   study <- metadata(data)$study[[1]]
-  if(is_null(marker_gene_file)){
+  if(purrr::is_null(marker_gene_file)){
     if(!file.exists(str_glue("{marker_home}/{study}_markergene_{m_config$marker_gene_method}.RDS")))
       markers_mat <- generate_marker_genes(m_config$marker_gene_method,data,str_glue("{marker_home}/{study}_markergene"))
     else
@@ -148,7 +148,7 @@ cluster.tscan <- function(data) {
   cnts <- counts(data)
   m_config <- methods.config.tscan
   procdata <- preprocess(as.matrix(cnts),cvcutoff=m_config[['cvcutoff']])
-  if(!is_null(m_config[['k']]) )
+  if(!purrr::is_null(m_config[['k']]) )
     lpsmclust <- exprmclust(procdata, clusternum=m_config[['k']])
   else
     lpsmclust <- exprmclust(procdata)
@@ -166,7 +166,7 @@ cluster.sc3 <- function(data) {
   rowData(data)$feature_symbol <- rownames(data)
   data <- data[!duplicated(rowData(data)$feature_symbol),]
   data <- sc3_prepare(data)
-  if(is_null(k)){
+  if(purrr::is_null(k)){
     data <- sc3_estimate_k(data)## estimate number of clusters
     k <- metadata(sce)$sc3$k_estimation
   }

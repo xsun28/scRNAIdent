@@ -28,7 +28,7 @@ markergene.cellassign <- function(data,file_name){
   colnames(design) <- levels(dge_filt$samples$group)
   v <- voom(dge_filt, design)
   fit <- lmFit(v, design)
-  args <- map(1:ncol(combn(cell_lines,2)), ~{ if(combn(cell_lines,2)[,.][[1]]==base_cell_type)
+  args <- purrr::map(1:ncol(combn(cell_lines,2)), ~{ if(combn(cell_lines,2)[,.][[1]]==base_cell_type)
                                                     return(str_glue("{combn(cell_lines,2)[,.][[2]]} - {combn(cell_lines,2)[,.][[1]]}"))
                                               str_glue("{combn(cell_lines,2)[,.][[1]]} - {combn(cell_lines,2)[,.][[2]]}")
                                               })
@@ -45,9 +45,9 @@ markergene.cellassign <- function(data,file_name){
   
   #####how to determine the base cell type?????
 
-  diff_baseline_celltypes <- unlist(map(cell_lines[which(cell_lines!=base_cell_type)],~{str_glue("{.}...{base_cell_type}")}))
+  diff_baseline_celltypes <- unlist(purrr::map(cell_lines[which(cell_lines!=base_cell_type)],~{str_glue("{.}...{base_cell_type}")}))
   lfc_table <- tt_sig[,diff_baseline_celltypes]
-  colnames(lfc_table) <- map(diff_baseline_celltypes,~{str_split(.,"\\.\\.\\.")[[1]][1]})
+  colnames(lfc_table) <- purrr::map(diff_baseline_celltypes,~{str_split(.,"\\.\\.\\.")[[1]][1]})
   lfc_table[[base_cell_type]] <- 0
   lfc_table <- as.matrix(lfc_table)
   lfc_table <- lfc_table - rowMins(lfc_table)

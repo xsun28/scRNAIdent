@@ -93,7 +93,7 @@ experiments.base.analyze <- function(assign_results,cluster_results,exp_config){
   }
   methods <- experiments.methods[[experiment]]
   cluster_methods <- methods$cluster
-  if(!is_null(methods$marker_gene_assign))
+  if(!purrr::is_null(methods$marker_gene_assign))
     assign_methods <- c(methods$assign,methods$marker_gene_assign)
   else
     assign_methods <- methods$assign
@@ -152,7 +152,7 @@ experiments.cell_number <- function(experiment){
     print(str_glue('starting sample num:{num}'))
     config <- list(sample_num=num, cv=exp_config$cv, cv_fold=exp_config$cv_fold, metrics=exp_config$metrics)
     results <- experiments.base(experiment,config) %>% 
-      map(~{.$sample_num<-num
+      purrr:map(~{.$sample_num<-num
               return(.)})
     combined_assign_results[[i]] <- bind_rows(results[grepl(".*_assign_.*",names(results))])
     combined_cluster_results[[i]] <- bind_rows(results[grepl(".*cluster.*",names(results))])
@@ -172,14 +172,14 @@ experiments.sequencing_depth <- function(experiment){
   shallow_config$quantile <- shallow_quant
   shallow_config$right <- FALSE
   shallow_results <- experiments.base(experiment,shallow_config)%>%
-    map(~{.$quantile<-shallow_quant 
+    purrr::map(~{.$quantile<-shallow_quant 
             return(.)})
   deep_quant <- exp_config$quantile$high
   deep_config <- exp_config
   deep_config$quantile <- deep_quant
   deep_config$right <- TRUE
   deep_results <- experiments.base(experiment,deep_config)%>%
-    map(~{.$quantile<-deep_quant 
+    purrr::map(~{.$quantile<-deep_quant 
     return(.)})
   
   combined_assign_results <- bind_rows(bind_rows(shallow_results[grepl(".*_assign_.*",names(shallow_results))]),
@@ -213,7 +213,7 @@ experiments.batch_effects <- function(experiment){
     assign_data_results <- experiments.base.assign(experiment,exp_config)
     assign_results <- assign_data_results$assign_results
     total_assign_results[[i]] <- assign_results
-    if(is_null(assign_data)){
+    if(purrr::is_null(assign_data)){
       assign_data <- assign_data_results$assign_data
     }
   }
@@ -224,14 +224,14 @@ experiments.batch_effects <- function(experiment){
   }
   cluster_results <- experiments.base.cluster(experiment,exp_config,assign_data)
   report_results <- experiments.base.analyze(total_assign_results,cluster_results) %>%
-    map(~{ .$batch_effects_removed <- FALSE
+    purrr::map(~{ .$batch_effects_removed <- FALSE
       return(.)})
   
   ###remove batch effects from dataset and save
   report_results_no_be <- NULL
   if(exp_config$remove_batch){
     data <- utils.load_datasets(experiments.cluster.data[[experiment]]) 
-    experiments.cluster.data[[experiment]] <<- map(data,~{str_glue("{metadata(.)$study_name}_batch_effects_removed.RDS")})
+    experiments.cluster.data[[experiment]] <<- purrr::map(data,~{str_glue("{metadata(.)$study_name}_batch_effects_removed.RDS")})
     preprocess.remove_batch_effects(data,experiments.cluster.data[[experiment]])
     train_datasets_combinations_no_be <- combn(experiments.cluster.data[[experiment]],length(experiments.cluster.data[[experiment]])-1)
     total_assign_results_no_be <- vector('list',dim(train_datasets_combinations_no_be)[2])
@@ -247,7 +247,7 @@ experiments.batch_effects <- function(experiment){
       assign_data_results_no_be <- experiments.base.assign(experiment,exp_config)
       assign_results_no_be <- assign_data_results_no_be$assign_results
       total_assign_results_no_be[[i]] <- assign_results_no_be
-      if(is_null(assign_data_no_be)){
+      if(purrr::is_null(assign_data_no_be)){
         assign_data_no_be <- assign_data_results_no_be$assign_data
       }
     }
@@ -259,10 +259,10 @@ experiments.batch_effects <- function(experiment){
     }
     cluster_results_no_be <- experiments.base.cluster(experiment,exp_config,assign_data_no_be)
     report_results_no_be <- experiments.base.analyze(total_assign_results_no_be,cluster_results_no_be) %>%
-      map(~{ .$batch_effects_removed <- TRUE
+      purrr::map(~{ .$batch_effects_removed <- TRUE
       return(.)})
   }
-  if(!is_null(report_results_no_be)){
+  if(!purrr::is_null(report_results_no_be)){
     report_results <- bind_rows(bind_rows(report_results),bind_rows(report_results_no_be))
   }else{
     report_results <- bind_rows(report_results)
