@@ -106,7 +106,8 @@ assign.cellassign <- function(data,exp_config){
     }
     rownames(markers_mat) <- markers$Marker
     colnames(markers_mat) <- unique(markers$CellType)
-    matchidx <- match(markers[,1], rownames(data))
+    gene_names <- if(length(rowData(data)$geneName)>0) rowData(data)$geneName else rownames(data) ##PBMC data gene name is not same as rownames
+    matchidx <- match(markers[,1], gene_names)
     markers_mat <- markers_mat[!is.na(matchidx),]
   }
 
