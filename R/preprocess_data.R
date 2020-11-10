@@ -29,8 +29,8 @@ preprocess_PBMC <- function(dataset){
   rm(AllCounts)
   gc(TRUE)
   data <- utils.convert_to_SingleCellExperiment(data,rownames(data),colnames(data),tibble(label=labels),list(study='PBMC'))
-  rowData(data)$EnsembleId <- map_chr(rownames(data),~str_split(.,"\\t")[[1]][[1]])
-  rowData(data)$geneName <- map_chr(rownames(data), ~str_split(.,"\\t")[[1]][[2]])
+  rowData(data)$EnsembleId <- purrr::map_chr(rownames(data),~str_split(.,"\\t")[[1]][[1]])
+  rowData(data)$geneName <- purrr::map_chr(rownames(data), ~str_split(.,"\\t")[[1]][[2]])
   new_dataset_path <- utils.get_dataset_paths(data_home,datasets[[dataset]])
   write_rds(data,new_dataset_path)
 }
@@ -50,7 +50,7 @@ preprocess_pancreas <- function(dataset){
     sampleId <- eval(as.name(x[[2]]))
     labels <- eval(as.name(x[[3]]))
     sampleId <- if(length(sampleId)!=length(labels)) rep(NA,length(labels)) else sampleId
-    genes <- map_chr(rownames(cnt),~str_split(.,"__")[[1]][1])
+    genes <- purrr::map_chr(rownames(cnt),~str_split(.,"__")[[1]][1])
 
     data <- utils.convert_to_SingleCellExperiment(cnt,genes,colnames(cnt),tibble(label=labels,sampleId=sampleId),
                                             list(study='pancreas',study_name=study_name))
