@@ -93,11 +93,11 @@ experiments.base.analyze <- function(assign_results,cluster_results,exp_config){
   }
   methods <- experiments.methods[[experiment]]
   cluster_methods <- methods$cluster
-  if(!purrr::is_null(methods$marker_gene_assign))
+  if(!purrr::is_null(methods$marker_gene_assign)){
     assign_methods <- c(methods$assign,methods$marker_gene_assign)
-  else
+  }else{
     assign_methods <- methods$assign
-  
+  }
   results <- list(assign_results=assign_results,cluster_results=cluster_results)
   assigned_results <- utils.select_assigned(results)
   unassigned_results <- utils.select_unassigned(results)
