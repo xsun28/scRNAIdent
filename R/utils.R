@@ -132,11 +132,13 @@ utils.select_assigned <- function(results){
 utils.select_unassigned <- function(results){
   assign_results <- results$assign_results
   cluster_results <- results$cluster_results
+  labels <- unique(assign_results$label)
   if("label" %in% names(assign_results)){
     assign_results <- dplyr::select(assign_results,-label)
     cluster_results <- dplyr::select(cluster_results,-label)
   }
-  labeled_idx_assign <- purrr::reduce(purrr::map(assign_results,~which(.!='unassigned')),intersect)
+
+  labeled_idx_assign <- purrr::reduce(purrr::map(assign_results,~which(. %in% labels)),intersect)
   labeled_idx_cluster <- purrr::reduce(purrr::map(cluster_results,~which(!is.na(.))),intersect)
   labeled_idx <- intersect(labeled_idx_assign, labeled_idx_cluster)
   purrr::map(results,~.[-labeled_idx,])
