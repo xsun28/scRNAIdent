@@ -5,7 +5,8 @@ source('R/experiments_config.R')
 analysis.run <- function(results,methods,metrics){
   metrics_functions_mapping <- c(ARI="analysis.cluster.ARI",
                                 AMI="analysis.cluster.AMI",
-                                FMI="analysis.cluster.FMI")
+                                FMI="analysis.cluster.FMI",
+                                unlabeled_pctg="analysis.unlabeled_pctg")
   analysis_results <- as.data.frame(matrix(nrow = length(methods), ncol = length(metrics)))
   rownames(analysis_results) <- methods
   colnames(analysis_results) <- metrics
@@ -36,4 +37,7 @@ analysis.cluster.FMI <- function(true,pred){
   FM_index(true,pred)[[1]]
 }
 
-
+#####calculate the percentage of unlabeled cells
+analysis.unlabeled_pctg <- function(results){
+  
+}

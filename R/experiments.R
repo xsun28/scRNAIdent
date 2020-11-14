@@ -10,6 +10,7 @@ source("R/methods.R")
 source("R/analysis.R")
 source("R/output.R")
 source("R/preprocess_data.R")
+source("R/plot.R")
 library(tidyverse)
 library(SingleCellExperiment)
 ##Wrapper
@@ -98,6 +99,8 @@ experiments.base.analyze <- function(assign_results,cluster_results,exp_config){
   }else{
     assign_methods <- methods$assign
   }
+  unlabeled_pctg_results <- analysis.run(dplyr::bind_cols(assign_results,dplyr::select(cluster_results,-label)),
+                                         c(assign_methods,cluster_methods),c("unlabeled_pctg"))
   results <- list(assign_results=assign_results,cluster_results=cluster_results)
   assigned_results <- utils.select_assigned(results)
   unassigned_results <- utils.select_unassigned(results)
@@ -136,6 +139,7 @@ experiments.simple_accuracy <- function(experiment){
   exp_config <- experiments.parameters[[experiment]]
   report_results <- experiments.base(experiment,exp_config)
   output.sink(experiment,report_results)
+  # plot.plot(experiment, report_results)
   report_results
 }
 
