@@ -99,11 +99,16 @@ experiments.base.analyze <- function(assign_results,cluster_results,exp_config){
   }else{
     assign_methods <- methods$assign
   }
-  unlabeled_pctg_results <- analysis.run(dplyr::bind_cols(assign_results,dplyr::select(cluster_results,-label)),
-                                         c(assign_methods,cluster_methods),c("unlabeled_pctg"))
+  unlabeled_pctg_results <- analysis.run(assign_results,assign_methods,c("unlabeled_pctg"))
   results <- list(assign_results=assign_results,cluster_results=cluster_results)
+  cluster_analysis_results <- analysis.run(results$cluster_results,cluster_methods,exp_config$metrics)
+  assign_analysis_results <- analysis.run(results$assign_results,assign_methods,exp_config$metrics) %>%
+    dplyr::bind_cols(unlabeled_pctg_results) 
+  
+  ####
   assigned_results <- utils.select_assigned(results)
   unassigned_results <- utils.select_unassigned(results)
+  
   cluster_analysis_assigned_results <- analysis.run(assigned_results$cluster_results,cluster_methods,exp_config$metrics)
   cluster_analysis_assigned_results$assigned <- TRUE
   assign_analysis_assigned_results <- analysis.run(assigned_results$assign_results,assign_methods,exp_config$metrics)
@@ -113,10 +118,13 @@ experiments.base.analyze <- function(assign_results,cluster_results,exp_config){
   cluster_analysis_unassigned_results$assigned <- FALSE
   assign_analysis_unassigned_results <- analysis.run(unassigned_results$assign_results,assign_methods,exp_config$metrics)
   assign_analysis_unassigned_results$assigned <- FALSE
-  report_results <- list(assigned_assign_results=assign_analysis_assigned_results,
+  report_results <- list(all_assign_results=assign_analysis_results,
+                         all_cluster_results=cluster_analysis_results,
+                         assigned_assign_results=assign_analysis_assigned_results,
                          assigned_cluster_results=cluster_analysis_assigned_results,
                          unassigned_assign_results=assign_analysis_unassigned_results,
-                         unassigned_cluster_results=cluster_analysis_unassigned_results)
+                         unassigned_cluster_results=cluster_analysis_unassigned_results
+                         )
 }
 
 ###base function for all experiments except batch effects
@@ -156,7 +164,7 @@ experiments.cell_number <- function(experiment){
     print(str_glue('starting sample num:{num}'))
     config <- list(sample_num=num, cv=exp_config$cv, cv_fold=exp_config$cv_fold, metrics=exp_config$metrics)
     results <- experiments.base(experiment,config) %>% 
-      purrr:map(~{.$sample_num<-num
+      purrr::map(~{.$sample_num<-num
               return(.)})
     combined_assign_results[[i]] <- bind_rows(results[grepl(".*_assign_.*",names(results))])
     combined_cluster_results[[i]] <- bind_rows(results[grepl(".*cluster.*",names(results))])
