@@ -2,8 +2,8 @@ plot.plot <- function(experiment,results,raw_results){
   if(purrr::is_null(results)){
     results <- read_rds(str_glue("{result_home}/{experiment}_results.rds"))
   }
-  if(purrr::is_null(results)){
-    results <- read_rds(str_glue("{result_home}/{experiment}_results.rds"))
+  if(purrr::is_null(raw_results)){
+    raw_results <- read_rds(str_glue("{result_home}/{experiment}_raw_results.rds"))
   }
   switch(experiment,
     simple_accuracy = plot.simple_accuracy(results,raw_results),
@@ -38,7 +38,6 @@ plot.simple_accuracy <- function(results,raw_results){
   
  #####sankey plot
   figure_name <- "simple_accuracy_sankey.png"
-  
   
 }
 
@@ -85,5 +84,14 @@ plot.bar_plot <- function(results,x,y,fig_path,fig_name){
 }
 
 plot.sankey_plot <- function(raw_results,fig_path,figure_name){
+  methods <- colnames(select(raw_results,-label))
+  ggplot(as.data.frame(raw_results),
+         aes(y = Freq, axis1 = Gender, axis2 = Dept)) +
+    geom_alluvium(aes(fill = Admit), width = 1/12) +
+    geom_stratum(width = 1/12, fill = "black", color = "grey") +
+    geom_label(stat = "stratum", aes(label = after_stat(stratum))) +
+    scale_x_discrete(limits = c("Gender", "Dept"), expand = c(.05, .05)) +
+    scale_fill_brewer(type = "qual", palette = "Set1") +
+    ggtitle("UC Berkeley admissions and rejections, by sex and department")
   
 }
