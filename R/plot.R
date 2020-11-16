@@ -1,16 +1,89 @@
-plot.plot <- function(experiment,results){
+plot.plot <- function(experiment,results,raw_results){
+  if(purrr::is_null(results)){
+    results <- read_rds(str_glue("{result_home}/{experiment}_results.rds"))
+  }
+  if(purrr::is_null(results)){
+    results <- read_rds(str_glue("{result_home}/{experiment}_results.rds"))
+  }
   switch(experiment,
-    simple_accuracy = plot.simple_accuracy(results),
-    cell_number = plot.cell_number(results),
-    sequencing_depth = plot.sequencing_depth(results),
-    cell_type = plot.cell_type(results),
-    batch_effects = plot.batch_effects(results)
+    simple_accuracy = plot.simple_accuracy(results,raw_results),
+    cell_number = plot.cell_number(results,raw_results),
+    sequencing_depth = plot.sequencing_depth(results,raw_results),
+    cell_type = plot.cell_type(results,raw_results),
+    batch_effects = plot.batch_effects(results,raw_results)
   )
 }
 
-plot.simple_accuracy <- function(results){
+plot.simple_accuracy <- function(results,raw_results){
+  require(data.table)
+  figure_name <- "simple_accuracy_metrics.png"
+  results_assigned <- bind_rows(results[grepl("^assigned_.*",names(results))])
+  results_assigned[,'methods'] <- rownames(results_assigned)
+  results_unassigned <- bind_rows(results[grepl("^unassigned_.*",names(results))])
+  results_unassigned[,'methods'] <- rownames(results_unassigned)
+  results1 <- bind_rows(results_assigned,results_unassigned)
+  results_table <- data.table(melt(results1,
+                id.vars = c('methods','assigned'),    
+                measure.vars=c('ARI','AMI','FMI')))
+  results_table$methods <- factor(results_table$methods)
+  results_table$label <- round(results_table$value,2)
+  plot.dodge_bar_plot(results_table,"methods","value",result_home,figure_name)
   
-  figure_path <- str_glue("{results_home}/{simple_accuracy}.png")
+  #####unlabeled pctg 
+  figure_name <- "simple_accuracy_unlabeled_pctg.png"
+  results_unlabeled_pctg <- results[["all_assign_results"]]['unlabeled_pctg']
+  results_unlabeled_pctg[,'methods'] <- factor(rownames(results_unlabeled_pctg))
+  results_unlabeled_pctg[,'label'] <- round(results_unlabeled_pctg$unlabeled_pctg,2)
+  plot.bar_plot(results_unlabeled_pctg,'methods','unlabeled_pctg',result_home,figure_name)
   
+ #####sankey plot
+  figure_name <- "simple_accuracy_sankey.png"
+  
+  
+}
+
+
+plot.dodge_bar_plot <- function(results,x,y,fig_path,fig_name){
+  ggplot(results_table,aes_string(x=x,y = y,fill = "variable")) + 
+    geom_bar(position = "dodge",width = 0.8, stat = "identity") +
+    scale_fill_brewer(palette = "Pastel1") +
+    geom_text(aes_string(x = x,label = "label"),
+              vjust = 0.1,size=2,hjust=0.7,    
+              colour = "brown",
+              position = position_dodge(width = 0.5),
+              show.legend = F)+
+    scale_x_discrete(guide = guide_axis(n.dodge=3))+
+    facet_wrap(~ assigned,nrow=1,labeller = label_both)
+  ggsave(
+    fig_name,
+    plot = last_plot(),
+    device = 'png',
+    path = fig_path,
+    width = 10,
+    height = 7,
+    units = "in"
+  )
+}
+
+plot.bar_plot <- function(results,x,y,fig_path,fig_name){
+  ggplot(results,aes_string(x = x,y = y)) +
+    geom_bar(width = 0.8, stat = "identity") +
+    scale_fill_brewer(palette = "Blues") +
+    geom_text(aes_string(x = x,label = "label"),
+              vjust = 0.1,size=6,hjust=0.7,    
+              colour = "brown")+
+    scale_x_discrete(guide = guide_axis(n.dodge=3))
+  ggsave(
+    fig_name,
+    plot = last_plot(),
+    device = 'png',
+    path = fig_path,
+    width = 10,
+    height = 7,
+    units = "in"
+  )
+}
+
+plot.sankey_plot <- function(raw_results,fig_path,figure_name){
   
 }
