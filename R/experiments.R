@@ -138,15 +138,19 @@ experiments.base <- function(experiment, exp_config){
     assign_results <- bind_cols(assign_results,select(marker_gene_assign_results,-label))
   }
   cluster_results <- experiments.base.cluster(experiment,exp_config,assign_data)
+  combined_results <- bind_cols(assign_results,select(cluster_results,-label))
   report_results <- experiments.base.analyze(assign_results,cluster_results)
+  list(pred_results=combined_results,analy_results=report_results)
 }
 
 
 ###simple accuracy experiment
 experiments.simple_accuracy <- function(experiment){
   exp_config <- experiments.parameters[[experiment]]
-  report_results <- experiments.base(experiment,exp_config)
-  output.sink(experiment,report_results)
+  base_results <- experiments.base(experiment,exp_config)
+  report_results <- base_results$analy_results
+  pred_results <- base_results$pred_results
+  output.sink(experiment,pred_results,report_results)
   # plot.plot(experiment, report_results)
   report_results
 }
@@ -158,21 +162,27 @@ experiments.cell_number <- function(experiment){
   cell_numbers <- exp_config$sample_num
   combined_cluster_results <- vector('list',length(cell_numbers))
   combined_assign_results <- vector('list',length(cell_numbers))
+  combined_raw_results <- vector('list',length(cell_numbers))
   methods <- experiments.methods[[experiment]]
   for(i in seq_along(cell_numbers)){
     num <- cell_numbers[[i]]
     print(str_glue('starting sample num:{num}'))
     config <- list(sample_num=num, cv=exp_config$cv, cv_fold=exp_config$cv_fold, metrics=exp_config$metrics)
-    results <- experiments.base(experiment,config) %>% 
+    base_results <- experiments.base(experiment,config) 
+    results <- base_results$analy_results%>% 
       purrr::map(~{.$sample_num<-num
               return(.)})
+    raw_results <- results$pred_results
+    raw_results$sample_num <- num
     combined_assign_results[[i]] <- bind_rows(results[grepl(".*_assign_.*",names(results))])
     combined_cluster_results[[i]] <- bind_rows(results[grepl(".*cluster.*",names(results))])
+    combined_raw_results[[i]] <- raw_results
   }
   combined_assign_results <- bind_rows(combined_assign_results)
   combined_cluster_results <- bind_rows(combined_cluster_results)
+  combined_raw_results <- bind_rows(combined_raw_results)
   final_results <- list(assign_results=combined_assign_results,cluster_results=combined_cluster_results)
-  output.sink(experiment,final_results)
+  output.sink(experiment,combined_raw_results,final_results)
   final_results
 }
 
@@ -183,23 +193,31 @@ experiments.sequencing_depth <- function(experiment){
   shallow_config <- exp_config
   shallow_config$quantile <- shallow_quant
   shallow_config$right <- FALSE
-  shallow_results <- experiments.base(experiment,shallow_config)%>%
+  shallow_results_base <- experiments.base(experiment,shallow_config)
+  shallow_results <- shallow_results_base$analy_results %>%
     purrr::map(~{.$quantile<-shallow_quant 
             return(.)})
+  shallow_raw_results <- shallow_results_base$pred_results
+  shallow_raw_results$quantile <- shallow_quant
+  
   deep_quant <- exp_config$quantile$high
   deep_config <- exp_config
   deep_config$quantile <- deep_quant
   deep_config$right <- TRUE
-  deep_results <- experiments.base(experiment,deep_config)%>%
+  deep_results_base <- experiments.base(experiment,deep_config)
+  deep_results <- deep_results_base$analy_results %>%
     purrr::map(~{.$quantile<-deep_quant 
     return(.)})
+  deep_raw_results <- deep_results_base$pred_results
+  deep_raw_results$quantile <- deep_quant
   
   combined_assign_results <- bind_rows(bind_rows(shallow_results[grepl(".*_assign_.*",names(shallow_results))]),
                                        bind_rows(deep_results[grepl(".*_assign_.*",names(deep_results))]))
   combined_cluster_results <- bind_rows(bind_rows(shallow_results[grepl(".*_cluster_.*",names(shallow_results))]),
                                         bind_rows(deep_results[grepl(".*_cluster_.*",names(deep_results))]))
+  combined_raw_results <- bind_rows(shallow_raw_results,deep_raw_results)
   final_results <- list(assign_results=combined_assign_results,cluster_results=combined_cluster_results)
-  output.sink(experiment,final_results)
+  output.sink(experiment,combined_raw_results,final_results)
   final_results
 }
 
@@ -238,6 +256,8 @@ experiments.batch_effects <- function(experiment){
   report_results <- experiments.base.analyze(total_assign_results,cluster_results) %>%
     purrr::map(~{ .$batch_effects_removed <- FALSE
       return(.)})
+  total_raw_results <- bind_cols(total_assign_results,select(cluster_results,-label))
+  total_raw_results$batch_effects_removed <- FALSE
   
   ###remove batch effects from dataset and save
   report_results_no_be <- NULL
@@ -273,13 +293,16 @@ experiments.batch_effects <- function(experiment){
     report_results_no_be <- experiments.base.analyze(total_assign_results_no_be,cluster_results_no_be) %>%
       purrr::map(~{ .$batch_effects_removed <- TRUE
       return(.)})
+    total_raw_results_no_be <- bind_cols(total_assign_results_no_be,select(cluster_results_no_be,-label))
+    total_raw_results_no_be$batch_effects_removed <- TRUE
   }
   if(!purrr::is_null(report_results_no_be)){
     report_results <- bind_rows(bind_rows(report_results),bind_rows(report_results_no_be))
+    total_raw_results <- bind_rows(total_raw_results,total_raw_results_no_be)
   }else{
     report_results <- bind_rows(report_results)
   }
-  output.sink(experiment,report_results)
+  output.sink(experiment,total_raw_results,report_results)
   report_results
 }
 
