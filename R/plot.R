@@ -1,3 +1,5 @@
+source("R/utils.R")
+
 plot.plot <- function(experiment,results,raw_results){
   if(purrr::is_null(results)){
     results <- read_rds(str_glue("{result_home}/{experiment}_results.rds"))
@@ -48,11 +50,8 @@ plot.simple_accuracy <- function(results,raw_results){
 
 plot.cell_number <- function(results,raw_results){
   figure_name <- "cell_number_metrics.png"
-  f <- function(results){
-    results$methods <- unlist(purrr::map(rownames(results),~str_split(.,"\\.\\.\\.")[[1]][[1]]))
-    results
-  }
-  results <- purrr::map(results,f)
+
+  results <- purrr::map(results,utils.get_methods)
   results1 <- select(bind_rows(purrr::map(results,~dplyr::filter(.,!is.na(assigned)))),-unlabeled_pctg) %>%
                 gather("metric","value",-c(methods,sample_num,assigned))
 
@@ -77,10 +76,60 @@ plot.cell_number <- function(results,raw_results){
 
 plot.sequencing_depth <- function(results,raw_results){
   figure_name <- "sequencing_depth_metrics.png"
+  results <- purrr::map(results,utils.get_methods)%>%
+              purrr::map(~{.$quantile <- factor(.$quantile)
+                            return(.)
+                            })
+  results1 <- select(bind_rows(purrr::map(results,~dplyr::filter(.,!is.na(assigned)))),-unlabeled_pctg) %>%
+    gather("metric","value",-c(methods,quantile,assigned))
+  plot.heatmap_plot(results1,"quantile","methods",result_home,figure_name)
   figure_name <- "sequencing_depth_unlabeled_pctg.png"
+  results_unlabeled_pctg <- dplyr::filter(select(results$assign_results,methods,quantile,unlabeled_pctg),!is.na(unlabeled_pctg))
+  ggplot(results_unlabeled_pctg, aes(quantile,methods, fill=unlabeled_pctg)) + 
+    geom_tile() +
+    scale_fill_distiller(palette = "RdPu") +
+    theme_ipsum()
+  ggsave(
+    figure_name,
+    plot = last_plot(),
+    device = 'png',
+    path = result_home,
+    width = 3,
+    height = 3,
+    units = "in"
+  )
   figure_name <- "sequencing_depth_sankey.png"
-  
-  
+  methods <- colnames(select(raw_results,-label))
+  raw_results1 <- gather(raw_results,"methods","pred",-c(label,quantile)) %>%
+    group_by(methods,label,pred,quantile) %>%
+    summarize(freq=n()) %>%
+    filter(freq>0)
+  raw_results1$quantile <- factor(raw_results1$quantile)
+  ggplot(as.data.frame(raw_results1),
+         aes(y="freq",axis1 = label, axis2 = pred)) +
+    geom_alluvium(aes(fill = label), width = 1/12) +
+    geom_stratum(width = 1/12, fill = "black", color = "grey") +
+    geom_label(stat = "stratum", aes(label = after_stat(stratum))) +
+    scale_x_discrete(limits = c("label", "value"), expand = c(.05, .05)) +
+    scale_fill_brewer(type = "qual", palette = "Set1") +
+    facet_grid(quantile ~ methods,labeller = label_both)+
+    theme(axis.ticks.y = element_blank(), axis.text.y=element_blank(), 
+          axis.title.y = element_blank())
+  ggsave(
+    figure_name,
+    plot = last_plot(),
+    device = 'png',
+    path = result_home,
+    width = 20,
+    height = 10,
+    units = "in"
+  )
+}
+
+plot.batch_effects <- function(results,raw_results){
+  figure_name <- "batch_effects_metrics.png"
+  figure_name <- "batch_effects_unlabeled_pctg.png"
+  figure_name <- "batch_effects_sankey.png"
 }
 
 plot.dodge_bar_plot <- function(results,x,y,fig_path,fig_name){
@@ -139,17 +188,17 @@ plot.sankey_plot <- function(raw_results,label,pred,fig_path,fig_name){
     plot = last_plot(),
     device = 'png',
     path = fig_path,
-    width = 18,
-    height = 20,
+    width = 10,
+    height = 10,
     units = "in"
   )
 }
 
 plot.line_plot <- function(results,x,y,fig_path,fig_name){
-  ggplot(results1, aes_string(x=x, y=y, group="methods")) +
+  ggplot(results, aes_string(x=x, y=y, group="methods")) +
     geom_line(aes(color=methods))+
     geom_point(aes(color=methods))+
-    facet_grid(metric~assigned)
+    facet_grid(metric~assigned,labeller = label_both)
   ggsave(
     fig_name,
     plot = last_plot(),
@@ -162,12 +211,18 @@ plot.line_plot <- function(results,x,y,fig_path,fig_name){
 }
 
 plot.heatmap_plot <- function(results,x,y,fig_path,fig_name){
+  require(hrbrthemes)
+  ggplot(results, aes_string(x,y, fill= "value")) + 
+    geom_tile() +
+    scale_fill_distiller(palette = "RdPu") +
+    theme_ipsum()+
+    facet_wrap(~metric,nrow=length(unique(results$metric)))
   ggsave(
     fig_name,
     plot = last_plot(),
     device = 'png',
     path = fig_path,
-    width = 10,
+    width = 8,
     height = 10,
     units = "in"
   )

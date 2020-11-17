@@ -185,3 +185,9 @@ utils.append_sce <- function(sce1,sce2){
   rowData(sce) <- tibble(count=nexprs(sce,byrow=TRUE))
   return(sce)
 }
+
+utils.get_methods <- function(data){
+  stopifnot(is(data,"data.frame"))
+  data$methods <- unlist(purrr::map(rownames(data),~str_split(.,"\\.\\.\\.")[[1]][[1]]))
+  data
+}
