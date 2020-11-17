@@ -38,12 +38,53 @@ plot.simple_accuracy <- function(results,raw_results){
   
  #####sankey plot
   figure_name <- "simple_accuracy_sankey.png"
+  methods <- colnames(select(raw_results,-label))
+  raw_results1 <- gather(raw_results,"methods","pred",-label) %>%
+                    group_by(methods,label,pred) %>%
+                      summarize(freq=n()) %>%
+                        filter(freq>0)
+  plot.sankey_plot(raw_results1,"label","pred",result_home,figure_name)                   
+}
+
+plot.cell_number <- function(results,raw_results){
+  figure_name <- "cell_number_metrics.png"
+  f <- function(results){
+    results$methods <- unlist(purrr::map(rownames(results),~str_split(.,"\\.\\.\\.")[[1]][[1]]))
+    results
+  }
+  results <- purrr::map(results,f)
+  results1 <- select(bind_rows(purrr::map(results,~dplyr::filter(.,!is.na(assigned)))),-unlabeled_pctg) %>%
+                gather("metric","value",-c(methods,sample_num,assigned))
+
+  plot.line_plot(results1,"sample_num","value",result_home,figure_name)
+  
+  ######
+  figure_name <- "cell_number_unlabeled_pctg.png"
+  results_unlabeled_pctg <- dplyr::filter(select(results$assign_results,methods,sample_num,unlabeled_pctg),!is.na(unlabeled_pctg))
+  ggplot(results_unlabeled_pctg, aes(x=sample_num, y=unlabeled_pctg, group=methods)) +
+    geom_line(aes(color=methods))+
+    geom_point(aes(color=methods))
+  ggsave(
+    figure_name,
+    plot = last_plot(),
+    device = 'png',
+    path = result_home,
+    width = 6,
+    height = 6,
+    units = "in"
+  )
+}
+
+plot.sequencing_depth <- function(results,raw_results){
+  figure_name <- "sequencing_depth_metrics.png"
+  figure_name <- "sequencing_depth_unlabeled_pctg.png"
+  figure_name <- "sequencing_depth_sankey.png"
+  
   
 }
 
-
 plot.dodge_bar_plot <- function(results,x,y,fig_path,fig_name){
-  ggplot(results_table,aes_string(x=x,y = y,fill = "variable")) + 
+  ggplot(results,aes_string(x=x,y = y,fill = "variable")) + 
     geom_bar(position = "dodge",width = 0.8, stat = "identity") +
     scale_fill_brewer(palette = "Pastel1") +
     geom_text(aes_string(x = x,label = "label"),
@@ -83,15 +124,51 @@ plot.bar_plot <- function(results,x,y,fig_path,fig_name){
   )
 }
 
-plot.sankey_plot <- function(raw_results,fig_path,figure_name){
-  methods <- colnames(select(raw_results,-label))
+plot.sankey_plot <- function(raw_results,label,pred,fig_path,fig_name){
+  
   ggplot(as.data.frame(raw_results),
-         aes(y = Freq, axis1 = Gender, axis2 = Dept)) +
-    geom_alluvium(aes(fill = Admit), width = 1/12) +
+         aes_string(y="freq",axis1 = label, axis2 = pred)) +
+    geom_alluvium(aes_string(fill = label), width = 1/12) +
     geom_stratum(width = 1/12, fill = "black", color = "grey") +
     geom_label(stat = "stratum", aes(label = after_stat(stratum))) +
-    scale_x_discrete(limits = c("Gender", "Dept"), expand = c(.05, .05)) +
+    scale_x_discrete(limits = c("label", "value"), expand = c(.05, .05)) +
     scale_fill_brewer(type = "qual", palette = "Set1") +
-    ggtitle("UC Berkeley admissions and rejections, by sex and department")
-  
+    facet_wrap(~ methods,nrow=length(unique(raw_results$methods))%/%2)
+  ggsave(
+    fig_name,
+    plot = last_plot(),
+    device = 'png',
+    path = fig_path,
+    width = 18,
+    height = 20,
+    units = "in"
+  )
+}
+
+plot.line_plot <- function(results,x,y,fig_path,fig_name){
+  ggplot(results1, aes_string(x=x, y=y, group="methods")) +
+    geom_line(aes(color=methods))+
+    geom_point(aes(color=methods))+
+    facet_grid(metric~assigned)
+  ggsave(
+    fig_name,
+    plot = last_plot(),
+    device = 'png',
+    path = fig_path,
+    width = 10,
+    height = 10,
+    units = "in"
+  )
+}
+
+plot.heatmap_plot <- function(results,x,y,fig_path,fig_name){
+  ggsave(
+    fig_name,
+    plot = last_plot(),
+    device = 'png',
+    path = fig_path,
+    width = 10,
+    height = 10,
+    units = "in"
+  )
 }
