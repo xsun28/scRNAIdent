@@ -18,7 +18,7 @@ runExperiments <- function(experiment=c("simple_accuracy","cell_number", "sequen
   switch(experiment,
          simple_accuracy = experiments.simple_accuracy(experiment),
          cell_number = experiments.cell_number(experiment),
-         sequencing_depth = experiments.equencing_depth(experiment),
+         sequencing_depth = experiments.sequencing_depth(experiment),
          cell_types = experiments.cell_types(experiment),
          batch_effects = experiments.batch_effects(experiment),
          stop("Unkown experiments")
@@ -219,9 +219,13 @@ experiments.sequencing_depth <- function(experiment){
   combined_raw_results <- bind_rows(shallow_raw_results,deep_raw_results)
   final_results <- list(assign_results=combined_assign_results,cluster_results=combined_cluster_results)
   output.sink(experiment,combined_raw_results,final_results)
+  plot.plot(experiment,final_results,combined_raw_results)
   final_results
 }
-
+#####experiments with different cell types
+experiments.cell_types <- function(experiment){
+  
+}
 ####experiments of inter-datasets with batch effects removed or not
 experiments.batch_effects <- function(experiment){
   exp_config <- experiments.parameters[[experiment]]

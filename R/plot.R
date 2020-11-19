@@ -68,21 +68,23 @@ plot.cell_number <- function(results,raw_results){
     plot = last_plot(),
     device = 'png',
     path = result_home,
-    width = 6,
-    height = 6,
+    width = 2*length(unique(results_unlabeled_pctg$methods)),
+    height = 2*length(unique(results_unlabeled_pctg$methods)),
     units = "in"
   )
 }
 
 plot.sequencing_depth <- function(results,raw_results){
-  figure_name <- "sequencing_depth_metrics.png"
   results <- purrr::map(results,utils.get_methods)%>%
-              purrr::map(~{.$quantile <- factor(.$quantile)
-                            return(.)
-                            })
+    purrr::map(~{.$quantile <- factor(.$quantile)
+    return(.)
+    })
+  #######
+  figure_name <- "sequencing_depth_metrics.png"
   results1 <- select(bind_rows(purrr::map(results,~dplyr::filter(.,!is.na(assigned)))),-unlabeled_pctg) %>%
     gather("metric","value",-c(methods,quantile,assigned))
   plot.heatmap_plot(results1,"quantile","methods",result_home,figure_name)
+  #######
   figure_name <- "sequencing_depth_unlabeled_pctg.png"
   results_unlabeled_pctg <- dplyr::filter(select(results$assign_results,methods,quantile,unlabeled_pctg),!is.na(unlabeled_pctg))
   ggplot(results_unlabeled_pctg, aes(quantile,methods, fill=unlabeled_pctg)) + 
@@ -94,12 +96,13 @@ plot.sequencing_depth <- function(results,raw_results){
     plot = last_plot(),
     device = 'png',
     path = result_home,
-    width = 3,
-    height = 3,
+    width = 2*length(unique(results_unlabeled_pctg$methods)),
+    height = 2*length(unique(results_unlabeled_pctg$methods)),
     units = "in"
   )
+  #####
   figure_name <- "sequencing_depth_sankey.png"
-  methods <- colnames(select(raw_results,-label))
+  n_methods <- length(colnames(select(raw_results,-c(label,quantile))))
   raw_results1 <- gather(raw_results,"methods","pred",-c(label,quantile)) %>%
     group_by(methods,label,pred,quantile) %>%
     summarize(freq=n()) %>%
@@ -113,20 +116,21 @@ plot.sequencing_depth <- function(results,raw_results){
     scale_x_discrete(limits = c("label", "value"), expand = c(.05, .05)) +
     scale_fill_brewer(type = "qual", palette = "Set1") +
     facet_grid(quantile ~ methods,labeller = label_both)+
-    theme(axis.ticks.y = element_blank(), axis.text.y=element_blank(), 
-          axis.title.y = element_blank())
+    theme(strip.text = element_text(size=n_methods*3),legend.title = element_text(color = "blue", size = n_methods*3),
+          legend.text = element_text(size=n_methods*3))
   ggsave(
     figure_name,
     plot = last_plot(),
     device = 'png',
     path = result_home,
-    width = 20,
-    height = 10,
+    width = n_methods*8,
+    height = n_methods*4,
     units = "in"
   )
 }
 
 plot.batch_effects <- function(results,raw_results){
+  results <- purrr::map(results,utils.get_methods)
   figure_name <- "batch_effects_metrics.png"
   figure_name <- "batch_effects_unlabeled_pctg.png"
   figure_name <- "batch_effects_sankey.png"
@@ -174,7 +178,7 @@ plot.bar_plot <- function(results,x,y,fig_path,fig_name){
 }
 
 plot.sankey_plot <- function(raw_results,label,pred,fig_path,fig_name){
-  
+  n_methods <- length(unique(raw_results$methods))
   ggplot(as.data.frame(raw_results),
          aes_string(y="freq",axis1 = label, axis2 = pred)) +
     geom_alluvium(aes_string(fill = label), width = 1/12) +
@@ -182,14 +186,16 @@ plot.sankey_plot <- function(raw_results,label,pred,fig_path,fig_name){
     geom_label(stat = "stratum", aes(label = after_stat(stratum))) +
     scale_x_discrete(limits = c("label", "value"), expand = c(.05, .05)) +
     scale_fill_brewer(type = "qual", palette = "Set1") +
-    facet_wrap(~ methods,nrow=length(unique(raw_results$methods))%/%2)
+    facet_wrap(~ methods,nrow=n_methods%/%2) +
+    theme(strip.text = element_text(size=3*n_methods),legend.title = element_text(color = "blue", size = 3*n_methods),
+        legend.text = element_text(size=3*n_methods))
   ggsave(
     fig_name,
     plot = last_plot(),
     device = 'png',
     path = fig_path,
-    width = 10,
-    height = 10,
+    width = 5*n_methods,
+    height = 5*n_methods,
     units = "in"
   )
 }
