@@ -11,7 +11,7 @@ experiments.assign.data <- list(
   )
   
 experiments.methods <- list(
-  simple_accuracy=list(cluster=c('seurat','tscan','sc3'),assign=c('scmap_cluster','scmap_cell','chetah'),marker_gene_assign=c("cellassign")), 
+  simple_accuracy=list(cluster=c('seurat','tscan','sc3','liger'),assign=c('scmap_cluster','scmap_cell','chetah'),marker_gene_assign=c()), 
   cell_number=list(cluster=c('seurat','tscan','sc3'),assign=c('scmap_cluster','scmap_cell','chetah'),marker_gene_assign=c("cellassign")),
   sequencing_depth=list(cluster=c('seurat','tscan','sc3'),assign=c('scmap_cluster','scmap_cell','chetah'),marker_gene_assign=c("cellassign")),
   cell_types=list(cluster=c('sc3','seurat','tscan'),assign=c('scmap','chetah','garnet','cellassign'),marker_gene_assign=c("cellassign")),

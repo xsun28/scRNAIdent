@@ -1,6 +1,7 @@
 library(reticulate)
 use_condaenv('r-reticulate')
 library(tensorflow)
+tf$constant("Tensorflow test")
 source("R/config.R")
 source("R/dataset_config.R")
 source("R/experiments_config.R")

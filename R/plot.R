@@ -178,6 +178,7 @@ plot.bar_plot <- function(results,x,y,fig_path,fig_name){
 }
 
 plot.sankey_plot <- function(raw_results,label,pred,fig_path,fig_name){
+  require(ggalluvial)
   n_methods <- length(unique(raw_results$methods))
   ggplot(as.data.frame(raw_results),
          aes_string(y="freq",axis1 = label, axis2 = pred)) +

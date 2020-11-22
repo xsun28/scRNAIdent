@@ -18,10 +18,10 @@ constructor.simple_accuracy <- function(data,config, if_train){
   if(if_train){
     data <- utils.filter(data) %>%
               utils.sampler(sample_num=config$sample_num,types=unique(colData(data)$label))
-    return(data)
   }else{
-    return(utils.filter(data,filter_gene=FALSE))
+    data <- utils.filter(data,filter_gene=FALSE) 
   }
+  data <- data[,!duplicated(colnames(data))]
 }
 
 constructor.cell_number <- function(data,config, if_train){
@@ -38,7 +38,7 @@ constructor.sequencing_depth <- function(data,config,if_train){
     data <- utils.filter(data,filter_gene=FALSE) %>%
       utils.seqDepthSelector(quantile=quantile,right=if_right)
   }
-  data
+  data[,!duplicated(colnames(data))]
 }
 
 constructor.batch_effects <- function(data,config,if_train){
@@ -52,10 +52,11 @@ constructor.batch_effects <- function(data,config,if_train){
     if(!is.na(config$sample_num)){
       data <- utils.sampler(data, sample_num=config$sample_num,types=unique(colData(data)$label))
     }
-    return(data)
   }else{
-    return(utils.filter(data,filter_gene=FALSE))
+    data <- utils.filter(data,filter_gene=FALSE)
   }
+  data[,!duplicated(colnames(data))]
+  
 }
 
 
