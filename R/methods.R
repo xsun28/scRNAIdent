@@ -175,15 +175,33 @@ cluster.sc3 <- function(data) {
   data <- sc3_calc_transfs(data)
   data <- sc3_kmeans(data, ks = k)
   data <- sc3_calc_consens(data)
-  colTb = colData(data)[,1]
+  col_data <- colData(data)
+  colTb = as.vector(col_data[ , grep("sc3_", colnames(col_data))])
 }
 
+#####liger
+cluster.liger <- function(data){
+  require(liger)
+  m_config <- methods.config.liger
+  stopifnot(is(data,"SingleCellExperiment"))
+  data_list <- list(counts(data))
+  names(data_list) <- metadata(data)$study
+  liger_data <- createLiger(data_list)
+  liger_data <- normalize(liger_data)
+  liger_data <- selectGenes(liger_data, var.thresh = c(0.3, 0.875), do.plot = F)
+  liger_data <- scaleNotCenter(liger_data)
+  ###suggestK(liger_data, num.cores = 5, gen.new = T, plot.log2 = F,nrep = 5)
+  k.suggest <- if(purrr::is_null(k.suggest))  25 else m_config$k.suggest
+  thresh <- if(purrr::is_null(m_config$thresh)) 5e-5 else m_config$thresh
+  lambda <- if(purrr::is_null(m_config$lambda)) 5 else m_config$lambda
+  resolution <- if(purrr::is_null(m_config$resolution)) 1.0 else m_config$resolution
+  liger_data <- optimizeALS(liger_data, k=k.suggest, thresh = thresh, lambda=lambda,nrep = 3)
+  liger_data <- quantileAlignSNF(liger_data,resolution = resolution) #SNF clustering and quantile alignment
+  unname(liger_data@clusters)
+}
 
-
-
-
-
-
+######desc
+######singlecellnet
 
 
 
