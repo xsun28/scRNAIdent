@@ -139,7 +139,7 @@ experiments.base <- function(experiment, exp_config){
     assign_results <- bind_cols(assign_results,dplyr::select(marker_gene_assign_results,-label))
   }
   cluster_results <- experiments.base.cluster(experiment,exp_config,assign_data)
-  combined_results <- bind_cols(assign_results,select(cluster_results,-label))
+  combined_results <- bind_cols(assign_results,dplyr::select(cluster_results,-label))
   report_results <- experiments.base.analyze(assign_results,cluster_results)
   list(pred_results=combined_results,analy_results=report_results)
 }
@@ -256,13 +256,13 @@ experiments.batch_effects <- function(experiment){
   total_assign_results <- bind_rows(total_assign_results)
   if(length(methods$marker_gene_assign)>=1){
     marker_gene_assign_results <- experiments.base.marker_gene_assign(experiment,exp_config,assign_data)
-    total_assign_results <- bind_cols(total_assign_results,select(marker_gene_assign_results,-label))
+    total_assign_results <- bind_cols(total_assign_results,dplyr::select(marker_gene_assign_results,-label))
   }
   cluster_results <- experiments.base.cluster(experiment,exp_config,assign_data)
   report_results <- experiments.base.analyze(total_assign_results,cluster_results) %>%
     purrr::map(~{ .$batch_effects_removed <- FALSE
       return(.)})
-  total_raw_results <- bind_cols(total_assign_results,select(cluster_results,-label))
+  total_raw_results <- bind_cols(total_assign_results,dplyr::select(cluster_results,-label))
   total_raw_results$batch_effects_removed <- FALSE
   
   ###remove batch effects from dataset and save
@@ -299,7 +299,7 @@ experiments.batch_effects <- function(experiment){
     report_results_no_be <- experiments.base.analyze(total_assign_results_no_be,cluster_results_no_be) %>%
       purrr::map(~{ .$batch_effects_removed <- TRUE
       return(.)})
-    total_raw_results_no_be <- bind_cols(total_assign_results_no_be,select(cluster_results_no_be,-label))
+    total_raw_results_no_be <- bind_cols(total_assign_results_no_be,dplyr::select(cluster_results_no_be,-label))
     total_raw_results_no_be$batch_effects_removed <- TRUE
   }
   if(!purrr::is_null(report_results_no_be)){
