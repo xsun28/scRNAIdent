@@ -40,7 +40,7 @@ plot.simple_accuracy <- function(results,raw_results){
   
  #####sankey plot
   figure_name <- "simple_accuracy_sankey.png"
-  methods <- colnames(select(raw_results,-label))
+  methods <- colnames(dplyr::select(raw_results,-label))
   raw_results1 <- gather(raw_results,"methods","pred",-label) %>%
                     group_by(methods,label,pred) %>%
                       summarize(freq=n()) %>%
@@ -59,7 +59,7 @@ plot.cell_number <- function(results,raw_results){
   
   ######
   figure_name <- "cell_number_unlabeled_pctg.png"
-  results_unlabeled_pctg <- dplyr::filter(select(results$assign_results,methods,sample_num,unlabeled_pctg),!is.na(unlabeled_pctg))
+  results_unlabeled_pctg <- dplyr::filter(dplyr::select(results$assign_results,methods,sample_num,unlabeled_pctg),!is.na(unlabeled_pctg))
   ggplot(results_unlabeled_pctg, aes(x=sample_num, y=unlabeled_pctg, group=methods)) +
     geom_line(aes(color=methods))+
     geom_point(aes(color=methods))
@@ -81,12 +81,12 @@ plot.sequencing_depth <- function(results,raw_results){
     })
   #######
   figure_name <- "sequencing_depth_metrics.png"
-  results1 <- select(bind_rows(purrr::map(results,~dplyr::filter(.,!is.na(assigned)))),-unlabeled_pctg) %>%
+  results1 <- dplyr::select(bind_rows(purrr::map(results,~dplyr::filter(.,!is.na(assigned)))),-unlabeled_pctg) %>%
     gather("metric","value",-c(methods,quantile,assigned))
   plot.heatmap_plot(results1,"quantile","methods",result_home,figure_name)
   #######
   figure_name <- "sequencing_depth_unlabeled_pctg.png"
-  results_unlabeled_pctg <- dplyr::filter(select(results$assign_results,methods,quantile,unlabeled_pctg),!is.na(unlabeled_pctg))
+  results_unlabeled_pctg <- dplyr::filter(dplyr::select(results$assign_results,methods,quantile,unlabeled_pctg),!is.na(unlabeled_pctg))
   ggplot(results_unlabeled_pctg, aes(quantile,methods, fill=unlabeled_pctg)) + 
     geom_tile() +
     scale_fill_distiller(palette = "RdPu") +
@@ -102,7 +102,7 @@ plot.sequencing_depth <- function(results,raw_results){
   )
   #####
   figure_name <- "sequencing_depth_sankey.png"
-  n_methods <- length(colnames(select(raw_results,-c(label,quantile))))
+  n_methods <- length(colnames(dplyr::select(raw_results,-c(label,quantile))))
   raw_results1 <- gather(raw_results,"methods","pred",-c(label,quantile)) %>%
     group_by(methods,label,pred,quantile) %>%
     summarize(freq=n()) %>%
