@@ -11,6 +11,7 @@ markergene.cellassign <- function(data,file_name){
   
   require(org.Hs.eg.db)
   require(edgeR)
+  marker_config <- markergene.config.cellassign
   rowData(data)$geneName <- rownames(data)
   ensembl_map <- dplyr::transmute(as_tibble(rowData(data)),SYMBOL=geneName)
   #> 'select()' returned 1:1 mapping between keys and columns
@@ -28,6 +29,7 @@ markergene.cellassign <- function(data,file_name){
   colnames(design) <- levels(dge_filt$samples$group)
   v <- voom(dge_filt, design)
   fit <- lmFit(v, design)
+  base_cell_type <- if(purrr::is_null(marker_config$base_cell_type)) unique(colData(data)$label)[[1]] else marker_config$base_cell_type
   args <- purrr::map(1:ncol(combn(cell_lines,2)), ~{ if(combn(cell_lines,2)[,.][[1]]==base_cell_type)
                                                     return(str_glue("{combn(cell_lines,2)[,.][[2]]} - {combn(cell_lines,2)[,.][[1]]}"))
                                               str_glue("{combn(cell_lines,2)[,.][[1]]} - {combn(cell_lines,2)[,.][[2]]}")

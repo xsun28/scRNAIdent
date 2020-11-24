@@ -136,7 +136,7 @@ experiments.base <- function(experiment, exp_config){
   assign_data <- assign_data_results$assign_data
   if(length(methods$marker_gene_assign)>=1){
     marker_gene_assign_results <- experiments.base.marker_gene_assign(experiment,exp_config,assign_data)
-    assign_results <- bind_cols(assign_results,select(marker_gene_assign_results,-label))
+    assign_results <- bind_cols(assign_results,dplyr::select(marker_gene_assign_results,-label))
   }
   cluster_results <- experiments.base.cluster(experiment,exp_config,assign_data)
   combined_results <- bind_cols(assign_results,select(cluster_results,-label))

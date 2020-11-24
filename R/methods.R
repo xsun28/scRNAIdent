@@ -7,6 +7,7 @@ run_assign_methods <- function(method,train_data, test_data,exp_config){
          scmap_cell = assign.scmap_cell(train_data, test_data),
          chetah = assign.chetah(train_data, test_data),
          cellassign = assign.cellassign(train_data,exp_config),
+         singlecellnet = assign.singlecellnet(train_data,test_data),
          stop("No such assigning method")
   )
   
@@ -15,6 +16,7 @@ run_assign_methods <- function(method,train_data, test_data,exp_config){
 run_cluster_methods <- function(method,data){
   switch(method,
          sc3 = cluster.sc3(data),
+         liger = cluster.liger(data),
          seurat = cluster.seurat(data),
          cidr = cluster.cidr(data),
          tscan = cluster.tscan(data),
@@ -87,14 +89,19 @@ assign.cellassign <- function(data,exp_config){
   require(tensorflow)
   require(cellassign)
   require(scran)
+  stopifnot(is(data,"SingleCellExperiment"))
   m_config <- methods.config.cellassign
   marker_gene_file <- exp_config$marker_gene_file
   study <- metadata(data)$study[[1]]
   if(purrr::is_null(marker_gene_file)){
-    if(!file.exists(str_glue("{marker_home}/{study}_markergene_{m_config$marker_gene_method}.RDS")))
+    if(!file.exists(str_glue("{marker_home}/{study}_markergene_{m_config$marker_gene_method}.RDS"))){
+      print(str_glue("Generating {marker_home}/{study}_markergene_{m_config$marker_gene_method}.RDS"))
       markers_mat <- generate_marker_genes(m_config$marker_gene_method,data,str_glue("{marker_home}/{study}_markergene"))
-    else
+    }
+    else{
+      print(str_glue("Loading {marker_home}/{study}_markergene_{m_config$marker_gene_method}.RDS"))
       markers_mat <- read_rds(str_glue("{marker_home}/{study}_markergene_{m_config$marker_gene_method}.RDS"))
+    }
     matchidx <- match(rownames(markers_mat), rownames(data))
     markers_mat <- markers_mat[!is.na(matchidx),]
   }else{
@@ -124,6 +131,73 @@ assign.cellassign <- function(data,exp_config){
                     verbose = FALSE)
   fit$cell_type
 }
+
+######assigning using singlecellnet
+assign.singlecellnet <- function(train_data, test_data){
+  require(singleCellNet)
+  stopifnot(is(train_data,"SingleCellExperiment"))
+  stopifnot(is(test_data,"SingleCellExperiment"))
+  #' extract sampTab and expDat sce object into regular S3 objects
+  #' @param sce_object
+  #' @param exp_type
+  #' @param list
+  #' @export
+  extractSCE <- function(sce_object, exp_type = "counts"){
+    #extract metadata
+    sampTab = as.data.frame(colData(sce_object, internal = TRUE))
+    sampTab$sample_name = rownames(sampTab)
+    
+    #extract expression matrix
+    if(exp_type == "counts"){
+      expDat = counts(sce_object)
+    }
+    
+    if(exp_type == "normcounts"){
+      expDat = normcounts(sce_object)
+    }
+    
+    if(exp_type == "logcounts"){
+      expDat = logcounts(sce_object)
+    }
+    
+    return(list(sampTab = sampTab, expDat = expDat))
+  }
+
+  m_config <- methods.config.singlecellnet 
+  set.seed(100) #can be any random seed number
+  train_scefile <- extractSCE(train_data, exp_type = "counts") 
+  train_metadata <- train_scefile$sampTab
+  train_expdata <- train_scefile$expDat
+  test_scefile <- extractSCE(test_data, exp_type = "counts") 
+  test_metadata <- test_scefile$sampTab
+  test_expdata <- test_scefile$expDat
+  
+  if(m_config$cross_species){
+    common_gene_file <- str_glue("{data_home}{m_config$common_gene_file}")
+    oTab <- utils_loadObject(fname = "../data/human_mouse_genes_Jul_24_2018.rda")
+    aa <- csRenameOrth(expQuery = test_expdata, expTrain = train_expdata, orthTable = oTab)
+    test_expdata <- aa[['expQuery']]
+    train_expdata <- aa[['expTrain']]
+  }else{
+    commonGenes<-intersect(rownames(train_expdata), rownames(test_expdata))
+    train_expdata <- train_expdata[commonGenes, ]
+    test_expdata <- test_expdata[commonGenes, ]
+  }
+  ncells <- if(purrr::is_null(m_config$ncells)) 100 else m_config$ncells
+  nTopGenes <- if(purrr::is_null(m_config$nTopGenes)) 10 else m_config$nTopGenes
+  nRand <- if(purrr::is_null(m_config$nRand)) 70 else m_config$nRand
+  nTrees <- if(purrr::is_null(m_config$nTrees)) 1000 else m_config$nTrees
+  nTopGenePairs <- if(purrr::is_null(m_config$nTopGenePairs)) 25 else m_config$nTopGenePairs
+  
+  class_info<-scn_train(stTrain = train_metadata, expTrain = train_expdata, nTopGenes = nTopGenes, nRand = nRand, nTrees = nTrees, nTopGenePairs = nTopGenePairs, 
+                        dLevel = "label", colName_samp = "sample_name")
+  #predict
+  pred_results <- scn_predict(cnProc=class_info[['cnProc']], expDat=test_expdata, nrand = 0)
+  pred_labels <- assign_cate(classRes = pred_results, sampTab = test_metadata, cThresh = 0.5)
+  pred_labels$category
+}
+
+
 
 ### clustering using Seurat
 cluster.seurat <- function(data) {
@@ -191,7 +265,7 @@ cluster.liger <- function(data){
   liger_data <- selectGenes(liger_data, var.thresh = c(0.3, 0.875), do.plot = F)
   liger_data <- scaleNotCenter(liger_data)
   ###suggestK(liger_data, num.cores = 5, gen.new = T, plot.log2 = F,nrep = 5)
-  k.suggest <- if(purrr::is_null(k.suggest))  25 else m_config$k.suggest
+  k.suggest <- if(purrr::is_null(m_config$k.suggest))  25 else m_config$k.suggest
   thresh <- if(purrr::is_null(m_config$thresh)) 5e-5 else m_config$thresh
   lambda <- if(purrr::is_null(m_config$lambda)) 5 else m_config$lambda
   resolution <- if(purrr::is_null(m_config$resolution)) 1.0 else m_config$resolution
@@ -200,8 +274,8 @@ cluster.liger <- function(data){
   unname(liger_data@clusters)
 }
 
-######desc
-######singlecellnet
+
+
 
 
 
