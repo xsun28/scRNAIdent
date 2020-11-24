@@ -7,9 +7,11 @@ analysis.run <- function(results,methods,metrics){
                                 AMI="analysis.cluster.AMI",
                                 FMI="analysis.cluster.FMI",
                                 unlabeled_pctg="analysis.assign.unlabeled_pctg")
+  
   analysis_results <- as.data.frame(matrix(nrow = length(methods), ncol = length(metrics)))
   rownames(analysis_results) <- methods
   colnames(analysis_results) <- metrics
+  if(dim(results)[1] == 0) return(analysis_results)
   for (m in methods){
     for(metric in metrics){
       f <- get(metrics_functions_mapping[[metric]])

@@ -42,9 +42,9 @@ constructor.sequencing_depth <- function(data,config,if_train){
 }
 
 constructor.batch_effects <- function(data,config,if_train){
-  if(is_list(data)&length(data)>1){
+  if(purrr::is_list(data)&length(data)>1){
     data <- utils.combine_SCEdatasets(data,if_combined = TRUE)
-  }else if(is_list(data)&length(data)==1){
+  }else if(purrr::is_list(data)&length(data)==1){
     data <- data[[1]]
   }
   if(if_train){
