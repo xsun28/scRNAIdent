@@ -7,6 +7,7 @@ run_assign_methods <- function(method,train_data, test_data,exp_config){
          scmap_cell = assign.scmap_cell(train_data, test_data),
          chetah = assign.chetah(train_data, test_data),
          cellassign = assign.cellassign(train_data,exp_config),
+         garnett = assign.garnett(train_data,exp_config),
          singlecellnet = assign.singlecellnet(train_data,test_data),
          stop("No such assigning method")
   )
@@ -82,6 +83,10 @@ assign.chetah <- function(train_data, test_data){
     #CHETAH generates generic names for the intermediate types: “Unassigned” for cells that are classified to the very first node, 
     #and “Node1”, “Node2”, etc for the additional nodes
     unname(test_data$celltype_CHETAH)
+}
+#######assigning using garnet
+assign.garnett <- function(data,exp_config){
+  
 }
 
 ###assigning using cellassign
