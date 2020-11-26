@@ -218,7 +218,7 @@ cluster.seurat <- function(data) {
   seuset <- RunPCA(object = seuset)
   seuset <- FindNeighbors(object = seuset,dims = 1:m_config[['pc_dims']])
   seuset <- FindClusters(object = seuset, resolution = m_config[['resolution']])
-  unname(seuset$seurat_clusters)
+  as.integer(unname(seuset$seurat_clusters))
 }
 
 ### TSCAN
@@ -232,7 +232,7 @@ cluster.tscan <- function(data) {
     lpsmclust <- exprmclust(procdata, clusternum=m_config[['k']])
   else
     lpsmclust <- exprmclust(procdata)
-  unname(lpsmclust$clusterid)
+  as.integer(unname(lpsmclust$clusterid))
 }
 
 ### SC3
@@ -256,6 +256,7 @@ cluster.sc3 <- function(data) {
   data <- sc3_calc_consens(data)
   col_data <- colData(data)
   colTb = as.vector(col_data[ , grep("sc3_", colnames(col_data))])
+  as.integer(colTb)
 }
 
 #####liger
@@ -264,7 +265,7 @@ cluster.liger <- function(data){
   m_config <- methods.config.liger
   stopifnot(is(data,"SingleCellExperiment"))
   data_list <- list(counts(data))
-  names(data_list) <- metadata(data)$study
+  names(data_list) <- metadata(data)$study[[1]]
   liger_data <- createLiger(data_list)
   liger_data <- normalize(liger_data)
   liger_data <- selectGenes(liger_data, var.thresh = c(0.3, 0.875), do.plot = F)
@@ -276,7 +277,7 @@ cluster.liger <- function(data){
   resolution <- if(purrr::is_null(m_config$resolution)) 1.0 else m_config$resolution
   liger_data <- optimizeALS(liger_data, k=k.suggest, thresh = thresh, lambda=lambda,nrep = 3)
   liger_data <- quantileAlignSNF(liger_data,resolution = resolution) #SNF clustering and quantile alignment
-  unname(liger_data@clusters)
+  as.integer(unname(liger_data@clusters))
 }
 
 

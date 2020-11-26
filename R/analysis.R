@@ -24,18 +24,21 @@ analysis.run <- function(results,methods,metrics){
 ###Adjusted rand index
 analysis.cluster.ARI <- function(true,pred){
   require(aricode)
+  pred[is.na(pred)] <- -1 ####replace na with -1 unclustered cells
   ARI(true,pred)
 }
 
 ###Adjusted mutual information
 analysis.cluster.AMI <- function(true,pred){
   require(aricode)
+  pred[is.na(pred)] <- -1
   AMI(true,pred)
 }
 
 ###Fowlkes Mallows index
 analysis.cluster.FMI <- function(true,pred){
   require(dendextend)
+  pred[is.na(pred)] <- -1
   FM_index(true,pred)[[1]]
 }
 
