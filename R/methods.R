@@ -7,7 +7,7 @@ run_assign_methods <- function(method,train_data, test_data,exp_config){
          scmap_cell = assign.scmap_cell(train_data, test_data),
          chetah = assign.chetah(train_data, test_data),
          cellassign = assign.cellassign(train_data,exp_config),
-         garnett = assign.garnett(train_data,exp_config),
+         garnett = assign.garnett(train_data,test_data,exp_config),
          singlecellnet = assign.singlecellnet(train_data,test_data),
          stop("No such assigning method")
   )
@@ -84,10 +84,82 @@ assign.chetah <- function(train_data, test_data){
     #and “Node1”, “Node2”, etc for the additional nodes
     unname(test_data$celltype_CHETAH)
 }
+
+
 #######assigning using garnet
-assign.garnett <- function(data,exp_config){
+assign.garnett <- function(train_data,test_data,exp_config){
+  require(garnett)
+  require(monocle)
+  require(SingleCellExperiment)
+  require(org.Hs.eg.db)
   
+  process_data <- function(data, gene_name_type){
+    mat <- counts(data)
+    if(gene_name_type=="SYMBOL"){
+      geneData <- as.tibble(rowData(data))
+      geneData$fullGeneName <- rownames(data) 
+      geneData <- dplyr::group_by(geneData,geneName) %>%
+        dplyr::filter(count==max(count))
+      mat <- counts(data[geneData$fullGeneName])
+      rownames(mat) <- geneData$geneName
+      geneData$gene_short_name <- geneData$geneName
+      geneData <- as.data.frame(geneData)
+      rownames(geneData) <- geneData$geneName
+    }else if(gene_name_type=="ENSEMBL"){
+      geneData <- rowData(data)
+      mat <- counts(data)
+      rownames(mat) <- geneData$EnsembleId
+      geneData$gene_short_name <- geneData$geneName
+      geneData <- as.data.frame(geneData)
+      rownames(geneData) <- geneData$EnsembleId
+    }else{
+      stop(str_glue("Unknown gene name type: {gene_name_type}"))
+    }
+    
+
+    cellData <- as.data.frame(colData(data))
+    # create a new CDS object
+    phenoData <- new("AnnotatedDataFrame", data = cellData)
+    featureData <- new("AnnotatedDataFrame", data = geneData)
+    cds <- newCellDataSet(as(mat, "dgCMatrix"),
+                          phenoData = phenoData,
+                          featureData = featureData)
+    
+    # generate size factors for normalization later
+    cds <- estimateSizeFactors(cds)
+  }
+  
+  stopifnot(is(test_data,"SingleCellExperiment"))
+  print("start method garnett")
+  m_config <- methods.config.garnett
+  gene_name_type <- exp_config$gene_name_type
+  pretrained_classifier_name <- exp_config$pretrained_classifier
+  if(is_null(pretrained_classifier_name)){
+    stopifnot(is(train_data,"SingleCellExperiment"))
+    cds_train <- process_data(train_data, gene_name_type)
+    set.seed(260)
+    marker_file_path <- m_config$marker_file_path
+    classifier <- train_cell_classifier(cds = cds_train,
+                                             marker_file = marker_file_path,
+                                             db=org.Hs.eg.db,
+                                             cds_gene_id_type = gene_name_type,
+                                             num_unknown = 50,
+                                             marker_file_gene_id_type = gene_name_type)
+  }else{
+    classifier_path <- str_glue("{pretrained_classifier_home}/{pretrained_classifier_name}")
+    classifier <- readRDS(classifier_path)
+  }
+  cds_test <- process_data(test_data, gene_name_type)
+  
+  cds_test <- classify_cells(cds_test, classifier,
+                             db = org.Hs.eg.db,
+                             cluster_extend = TRUE,
+                             cds_gene_id_type = gene_name_type)
+  unlist(list(pData(cds_test)$cell_type))
 }
+
+
+
 
 ###assigning using cellassign
 assign.cellassign <- function(data,exp_config){

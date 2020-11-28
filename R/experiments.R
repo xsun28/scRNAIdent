@@ -1,5 +1,7 @@
 library(reticulate)
 use_condaenv('r-reticulate')
+library(stringr)
+library(tidyverse)
 library(tensorflow)
 tf$constant("Tensorflow test")
 source("R/config.R")
@@ -12,7 +14,6 @@ source("R/analysis.R")
 source("R/output.R")
 source("R/preprocess_data.R")
 source("R/plot.R")
-library(tidyverse)
 library(SingleCellExperiment)
 ##Wrapper
 runExperiments <- function(experiment=c("simple_accuracy","cell_number", "sequencing_depth","cell_types", "batch_effects")){
@@ -317,9 +318,8 @@ experiments.batch_effects <- function(experiment){
 experiments.run_assign <- function(methods, train_data, test_data=NA, exp_config){
   if_cv <- exp_config$cv
   if(if_cv){
-    cv_folds <- exp_config$cv_fold
     print('start cross validation')
-    results <- experiments.run_cv(methods,train_data,cv_folds)
+    results <- experiments.run_cv(methods,train_data,exp_config)
   }else{
     results <- as_tibble(data.frame(matrix(nrow=dim(colData(test_data))[[1]],ncol=length(methods))))
     colnames(results) <- methods
@@ -356,10 +356,11 @@ experiments.run_cluster <- function(methods,data,exp_config){
 
 
 ###cross validation function
-experiments.run_cv <- function(methods, data,cv_folds){
+experiments.run_cv <- function(methods, data,exp_config){
   require(caret)
   require(tidyverse)
   stopifnot(is(data,"SingleCellExperiment"))
+  cv_folds <- exp_config$cv_fold
   folds <- createFolds(factor(colData(data)$label),cv_folds,returnTrain = TRUE)
   combined_results <- as_tibble(data.frame(matrix(nrow=dim(colData(data))[[1]],ncol=length(methods))))
   colnames(combined_results) <- methods
@@ -369,7 +370,7 @@ experiments.run_cv <- function(methods, data,cv_folds){
     test_data <- data[,-folds[[i]]]
     for(m in methods){
       print(str_glue('start assign method {m} in {i}th fold of CV'))
-      pred_labels <- run_assign_methods(m,train_data,test_data,NULL)
+      pred_labels <- run_assign_methods(m,train_data,test_data,exp_config)
       combined_results[[m]][-folds[[i]]] <- pred_labels
     }
   }
