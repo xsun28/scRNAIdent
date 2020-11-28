@@ -11,7 +11,7 @@ experiments.assign.data <- list(
   )
   
 experiments.methods <- list(
-  simple_accuracy=list(cluster=c('seurat','tscan','sc3','liger'),assign=c('scmap_cluster','scmap_cell','chetah','singlecellnet'),marker_gene_assign=c("cellassign")), 
+  simple_accuracy=list(cluster=c('seurat','tscan','sc3','liger'),assign=c('scmap_cluster','scmap_cell','chetah','singlecellnet','garnett'),marker_gene_assign=c("cellassign")), 
   cell_number=list(cluster=c('seurat','tscan','sc3','liger'),assign=c('scmap_cluster','scmap_cell','chetah','singlecellnet'),marker_gene_assign=c("cellassign")),
   sequencing_depth=list(cluster=c('seurat','tscan','sc3','liger'),assign=c('scmap_cluster','scmap_cell','chetah','singlecellnet'),marker_gene_assign=c("cellassign")),
   cell_types=list(cluster=c('sc3','seurat','tscan','liger'),assign=c('scmap','chetah','garnet','cellassign','singlecellnet'),marker_gene_assign=c("cellassign")),
@@ -22,12 +22,12 @@ experiments.methods <- list(
 
 experiments.parameters <- list(
   simple_accuracy=list(sample_num=300, cv=TRUE, cv_fold=5,metrics=c('ARI','AMI','FMI'),
-                       marker_gene_file=NULL),
+                       marker_gene_file=NULL,gene_name_type="ENSEMBL",pretrained_classifier="hsPBMC_20191017.rds"),
   cell_number=list(sample_num=c(100,200,400),cv=TRUE,cv_fold=5,metrics=c('ARI','AMI','FMI'),
-                   marker_gene_file="PBMC_markergene_seurat.RDS"),
+                   marker_gene_file="PBMC_markergene_seurat.RDS",gene_name_type="ENSEMBL",pretrained_classifier="hsPBMC_20191017.rds"),
   sequencing_depth=list(quantile=list(low=0.2,high=0.8),cv=TRUE,cv_fold=5,metrics=c('ARI','AMI','FMI'),
-                        marker_gene_file="PBMC_markergene_seurat.RDS"),
+                        marker_gene_file="PBMC_markergene_seurat.RDS",gene_name_type="ENSEMBL",pretrained_classifier="hsPBMC_20191017.rds"),
   cell_types=list(),
   batch_effects=list(sample_num=NA,cv=FALSE,remove_batch=TRUE,metrics=c('ARI','AMI','FMI'),
-                     marker_gene_file="pancreasMarkerGenes.csv")
+                     marker_gene_file="pancreasMarkerGenes.csv",gene_name_type="SYMBOL")
 )
