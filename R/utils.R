@@ -1,5 +1,6 @@
 source('R/config.R')
 source('R/dataset_config.R')
+source('R/marker_gene.R')
 library(tidyverse)
 library(stringr)
 ###load a dataset
@@ -190,4 +191,33 @@ utils.get_methods <- function(data){
   stopifnot(is(data,"data.frame"))
   data$methods <- unlist(purrr::map(rownames(data),~str_split(.,"\\.\\.\\.")[[1]][[1]]))
   data
+}
+
+utils.check_marker_genes <- function(data,marker_gene_file,generated_marker_gene_file,marker_gene_method,study){
+  
+  if(purrr::is_null(marker_gene_file)){
+    if(!file.exists(str_glue("{marker_home}/{generated_marker_gene_file}.RDS"))){
+      print(str_glue("Generating {marker_home}/{generated_marker_gene_file}.RDS"))
+      markers_mat <- generate_marker_genes(marker_gene_method,data,str_glue("{marker_home}/{study}_markergene"))
+    }
+    else{
+      print(str_glue("Loading {marker_home}/{generated_marker_gene_file}.RDS"))
+      markers_mat <- read_rds(str_glue("{marker_home}/{generated_marker_gene_file}.RDS"))
+    }
+    matchidx <- match(rownames(markers_mat), rownames(data))
+    markers_mat <- markers_mat[!is.na(matchidx),]
+  }else{
+    markers<- read.csv(str_glue("{marker_home}/{marker_gene_file}"))
+    markers_mat <- matrix(0, nrow(markers), length(unique(markers$CellType)))
+    for(i in 1:nrow(markers)) {
+      idx0 <- match(markers$CellType[i], unique(markers$CellType))
+      markers_mat[i, idx0] <- 1
+    }
+    rownames(markers_mat) <- markers$Marker
+    colnames(markers_mat) <- unique(markers$CellType)
+    gene_names <- if(length(rowData(data)$geneName)>0) rowData(data)$geneName else rownames(data) ##PBMC data gene name is not same as rownames
+    matchidx <- match(markers[,1], gene_names)
+    markers_mat <- markers_mat[!is.na(matchidx),]
+  }
+  markers_mat
 }

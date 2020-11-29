@@ -22,12 +22,12 @@ experiments.methods <- list(
 
 experiments.parameters <- list(
   simple_accuracy=list(sample_num=300, cv=TRUE, cv_fold=5,metrics=c('ARI','AMI','FMI'),
-                       marker_gene_file=NULL,gene_name_type="ENSEMBL",pretrained_classifier="hsPBMC_20191017.rds"),
+                       marker_gene_file=NULL),
   cell_number=list(sample_num=c(100,200,400),cv=TRUE,cv_fold=5,metrics=c('ARI','AMI','FMI'),
-                   marker_gene_file="PBMC_markergene_seurat.RDS",gene_name_type="ENSEMBL",pretrained_classifier="hsPBMC_20191017.rds"),
+                   marker_gene_file=NULL),
   sequencing_depth=list(quantile=list(low=0.2,high=0.8),cv=TRUE,cv_fold=5,metrics=c('ARI','AMI','FMI'),
-                        marker_gene_file="PBMC_markergene_seurat.RDS",gene_name_type="ENSEMBL",pretrained_classifier="hsPBMC_20191017.rds"),
+                        marker_gene_file=NULL),
   cell_types=list(),
   batch_effects=list(sample_num=NA,cv=FALSE,remove_batch=TRUE,metrics=c('ARI','AMI','FMI'),
-                     marker_gene_file="pancreasMarkerGenes.csv",gene_name_type="SYMBOL")
+                     marker_gene_file="pancreasMarkerGenes.csv")
 )
