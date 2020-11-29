@@ -1,6 +1,7 @@
 source("R/methods_config.R")
 source("R/config.R")
 source("R/marker_gene.R")
+source("R/utils.R")
 run_assign_methods <- function(method,train_data, test_data,exp_config){
   switch(method,
          scmap_cluster = assign.scmap_cluster(train_data, test_data),
@@ -92,64 +93,42 @@ assign.garnett <- function(train_data,test_data,exp_config){
   require(monocle)
   require(SingleCellExperiment)
   require(org.Hs.eg.db)
-  
-  process_data <- function(data, gene_name_type){
-    mat <- counts(data)
-    if(gene_name_type=="SYMBOL"){
-      geneData <- as.tibble(rowData(data))
-      geneData$fullGeneName <- rownames(data) 
-      geneData <- dplyr::group_by(geneData,geneName) %>%
-        dplyr::filter(count==max(count))
-      mat <- counts(data[geneData$fullGeneName])
-      rownames(mat) <- geneData$geneName
-      geneData$gene_short_name <- geneData$geneName
-      geneData <- as.data.frame(geneData)
-      rownames(geneData) <- geneData$geneName
-    }else if(gene_name_type=="ENSEMBL"){
-      geneData <- rowData(data)
-      mat <- counts(data)
-      rownames(mat) <- geneData$EnsembleId
-      geneData$gene_short_name <- geneData$geneName
-      geneData <- as.data.frame(geneData)
-      rownames(geneData) <- geneData$EnsembleId
-    }else{
-      stop(str_glue("Unknown gene name type: {gene_name_type}"))
+  print("start method garnett")
+  stopifnot(is(test_data,"SingleCellExperiment"))
+  stopifnot(is(train_data,"SingleCellExperiment"))
+  m_config <- methods.config.garnett
+  study <- metadata(train_data)$study[[1]]
+  gene_name_type <- m_config[[study]]$gene_name_type
+  pretrained_classifier_name <- m_config[[study]]$pretrained_classifier
+
+  if(is_null(pretrained_classifier_name)){
+    marker_file_path <- m_config[[study]]$marker_file_path
+    if(purrr::is_null(marker_file_path)||!file.exists(str_glue("{marker_home}/{marker_file_path}"))){
+      print("Garnett marker file not exist, generating marker file...")
+      if(purrr::is_null(marker_file_path))
+        marker_file_path <- str_glue("Garnett_{study}_marker_{gene_name_type}.txt")
+      marker_gene_file <- exp_config$marker_gene_file
+      generated_marker_gene_file <- str_glue("{study}_markergene_{m_config[[study]]$marker_gene_method}")
+      marker_gene_method <- m_config[[study]]$marker_gene_method
+      markers_mat <- utils.check_marker_genes(train_data,marker_gene_file, generated_marker_gene_file,marker_gene_method,study) 
+      assign.garnett.generate_marker_file(markers_mat,marker_file_path,gene_name_type)
     }
     
-
-    cellData <- as.data.frame(colData(data))
-    # create a new CDS object
-    phenoData <- new("AnnotatedDataFrame", data = cellData)
-    featureData <- new("AnnotatedDataFrame", data = geneData)
-    cds <- newCellDataSet(as(mat, "dgCMatrix"),
-                          phenoData = phenoData,
-                          featureData = featureData)
     
-    # generate size factors for normalization later
-    cds <- estimateSizeFactors(cds)
-  }
-  
-  stopifnot(is(test_data,"SingleCellExperiment"))
-  print("start method garnett")
-  m_config <- methods.config.garnett
-  gene_name_type <- exp_config$gene_name_type
-  pretrained_classifier_name <- exp_config$pretrained_classifier
-  if(is_null(pretrained_classifier_name)){
-    stopifnot(is(train_data,"SingleCellExperiment"))
-    cds_train <- process_data(train_data, gene_name_type)
+    cds_train <- assign.garnett.process_data(train_data, gene_name_type)
     set.seed(260)
-    marker_file_path <- m_config$marker_file_path
     classifier <- train_cell_classifier(cds = cds_train,
-                                             marker_file = marker_file_path,
+                                             marker_file = str_glue("{marker_home}/{marker_file_path}"),
                                              db=org.Hs.eg.db,
                                              cds_gene_id_type = gene_name_type,
                                              num_unknown = 50,
                                              marker_file_gene_id_type = gene_name_type)
+    write_rds(classifier,str_glue("{pretrained_classifier_home}/pretrained_{study}_{gene_name_type}_classifier.rds"))
   }else{
     classifier_path <- str_glue("{pretrained_classifier_home}/{pretrained_classifier_name}")
     classifier <- readRDS(classifier_path)
   }
-  cds_test <- process_data(test_data, gene_name_type)
+  cds_test <- assign.garnett.process_data(test_data, gene_name_type)
   
   cds_test <- classify_cells(cds_test, classifier,
                              db = org.Hs.eg.db,
@@ -158,6 +137,70 @@ assign.garnett <- function(train_data,test_data,exp_config){
   unlist(list(pData(cds_test)$cell_type))
 }
 
+
+assign.garnett.process_data <- function(data, gene_name_type){
+  mat <- counts(data)
+  if(gene_name_type=="SYMBOL"){
+    geneData <- as.tibble(rowData(data))
+    geneData$fullGeneName <- rownames(data) 
+    geneData <- dplyr::group_by(geneData,geneName) %>%
+      dplyr::filter(count==max(count))
+    mat <- counts(data[geneData$fullGeneName])
+    rownames(mat) <- geneData$geneName
+    geneData$gene_short_name <- geneData$geneName
+    geneData <- as.data.frame(geneData)
+    rownames(geneData) <- geneData$geneName
+  }else if(gene_name_type=="ENSEMBL"){
+    geneData <- rowData(data)
+    mat <- counts(data)
+    rownames(mat) <- geneData$EnsembleId
+    geneData$gene_short_name <- geneData$geneName
+    geneData <- as.data.frame(geneData)
+    rownames(geneData) <- geneData$EnsembleId
+  }else{
+    stop(str_glue("Unknown gene name type: {gene_name_type}"))
+  }
+  
+  
+  cellData <- as.data.frame(colData(data))
+  # create a new CDS object
+  phenoData <- new("AnnotatedDataFrame", data = cellData)
+  featureData <- new("AnnotatedDataFrame", data = geneData)
+  cds <- newCellDataSet(as(mat, "dgCMatrix"),
+                        phenoData = phenoData,
+                        featureData = featureData)
+  
+  # generate size factors for normalization later
+  cds <- estimateSizeFactors(cds)
+}
+
+assign.garnett.generate_marker_file <- function(markers_mat,marker_file_path,gene_name_type){
+
+  if(gene_name_type == "SYMBOL"){
+    gene_names <- rownames(markers_mat) %>%
+                    purrr::map_chr(~{names <- str_split(.,"\\t")[[1]]
+                                      return(names[which(!str_detect(names,"^ENSG0+"))])
+                                      })
+  }else{
+    gene_names <- rownames(markers_mat) %>%
+      purrr::map_chr(~{names <- str_split(.,"\\t")[[1]]
+      return(names[which(str_detect(names,"^ENSG0+"))])
+      })
+  }
+  rownames(markers_mat) <- gene_names
+  cell_types <- colnames(markers_mat)
+  marker_file_path <- str_glue("{marker_home}/{marker_file_path}")
+  print(str_glue("Generating Garnett marker file: {marker_file_path}"))
+  for(t in cell_types){
+    line <- str_glue(">{t}")
+    write(line,file=marker_file_path, append = TRUE)
+
+    line <- str_c(names(markers_mat[which(markers_mat[,t] > 0),t]),collapse=", ")
+    line <- str_c("expressed: ",line)
+    write(line,file=marker_file_path,append = TRUE)
+  }
+}
+  
 
 
 
@@ -170,31 +213,9 @@ assign.cellassign <- function(data,exp_config){
   m_config <- methods.config.cellassign
   marker_gene_file <- exp_config$marker_gene_file
   study <- metadata(data)$study[[1]]
-  if(purrr::is_null(marker_gene_file)){
-    if(!file.exists(str_glue("{marker_home}/{study}_markergene_{m_config$marker_gene_method}.RDS"))){
-      print(str_glue("Generating {marker_home}/{study}_markergene_{m_config$marker_gene_method}.RDS"))
-      markers_mat <- generate_marker_genes(m_config$marker_gene_method,data,str_glue("{marker_home}/{study}_markergene"))
-    }
-    else{
-      print(str_glue("Loading {marker_home}/{study}_markergene_{m_config$marker_gene_method}.RDS"))
-      markers_mat <- read_rds(str_glue("{marker_home}/{study}_markergene_{m_config$marker_gene_method}.RDS"))
-    }
-    matchidx <- match(rownames(markers_mat), rownames(data))
-    markers_mat <- markers_mat[!is.na(matchidx),]
-  }else{
-    markers<- read.csv(str_glue("{marker_home}/{marker_gene_file}"))
-    markers_mat <- matrix(0, nrow(markers), length(unique(markers$CellType)))
-    for(i in 1:nrow(markers)) {
-      idx0 <- match(markers$CellType[i], unique(markers$CellType))
-      markers_mat[i, idx0] <- 1
-    }
-    rownames(markers_mat) <- markers$Marker
-    colnames(markers_mat) <- unique(markers$CellType)
-    gene_names <- if(length(rowData(data)$geneName)>0) rowData(data)$geneName else rownames(data) ##PBMC data gene name is not same as rownames
-    matchidx <- match(markers[,1], gene_names)
-    markers_mat <- markers_mat[!is.na(matchidx),]
-  }
-
+  generated_marker_gene_file <- str_glue("{study}_markergene_{m_config$marker_gene_method}")
+  marker_gene_method <- m_config$marker_gene_method
+  markers_mat <- utils.check_marker_genes(marker_gene_file, generated_marker_gene_file,marker_gene_method,study) 
   counts(data) <- as.matrix(counts(data))
   data$celltypes <- colData(data)$label
   s <- computeSumFactors(data) %>% 
