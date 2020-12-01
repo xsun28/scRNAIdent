@@ -219,5 +219,5 @@ utils.check_marker_genes <- function(data,marker_gene_file,generated_marker_gene
     matchidx <- match(markers[,1], gene_names)
     markers_mat <- markers_mat[!is.na(matchidx),]
   }
-  markers_mat
+  list(markers_mat=markers_mat,matchidx=matchidx)
 }
