@@ -12,11 +12,11 @@ experiments.assign.data <- list(
   
 experiments.methods <- list(
   simple_accuracy=list(cluster=c('seurat','tscan','sc3','liger'),assign=c('scmap_cluster','scmap_cell','chetah','singlecellnet','garnett'),marker_gene_assign=c("cellassign")), 
-  cell_number=list(cluster=c('seurat','tscan','sc3','liger'),assign=c('scmap_cluster','scmap_cell','chetah','singlecellnet'),marker_gene_assign=c("cellassign")),
-  sequencing_depth=list(cluster=c('seurat','tscan','sc3','liger'),assign=c('scmap_cluster','scmap_cell','chetah','singlecellnet'),marker_gene_assign=c("cellassign")),
+  cell_number=list(cluster=c('seurat','tscan','sc3','liger'),assign=c('scmap_cluster','scmap_cell','chetah','singlecellnet','garnett'),marker_gene_assign=c("cellassign")),
+  sequencing_depth=list(cluster=c('seurat','tscan','sc3','liger'),assign=c('scmap_cluster','scmap_cell','chetah','singlecellnet','garnett'),marker_gene_assign=c("cellassign")),
   cell_types=list(cluster=c('sc3','seurat','tscan','liger'),assign=c('scmap','chetah','garnet','cellassign','singlecellnet'),marker_gene_assign=c("cellassign")),
-  batch_effects=list(cluster=c('seurat','tscan','sc3','liger'),assign=c('scmap_cluster','scmap_cell','chetah','singlecellnet'),marker_gene_assign=c(),
-                     cluster_batch_free=c('seurat','tscan','sc3','liger'), assign_batch_free=c('chetah','singlecellnet'), marker_gene_assign_batch_free=c()
+  batch_effects=list(cluster=c('seurat','tscan','sc3','liger'),assign=c('scmap_cluster','scmap_cell','chetah','singlecellnet','garnett'),marker_gene_assign=c(),
+                     cluster_batch_free=c('seurat','tscan','sc3','liger'), assign_batch_free=c('chetah','singlecellnet','garnett'), marker_gene_assign_batch_free=c()
                      )
 )
 

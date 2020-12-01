@@ -110,7 +110,9 @@ assign.garnett <- function(train_data,test_data,exp_config){
       marker_gene_file <- exp_config$marker_gene_file
       generated_marker_gene_file <- str_glue("{study}_markergene_{m_config[[study]]$marker_gene_method}")
       marker_gene_method <- m_config[[study]]$marker_gene_method
-      markers_mat <- utils.check_marker_genes(train_data,marker_gene_file, generated_marker_gene_file,marker_gene_method,study) 
+      check_results <- utils.check_marker_genes(train_data,marker_gene_file, generated_marker_gene_file,marker_gene_method,study) 
+      markers_mat <- check_results$markers_mat
+      matchidx <- check_results$matchidx
       assign.garnett.generate_marker_file(markers_mat,marker_file_path,gene_name_type)
     }
     
@@ -215,7 +217,9 @@ assign.cellassign <- function(data,exp_config){
   study <- metadata(data)$study[[1]]
   generated_marker_gene_file <- str_glue("{study}_markergene_{m_config$marker_gene_method}")
   marker_gene_method <- m_config$marker_gene_method
-  markers_mat <- utils.check_marker_genes(marker_gene_file, generated_marker_gene_file,marker_gene_method,study) 
+  check_results <- utils.check_marker_genes(data,marker_gene_file, generated_marker_gene_file,marker_gene_method,study) 
+  markers_mat <- check_results$markers_mat
+  matchidx <- check_results$matchidx
   counts(data) <- as.matrix(counts(data))
   data$celltypes <- colData(data)$label
   s <- computeSumFactors(data) %>% 

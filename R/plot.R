@@ -195,8 +195,8 @@ plot.sankey_plot <- function(raw_results,label,pred,fig_path,fig_name){
     plot = last_plot(),
     device = 'png',
     path = fig_path,
-    width = 5*n_methods,
-    height = 5*n_methods,
+    width = 3.5*n_methods,
+    height = 3.5*n_methods,
     units = "in"
   )
 }
