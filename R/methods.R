@@ -194,12 +194,17 @@ assign.garnett.generate_marker_file <- function(markers_mat,marker_file_path,gen
   marker_file_path <- str_glue("{marker_home}/{marker_file_path}")
   print(str_glue("Generating Garnett marker file: {marker_file_path}"))
   for(t in cell_types){
-    line <- str_glue(">{t}")
-    write(line,file=marker_file_path, append = TRUE)
-
-    line <- str_c(names(markers_mat[which(markers_mat[,t] > 0),t]),collapse=", ")
-    line <- str_c("expressed: ",line)
-    write(line,file=marker_file_path,append = TRUE)
+    genes <- names(markers_mat[which(markers_mat[,t] > 0),t])
+    if(length(genes)>0){
+      
+        line <- str_glue(">{t}")
+        write(line,file=marker_file_path, append = TRUE)
+    
+        line <- str_c(genes,collapse=", ")
+    
+        line <- str_c("expressed: ",line)
+        write(line,file=marker_file_path,append = TRUE)
+    }
   }
 }
   
@@ -340,9 +345,11 @@ cluster.sc3 <- function(data) {
   data <- logNormCounts(data)
   m_config <- methods.config.sc3
   k <- m_config$k
+  gene_filter <- m_config$gene_filter
+  print(str_glue("gene filter for sc3 is {gene_filter}"))
   rowData(data)$feature_symbol <- rownames(data)
   data <- data[!duplicated(rowData(data)$feature_symbol),]
-  data <- sc3_prepare(data)
+  data <- sc3_prepare(data,gene_filter = gene_filter)
   if(purrr::is_null(k)){
     data <- sc3_estimate_k(data)## estimate number of clusters
     k <- metadata(sce)$sc3$k_estimation
@@ -367,8 +374,12 @@ cluster.liger <- function(data){
   liger_data <- normalize(liger_data)
   liger_data <- selectGenes(liger_data, var.thresh = c(0.3, 0.875), do.plot = F)
   liger_data <- scaleNotCenter(liger_data)
-  ###suggestK(liger_data, num.cores = 5, gen.new = T, plot.log2 = F,nrep = 5)
-  k.suggest <- if(purrr::is_null(m_config$k.suggest))  25 else m_config$k.suggest
+  if(m_config$suggestK==TRUE){
+    print("suggesting K")
+    k.suggest <- suggestK(liger_data, num.cores = 5, gen.new = T, plot.log2 = F,nrep = 5)
+  }else{
+    k.suggest <- if(purrr::is_null(m_config$k.suggest))  25 else m_config$k.suggest
+  }
   thresh <- if(purrr::is_null(m_config$thresh)) 5e-5 else m_config$thresh
   lambda <- if(purrr::is_null(m_config$lambda)) 5 else m_config$lambda
   resolution <- if(purrr::is_null(m_config$resolution)) 1.0 else m_config$resolution

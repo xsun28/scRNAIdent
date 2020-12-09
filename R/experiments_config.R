@@ -10,13 +10,14 @@ experiments.assign.data <- list(
                     cell_types=datasets$PBMC)
   )
   
+##for batch effects removed, scmap and singlecellnet doesn't work
 experiments.methods <- list(
   simple_accuracy=list(cluster=c('seurat','tscan','sc3','liger'),assign=c('scmap_cluster','scmap_cell','chetah','singlecellnet','garnett'),marker_gene_assign=c("cellassign")), 
   cell_number=list(cluster=c('seurat','tscan','sc3','liger'),assign=c('scmap_cluster','scmap_cell','chetah','singlecellnet','garnett'),marker_gene_assign=c("cellassign")),
   sequencing_depth=list(cluster=c('seurat','tscan','sc3','liger'),assign=c('scmap_cluster','scmap_cell','chetah','singlecellnet','garnett'),marker_gene_assign=c("cellassign")),
   cell_types=list(cluster=c('sc3','seurat','tscan','liger'),assign=c('scmap','chetah','garnet','cellassign','singlecellnet'),marker_gene_assign=c("cellassign")),
-  batch_effects=list(cluster=c('seurat','tscan','sc3','liger'),assign=c('scmap_cluster','scmap_cell','chetah','singlecellnet','garnett'),marker_gene_assign=c(),
-                     cluster_batch_free=c('seurat','tscan','sc3','liger'), assign_batch_free=c('chetah','singlecellnet','garnett'), marker_gene_assign_batch_free=c()
+  batch_effects=list(cluster=c('seurat','tscan','sc3','liger'),assign=c('scmap_cluster','scmap_cell','chetah','singlecellnet','garnett'),marker_gene_assign=c("cellassign"),
+                     cluster_batch_free=c('seurat',"sc3",'tscan','liger'), assign_batch_free=c('chetah','garnett'), marker_gene_assign_batch_free=c("cellassign")
                      )
 )
 
@@ -29,5 +30,5 @@ experiments.parameters <- list(
                         marker_gene_file=NULL),
   cell_types=list(),
   batch_effects=list(sample_num=NA,cv=FALSE,remove_batch=TRUE,metrics=c('ARI','AMI','FMI'),
-                     marker_gene_file="pancreasMarkerGenes.csv")
+                     marker_gene_file=NULL)
 )
