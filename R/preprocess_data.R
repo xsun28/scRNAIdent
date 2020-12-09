@@ -54,6 +54,7 @@ preprocess_pancreas <- function(dataset){
 
     data <- utils.convert_to_SingleCellExperiment(cnt,genes,colnames(cnt),tibble(label=labels,sampleId=sampleId),
                                             list(study='pancreas',study_name=study_name))
+    rowData(data)$geneName <- rownames(data)
     write_rds(data,new_dataset_path[[i]])
   }
 }

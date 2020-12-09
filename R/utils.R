@@ -34,7 +34,7 @@ utils.combine_SCEdatasets <- function(sces,if_combined=TRUE){
                                 colData=colDatas,
                                 metadata=metaDatas)
       sce <- addPerCellQC(sce)
-      rowData(sce) <- tibble(count=nexprs(sce,byrow=TRUE))
+      rowData(sce) <- tibble(count=nexprs(sce,byrow=TRUE),geneName=intersected_genes)
       return(sce)
     }else{
       return(purrr::map(sces,~.[intersected_genes,]))
@@ -49,7 +49,7 @@ utils.convert_to_SingleCellExperiment <- function(data_matrix,genes,cellIds,cold
   rownames(data_matrix) <- genes
   sce <- SingleCellExperiment(list(counts=data_matrix),colData=coldata,metadata=meta)
   sce <- addPerCellQC(sce)
-  rowData(sce) <- tibble(count=nexprs(sce,byrow=TRUE))
+  rowData(sce) <- tibble(count=nexprs(sce,byrow=TRUE),geneName=genes)
   sce
 }
 
@@ -167,6 +167,7 @@ utils.remove_batch_effects <- function(batches){
   add_col_row_data <- function(x,y){
     colData(x)[,c('label','sampleId')] <- colData(y)[,c('label','sampleId')]
     rowData(x)[,'count'] <- rowData(y)[,'count']
+    rowData(x)[,'geneName'] <- rowData(y)[,'geneName']
     counts(x) <- exp(assays(x)$reconstructed)
     metadata(x) <- metadata(y)
     x <- addPerCellQC(x)
@@ -183,7 +184,7 @@ utils.append_sce <- function(sce1,sce2){
   sce <- SingleCellExperiment(list(counts=as.matrix(allcounts)),
                               colData=colDatas,
                               metadata=metaDatas)
-  rowData(sce) <- tibble(count=nexprs(sce,byrow=TRUE))
+  rowData(sce) <- tibble(count=nexprs(sce,byrow=TRUE),geneName=rowData(sce1)$geneName)
   return(sce)
 }
 
@@ -220,4 +221,29 @@ utils.check_marker_genes <- function(data,marker_gene_file,generated_marker_gene
     markers_mat <- markers_mat[!is.na(matchidx),]
   }
   list(markers_mat=markers_mat,matchidx=matchidx)
+}
+
+utils.update_batch_effects_free_config <- function(experiment){
+  experiments.methods[[experiment]]$cluster <<- experiments.methods[[experiment]]$cluster_batch_free
+  print(str_glue("batch effects free cluster methods are: {experiments.methods[[experiment]]$cluster}"))
+  for(m in experiments.methods[[experiment]]$cluster){
+    if(exists(str_glue("methods.config.{m}.batch_free"))){
+      assign(str_glue("methods.config.{m}"), get(str_glue("methods.config.{m}.batch_free")),envir = .GlobalEnv)
+    }
+  }
+  experiments.methods[[experiment]]$assign <<- experiments.methods[[experiment]]$assign_batch_free
+  print(str_glue("batch effects free assign methods are: {experiments.methods[[experiment]]$assign}"))
+  for(m in experiments.methods[[experiment]]$assign){
+    if(exists(str_glue("methods.config.{m}.batch_free"))){
+      assign(str_glue("methods.config.{m}"),get(str_glue("methods.config.{m}.batch_free")),envir = .GlobalEnv)
+    }
+  }
+}
+
+utils.try_catch_method_error <- function(code, silent=FALSE){
+  tryCatch(code, error=function(c) {
+    msg <- conditionMessage(c)
+    if (!silent) warning(c)
+    invisible(structure(msg, class = "try-error"))
+  })
 }

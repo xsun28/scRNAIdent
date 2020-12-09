@@ -94,13 +94,15 @@ experiments.base.analyze <- function(assign_results,cluster_results,exp_config){
   if(missing(exp_config)){
     exp_config <- experiments.parameters[[experiment]]
   }
-  methods <- experiments.methods[[experiment]]
-  cluster_methods <- methods$cluster
-  if(!purrr::is_null(methods$marker_gene_assign)){
-    assign_methods <- c(methods$assign,methods$marker_gene_assign)
-  }else{
-    assign_methods <- methods$assign
-  }
+  # methods <- experiments.methods[[experiment]]
+  # cluster_methods <- methods$cluster
+  # if(!purrr::is_null(methods$marker_gene_assign)){
+  #   assign_methods <- c(methods$assign,methods$marker_gene_assign)
+  # }else{
+  #   assign_methods <- methods$assign
+  # }
+  cluster_methods <- colnames(cluster_results)[colnames(cluster_results)!="label"]
+  assign_methods <- colnames(assign_results)[colnames(assign_results)!="label"]
   unlabeled_pctg_results <- analysis.run(assign_results,assign_methods,c("unlabeled_pctg"))
   results <- list(assign_results=assign_results,cluster_results=cluster_results)
   cluster_analysis_results <- analysis.run(results$cluster_results,cluster_methods,exp_config$metrics)
@@ -275,14 +277,14 @@ experiments.batch_effects <- function(experiment){
     train_datasets_combinations_no_be <- combn(experiments.cluster.data[[experiment]],length(experiments.cluster.data[[experiment]])-1)
     total_assign_results_no_be <- vector('list',dim(train_datasets_combinations_no_be)[2])
     assign_data_no_be <- NULL
+    utils.update_batch_effects_free_config(experiment)
     for(i in 1:dim(train_datasets_combinations_no_be)[2]){
       experiments.assign.data$train_dataset[[experiment]] <<- train_datasets_combinations_no_be[,i]
       print(str_glue('train dataset is {experiments.assign.data$train_dataset[[experiment]]}'))
       experiments.assign.data$test_dataset[[experiment]] <<- setdiff(experiments.cluster.data[[experiment]],train_datasets_combinations_no_be[,i]) 
       print(str_glue('test dataset is {experiments.assign.data$test_dataset[[experiment]]}'))
-      experiments.methods[[experiment]]$cluster <<- experiments.methods[[experiment]]$cluster_batch_free
-      experiments.methods[[experiment]]$assign <<- experiments.methods[[experiment]]$assign_batch_free
 
+      
       assign_data_results_no_be <- experiments.base.assign(experiment,exp_config)
       assign_results_no_be <- assign_data_results_no_be$assign_results
       total_assign_results_no_be[[i]] <- assign_results_no_be
@@ -326,7 +328,12 @@ experiments.run_assign <- function(methods, train_data, test_data=NA, exp_config
     results <- mutate(results,label=colData(test_data)$label)
     for(m in methods){
       print(str_glue('start assign method {m}'))
-      results[[m]] <- run_assign_methods(m,train_data,test_data,exp_config)
+      m_result <- utils.try_catch_method_error(run_assign_methods(m,train_data,test_data,exp_config))
+      if(inherits(m_result,"try-error")){
+        results <- dplyr::select(results,-m)
+      }else{
+        results[[m]] <- m_result
+      }
     }
   }
   results
@@ -338,7 +345,12 @@ experiments.run_marker_gene_assign <- function(methods,data,exp_config){
   results <- mutate(results,label=colData(data)$label)
   for(m in methods){
     print(str_glue('start marker gene assign method {m}'))
-    results[[m]] <- run_assign_methods(m,data,NULL,exp_config)
+    m_result <- utils.try_catch_method_error(run_assign_methods(m,data,NULL,exp_config))
+    if(inherits(m_result,"try-error")){
+      results <- dplyr::select(results,-m)
+    }else{
+      results[[m]] <- m_result
+    }
   }
   results
 }
@@ -349,7 +361,12 @@ experiments.run_cluster <- function(methods,data,exp_config){
   results <- mutate(results,label=colData(data)$label)
   for(m in methods){
     print(str_glue('start cluster method {m}'))
-    results[[m]] <- run_cluster_methods(m,data)
+    m_result <- utils.try_catch_method_error(run_cluster_methods(m,data))
+    if(inherits(m_result,"try-error")){
+      results <- dplyr::select(results,-m)
+    }else{
+      results[[m]] <- m_result
+    }
   }
   results
 }
@@ -370,8 +387,12 @@ experiments.run_cv <- function(methods, data,exp_config){
     test_data <- data[,-folds[[i]]]
     for(m in methods){
       print(str_glue('start assign method {m} in {i}th fold of CV'))
-      pred_labels <- run_assign_methods(m,train_data,test_data,exp_config)
-      combined_results[[m]][-folds[[i]]] <- pred_labels
+      m_result <- utils.try_catch_method_error(run_assign_methods(m,train_data,test_data,exp_config))
+      if(inherits(m_result,"try-error")){
+        combined_results[[m]][-folds[[i]]] <- NULL
+      }else{
+        combined_results[[m]][-folds[[i]]] <- m_result
+      }
     }
   }
   combined_results
