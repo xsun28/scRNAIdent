@@ -11,29 +11,28 @@ output.sink <- function(experiment,raw_results,results){
 }
 
 output.simple_accuracy <- function(raw_results,results){
-  print('start writing simple accuracy results')
-  write_rds(raw_results,paste(result_home,'simple_accuracy_raw_results.rds',sep = ''))
-  write_rds(results,paste(result_home,'simple_accuracy_results.rds',sep = ''))
-  write_csv(rownames_to_column(bind_rows(results),'method'),paste(result_home,'simple_accuracy_results.csv',sep = ''))
+  dataset <- experiments.data$simple_accuracy
+  output.write_results("simple_accuracy",dataset,raw_results,results)
 }
 
 output.cell_number <- function(raw_results,results){
-  print('start writing cell number results')
-  write_rds(raw_results,paste(result_home,'cell_number_raw_results.rds',sep = ''))
-  write_rds(results,paste(result_home,'cell_number_results.rds',sep = ''))
-  write_csv(rownames_to_column(bind_rows(results),'method'),paste(result_home,'cell_number_results.csv',sep = ''))
+  dataset <- experiments.data$cell_number
+  output.write_results("cell_number",dataset,raw_results,results)
 }
 
 output.sequencing_depth <- function(raw_results,results){
-  print('start writing sequencing depth results')
-  write_rds(raw_results,paste(result_home,'sequencing_depth_raw_results.rds',sep = ''))
-  write_rds(results,paste(result_home,'sequencing_depth_results.rds',sep = ''))
-  write_csv(rownames_to_column(bind_rows(results),'method'),paste(result_home,'sequencing_depth_results.csv',sep = ''))
+  dataset <- experiments.data$sequencing_depth
+  output.write_results("sequencing_depth",dataset,raw_results,results)
 }
 
 output.batch_effects <- function(raw_results,results){
-  print('start writing batch effects results')
-  write_rds(raw_results,paste(result_home,'batch_effects_raw_results.rds',sep = ''))
-  write_rds(results,paste(result_home,'batch_effects_results.rds',sep = ''))
-  write_csv(rownames_to_column(results,'method'),paste(result_home,'batch_effects_results.csv',sep = ''))
+  dataset <- experiments.data$batch_effects
+  output.write_results("batch_effects",dataset,raw_results,results)
+}
+
+output.write_results <- function(experiment,dataset,raw_results,results){
+  print(str_glue('start writing {dataset} {experiment} results'))
+  write_rds(raw_results,str_glue('{result_home}{experiment}_{dataset}_raw_results.rds'))
+  write_rds(results,str_glue('{result_home}{experiment}_{dataset}_results.rds'))
+  write_csv(rownames_to_column(bind_rows(results),'method'),str_glue('{result_home}{experiment}_{dataset}_results.csv'))
 }
