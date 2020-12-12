@@ -1,11 +1,12 @@
 source("R/utils.R")
 
 plot.plot <- function(experiment,results,raw_results){
+  dataset <- experiments.data[[experiment]]
   if(purrr::is_null(results)){
-    results <- read_rds(str_glue("{result_home}/{experiment}_results.rds"))
+    results <- read_rds(str_glue("{result_home}/{experiment}_{dataset}_results.rds"))
   }
   if(purrr::is_null(raw_results)){
-    raw_results <- read_rds(str_glue("{result_home}/{experiment}_raw_results.rds"))
+    raw_results <- read_rds(str_glue("{result_home}/{experiment}_{dataset}_raw_results.rds"))
   }
   switch(experiment,
     simple_accuracy = plot.simple_accuracy(results,raw_results),
@@ -18,28 +19,48 @@ plot.plot <- function(experiment,results,raw_results){
 
 plot.simple_accuracy <- function(results,raw_results){
   require(data.table)
-  figure_name <- "simple_accuracy_metrics.png"
+  dataset <- experiments.data$simple_accuracy
+  figure_all_name <- str_glue("simple_accuracy_{dataset}_all_metrics.png")
+  figure_assigned_name <- str_glue("simple_accuracy_{dataset}_assigned_metrics.png")
+  figure_unassigned_name <- str_glue("simple_accuracy_{dataset}_unassigned_metrics.png")
+  
+  all_results <- bind_rows(results[grepl("^all_.*",names(results))])
+  all_results[,'methods'] <- rownames(all_results)
   results_assigned <- bind_rows(results[grepl("^assigned_.*",names(results))])
   results_assigned[,'methods'] <- rownames(results_assigned)
   results_unassigned <- bind_rows(results[grepl("^unassigned_.*",names(results))])
   results_unassigned[,'methods'] <- rownames(results_unassigned)
-  results1 <- bind_rows(results_assigned,results_unassigned)
-  results_table <- data.table(melt(results1,
-                id.vars = c('methods','assigned'),    
-                measure.vars=c('ARI','AMI','FMI')))
-  results_table$methods <- factor(results_table$methods)
-  results_table$label <- round(results_table$value,2)
-  plot.dodge_bar_plot(results_table,"methods","value",result_home,figure_name)
+
+  all_results_table <- data.table(melt(all_results,
+                                          id.vars = c('methods'),    
+                                          measure.vars=c('ARI','AMI','FMI')))
+  all_results_table$methods <- factor(all_results_table$methods)
+  all_results_table$label <- round(all_results_table$value,2)
+  plot.dodge_bar_plot(all_results_table,"methods","value",result_home,figure_all_name)
+  
+  results_assign_table <- data.table(melt(results_assigned,
+                                   id.vars = c('methods'),    
+                                   measure.vars=c('ARI','AMI','FMI')))
+  results_assign_table$methods <- factor(results_assign_table$methods)
+  results_assign_table$label <- round(results_assign_table$value,2)
+  plot.dodge_bar_plot(results_assign_table,"methods","value",result_home,figure_assigned_name)
+  
+  results_unassign_table <- data.table(melt(results_unassigned,
+                                          id.vars = c('methods'),    
+                                          measure.vars=c('ARI','AMI','FMI')))
+  results_unassign_table$methods <- factor(results_unassign_table$methods)
+  results_unassign_table$label <- round(results_unassign_table$value,2)
+  plot.dodge_bar_plot(results_unassign_table,"methods","value",result_home,figure_unassigned_name)
   
   #####unlabeled pctg 
-  figure_name <- "simple_accuracy_unlabeled_pctg.png"
+  figure_name <- str_glue("simple_accuracy_{dataset}_unlabeled_pctg.png")
   results_unlabeled_pctg <- results[["all_assign_results"]]['unlabeled_pctg']
   results_unlabeled_pctg[,'methods'] <- factor(rownames(results_unlabeled_pctg))
   results_unlabeled_pctg[,'label'] <- round(results_unlabeled_pctg$unlabeled_pctg,2)
   plot.bar_plot(results_unlabeled_pctg,'methods','unlabeled_pctg',result_home,figure_name)
   
  #####sankey plot
-  figure_name <- "simple_accuracy_sankey.png"
+  figure_name <- str_glue("simple_accuracy_{dataset}_sankey.png")
   methods <- colnames(dplyr::select(raw_results,-label))
   raw_results1 <- gather(raw_results,"methods","pred",-label) %>%
                     group_by(methods,label,pred) %>%
@@ -49,16 +70,28 @@ plot.simple_accuracy <- function(results,raw_results){
 }
 
 plot.cell_number <- function(results,raw_results){
-  figure_name <- "cell_number_metrics.png"
-
+  dataset <- experiments.data$cell_number
+  figure_all_name <- str_glue("cell_number_{dataset}_all_metrics.png")
+  figure_assigned_name <- str_glue("cell_number_{dataset}_assigned_metrics.png")
+  figure_unassigned_name <- str_glue("cell_number_{dataset}_unassigned_metrics.png")
+  
+  
   results <- purrr::map(results,utils.get_methods)
-  results1 <- select(bind_rows(purrr::map(results,~dplyr::filter(.,!is.na(assigned)))),-unlabeled_pctg) %>%
-                gather("metric","value",-c(methods,sample_num,assigned))
-
-  plot.line_plot(results1,"sample_num","value",result_home,figure_name)
+  all_results <- dplyr::select(bind_rows(purrr::map(results,~dplyr::filter(.,is.na(assigned)))),-c(unlabeled_pctg,assigned)) %>%
+                gather("metric","value",-c(methods,sample_num))
+  plot.line_plot(all_results,"sample_num","value",result_home,figure_all_name)
+  
+  results_assigned <- dplyr::select(bind_rows(purrr::map(results,~dplyr::filter(.,assigned))),-c(unlabeled_pctg,assigned)) %>%
+    gather("metric","value",-c(methods,sample_num))
+  plot.line_plot(results_assigned,"sample_num","value",result_home,figure_assigned_name)
+  
+  results_unassigned <- dplyr::select(bind_rows(purrr::map(results,~dplyr::filter(.,!assigned))),-c(unlabeled_pctg,assigned)) %>%
+    gather("metric","value",-c(methods,sample_num))
+  
+  plot.line_plot(results_unassigned,"sample_num","value",result_home,figure_unassigned_name)
   
   ######
-  figure_name <- "cell_number_unlabeled_pctg.png"
+  figure_name <- str_glue("cell_number_{dataset}_unlabeled_pctg.png")
   results_unlabeled_pctg <- dplyr::filter(dplyr::select(results$assign_results,methods,sample_num,unlabeled_pctg),!is.na(unlabeled_pctg))
   ggplot(results_unlabeled_pctg, aes(x=sample_num, y=unlabeled_pctg, group=methods)) +
     geom_line(aes(color=methods))+
@@ -75,17 +108,34 @@ plot.cell_number <- function(results,raw_results){
 }
 
 plot.sequencing_depth <- function(results,raw_results){
+  dataset <- experiments.data$sequencing_depth
+  
   results <- purrr::map(results,utils.get_methods)%>%
     purrr::map(~{.$quantile <- factor(.$quantile)
     return(.)
     })
   #######
-  figure_name <- "sequencing_depth_metrics.png"
-  results1 <- dplyr::select(bind_rows(purrr::map(results,~dplyr::filter(.,!is.na(assigned)))),-unlabeled_pctg) %>%
-    gather("metric","value",-c(methods,quantile,assigned))
-  plot.heatmap_plot(results1,"quantile","methods",result_home,figure_name)
+  figure_all_name <- str_glue("sequencing_depth_{dataset}_all_metrics.png")
+  figure_assigned_name <- str_glue("sequencing_depth_{dataset}_assigned_metrics.png")
+  figure_unassigned_name <- str_glue("sequencing_depth_{dataset}_unassigned_metrics.png")
+  
+  
+  all_results <- dplyr::select(bind_rows(purrr::map(results,~dplyr::filter(.,is.na(assigned)))),-c(unlabeled_pctg,assigned)) %>%
+    gather("metric","value",-c(methods,quantile))
+  plot.heatmap_plot(all_results,"quantile","methods",result_home,figure_all_name)
+  
+  results_assigned <- dplyr::select(bind_rows(purrr::map(results,~dplyr::filter(.,assigned))),-c(unlabeled_pctg,assigned)) %>%
+    gather("metric","value",-c(methods,quantile))
+  
+  plot.heatmap_plot(results_assigned,"quantile","methods",result_home,figure_assigned_name)
+  
+  results_unassigned <- dplyr::select(bind_rows(purrr::map(results,~dplyr::filter(.,!assigned))),-c(unlabeled_pctg,assigned)) %>%
+    gather("metric","value",-c(methods,quantile))
+  plot.heatmap_plot(results_unassigned,"quantile","methods",result_home,figure_unassigned_name)
+  
+  
   #######
-  figure_name <- "sequencing_depth_unlabeled_pctg.png"
+  figure_name <- str_glue("sequencing_depth_{dataset}_unlabeled_pctg.png")
   results_unlabeled_pctg <- dplyr::filter(dplyr::select(results$assign_results,methods,quantile,unlabeled_pctg),!is.na(unlabeled_pctg))
   ggplot(results_unlabeled_pctg, aes(quantile,methods, fill=unlabeled_pctg)) + 
     geom_tile() +
@@ -101,7 +151,7 @@ plot.sequencing_depth <- function(results,raw_results){
     units = "in"
   )
   #####
-  figure_name <- "sequencing_depth_sankey.png"
+  figure_name <- str_glue("sequencing_depth_{dataset}_sankey.png")
   n_methods <- length(colnames(dplyr::select(raw_results,-c(label,quantile))))
   raw_results1 <- gather(raw_results,"methods","pred",-c(label,quantile)) %>%
     group_by(methods,label,pred,quantile) %>%
@@ -130,10 +180,42 @@ plot.sequencing_depth <- function(results,raw_results){
 }
 
 plot.batch_effects <- function(results,raw_results){
+  dataset <- experiments.data$batch_effects
+  
   results <- purrr::map(results,utils.get_methods)
-  figure_name <- "batch_effects_metrics.png"
-  figure_name <- "batch_effects_unlabeled_pctg.png"
-  figure_name <- "batch_effects_sankey.png"
+  
+  figure_all_name <- str_glue("batch_effects_{dataset}_all_metrics.png")
+  figure_assigned_name <- str_glue("batch_effects_{dataset}_assigned_metrics.png")
+  figure_unassigned_name <- str_glue("batch_effects_{dataset}_unassigned_metrics.png")
+
+  all_results <- dplyr::select(bind_rows(purrr::map(results,~dplyr::filter(.,is.na(assigned)))),-c(unlabeled_pctg,assigned)) %>%
+    gather("metric","value",-c(methods,batch_effects_removed))
+  plot.heatmap_plot(all_results,"batch_effects_removed","methods",result_home,figure_all_name)
+  
+  results_assigned <- dplyr::select(bind_rows(purrr::map(results,~dplyr::filter(.,assigned))),-c(unlabeled_pctg,assigned)) %>%
+    gather("metric","value",-c(methods,batch_effects_removed))
+  
+  plot.heatmap_plot(results_assigned,"batch_effects_removed","methods",result_home,figure_assigned_name)
+  
+  results_unassigned <- dplyr::select(bind_rows(purrr::map(results,~dplyr::filter(.,!assigned))),-c(unlabeled_pctg,assigned)) %>%
+    gather("metric","value",-c(methods,batch_effects_removed))
+  plot.heatmap_plot(results_unassigned,"batch_effects_removed","methods",result_home,figure_unassigned_name)
+  
+  figure_name <- str_glue("batch_effects_{dataset}_unlabeled_pctg.png")
+  results_unlabeled_pctg <- dplyr::filter(dplyr::select(results$assign_results,methods,batch_effects_removed,unlabeled_pctg),!is.na(unlabeled_pctg))
+  ggplot(results_unlabeled_pctg, aes(batch_effects_removed,methods, fill=unlabeled_pctg)) + 
+    geom_tile() +
+    scale_fill_distiller(palette = "RdPu") +
+    theme_ipsum()
+  ggsave(
+    figure_name,
+    plot = last_plot(),
+    device = 'png',
+    path = result_home,
+    width = 2*length(unique(results_unlabeled_pctg$methods)),
+    height = 2*length(unique(results_unlabeled_pctg$methods)),
+    units = "in"
+  )
 }
 
 plot.dodge_bar_plot <- function(results,x,y,fig_path,fig_name){
@@ -146,7 +228,7 @@ plot.dodge_bar_plot <- function(results,x,y,fig_path,fig_name){
               position = position_dodge(width = 0.5),
               show.legend = F)+
     scale_x_discrete(guide = guide_axis(n.dodge=3))+
-    facet_wrap(~ assigned,nrow=1,labeller = label_both)
+    #facet_wrap(~ assigned,nrow=1,labeller = label_both)
   ggsave(
     fig_name,
     plot = last_plot(),
@@ -205,7 +287,7 @@ plot.line_plot <- function(results,x,y,fig_path,fig_name){
   ggplot(results, aes_string(x=x, y=y, group="methods")) +
     geom_line(aes(color=methods))+
     geom_point(aes(color=methods))+
-    facet_grid(metric~assigned,labeller = label_both)
+    facet_wrap(~metric)
   ggsave(
     fig_name,
     plot = last_plot(),

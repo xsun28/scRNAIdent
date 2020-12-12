@@ -306,13 +306,20 @@ experiments.batch_effects <- function(experiment){
     total_raw_results_no_be$batch_effects_removed <- TRUE
   }
   if(!purrr::is_null(report_results_no_be)){
-    report_results <- bind_rows(bind_rows(report_results),bind_rows(report_results_no_be))
+    
+    combined_assign_results <- bind_rows(bind_rows(report_results[grepl(".*_assign_.*",names(report_results))]),
+                                         bind_rows(report_results_no_be[grepl(".*_assign_.*",names(report_results_no_be))]))
+    combined_cluster_results <- bind_rows(bind_rows(report_results[grepl(".*_cluster_.*",names(report_results))]),
+                                          bind_rows(report_results_no_be[grepl(".*_cluster_.*",names(report_results_no_be))]))
+    final_results <- list(assign_results=combined_assign_results,cluster_results=combined_cluster_results)
+    # report_results <- bind_rows(bind_rows(report_results),bind_rows(report_results_no_be))
     total_raw_results <- bind_rows(total_raw_results,total_raw_results_no_be)
   }else{
     report_results <- bind_rows(report_results)
   }
-  output.sink(experiment,total_raw_results,report_results)
-  report_results
+  output.sink(experiment,total_raw_results,final_results)
+  plot.plot(experiment,final_results,total_raw_results)
+  final_results
 }
 
 #######

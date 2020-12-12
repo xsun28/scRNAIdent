@@ -1,13 +1,24 @@
 source('R/config.R')
 source('R/dataset_config.R')
-experiments.cluster.data <- list(simple_accuracy=datasets$PBMC, cell_number=datasets$PBMC, sequencing_depth=datasets$PBMC,
-                         cell_types=datasets$PBMC,batch_effects_no_free=datasets$pancreas)
+experiments.data <- list(simple_accuracy="PBMC", cell_number="PBMC", sequencing_depth="PBMC",
+                             cell_types="PBMC",batch_effects="pancreas")
+  
+experiments.cluster.data <- list(simple_accuracy=datasets[[experiments.data$simple_accuracy]], 
+                                 cell_number=datasets[[experiments.data$cell_number]], 
+                                 sequencing_depth=datasets[[experiments.data$sequencing_depth]],
+                                 cell_types=datasets[[experiments.data$cell_types]],
+                                 batch_effects_no_free=datasets[[experiments.data$batch_effects]])
 
 experiments.assign.data <- list(
-  train_dataset=list(simple_accuracy=datasets$PBMC, cell_number=datasets$PBMC, sequencing_depth=datasets$PBMC,
-                     cell_types=datasets$PBMC),
-  test_dataset=list(simple_accuracy=datasets$PBMC, cell_number=datasets$PBMC, sequencing_depth=datasets$PBMC,
-                    cell_types=datasets$PBMC)
+  train_dataset=list(simple_accuracy=datasets[[experiments.data$simple_accuracy]], 
+                     cell_number=datasets[[experiments.data$cell_number]], 
+                     sequencing_depth=datasets[[experiments.data$sequencing_depth]],
+                     cell_types=datasets[[experiments.data$cell_types]]),
+  
+  test_dataset=list(simple_accuracy=datasets[[experiments.data$simple_accuracy]], 
+                    cell_number=datasets[[experiments.data$cell_number]], 
+                    sequencing_depth=datasets[[experiments.data$sequencing_depth]],
+                    cell_types=datasets[[experiments.data$cell_types]])
   )
   
 ##for batch effects removed, scmap and singlecellnet doesn't work
