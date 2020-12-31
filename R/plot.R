@@ -20,9 +20,9 @@ plot.plot <- function(experiment,results,raw_results){
 plot.simple_accuracy <- function(results,raw_results){
   require(data.table)
   dataset <- experiments.data$simple_accuracy
-  figure_all_name <- str_glue("simple_accuracy_{dataset}_all_metrics.png")
-  figure_assigned_name <- str_glue("simple_accuracy_{dataset}_assigned_metrics.png")
-  figure_unassigned_name <- str_glue("simple_accuracy_{dataset}_unassigned_metrics.png")
+  figure_all_name <- str_glue("simple_accuracy_{dataset}_all_metrics.pdf")
+  figure_assigned_name <- str_glue("simple_accuracy_{dataset}_assigned_metrics.pdf")
+  figure_unassigned_name <- str_glue("simple_accuracy_{dataset}_unassigned_metrics.pdf")
   
   all_results <- bind_rows(results[grepl("^all_.*",names(results))])
   all_results[,'methods'] <- rownames(all_results)
@@ -55,7 +55,7 @@ plot.simple_accuracy <- function(results,raw_results){
   plot.bar_plot(results_unassign_table,plot_params,result_home,figure_unassigned_name)
   
   #####unlabeled pctg 
-  figure_name <- str_glue("simple_accuracy_{dataset}_unlabeled_pctg.png")
+  figure_name <- str_glue("simple_accuracy_{dataset}_unlabeled_pctg.pdf")
   results_unlabeled_pctg <- results[["all_assign_results"]]['unlabeled_pctg']
   results_unlabeled_pctg[,'methods'] <- factor(rownames(results_unlabeled_pctg))
   results_unlabeled_pctg[,'label'] <- round(results_unlabeled_pctg$unlabeled_pctg,2)
@@ -63,7 +63,7 @@ plot.simple_accuracy <- function(results,raw_results){
   plot.bar_plot(results_unlabeled_pctg,plot_params,result_home,figure_name)
   
  #####sankey plot
-  figure_name <- str_glue("simple_accuracy_{dataset}_sankey.png")
+  figure_name <- str_glue("simple_accuracy_{dataset}_sankey.pdf")
   methods <- colnames(dplyr::select(raw_results,-label))
   raw_results1 <- gather(raw_results,"methods","pred",-label) %>%
                     group_by(methods,label,pred) %>%
@@ -74,9 +74,9 @@ plot.simple_accuracy <- function(results,raw_results){
 
 plot.cell_number <- function(results,raw_results){
   dataset <- experiments.data$cell_number
-  figure_all_name <- str_glue("cell_number_{dataset}_all_metrics.png")
-  figure_assigned_name <- str_glue("cell_number_{dataset}_assigned_metrics.png")
-  figure_unassigned_name <- str_glue("cell_number_{dataset}_unassigned_metrics.png")
+  figure_all_name <- str_glue("cell_number_{dataset}_all_metrics.pdf")
+  figure_assigned_name <- str_glue("cell_number_{dataset}_assigned_metrics.pdf")
+  figure_unassigned_name <- str_glue("cell_number_{dataset}_unassigned_metrics.pdf")
   
   
   results <- purrr::map(results,utils.get_methods)
@@ -97,7 +97,7 @@ plot.cell_number <- function(results,raw_results){
   plot.line_plot(results_unassigned,plot_params,result_home,figure_unassigned_name)
   
   ######
-  figure_name <- str_glue("cell_number_{dataset}_unlabeled_pctg.png")
+  figure_name <- str_glue("cell_number_{dataset}_unlabeled_pctg.pdf")
   results_unlabeled_pctg <- dplyr::filter(dplyr::select(results$assign_results,methods,sample_num,unlabeled_pctg),!is.na(unlabeled_pctg))
   
   plot_params <- list(x="sample_num",y="unlabeled_pctg",group="methods",line_color="methods",point_color="methods",
@@ -115,9 +115,9 @@ plot.sequencing_depth <- function(results,raw_results){
     return(.)
     })
   #######
-  figure_all_name <- str_glue("sequencing_depth_{dataset}_all_metrics.png")
-  figure_assigned_name <- str_glue("sequencing_depth_{dataset}_assigned_metrics.png")
-  figure_unassigned_name <- str_glue("sequencing_depth_{dataset}_unassigned_metrics.png")
+  figure_all_name <- str_glue("sequencing_depth_{dataset}_all_metrics.pdf")
+  figure_assigned_name <- str_glue("sequencing_depth_{dataset}_assigned_metrics.pdf")
+  figure_unassigned_name <- str_glue("sequencing_depth_{dataset}_unassigned_metrics.pdf")
   
   
   all_results <- dplyr::select(bind_rows(purrr::map(results,~dplyr::filter(.,is.na(assigned)))),-c(unlabeled_pctg,assigned)) %>%
@@ -139,7 +139,7 @@ plot.sequencing_depth <- function(results,raw_results){
   plot.bar_plot(results_unassigned,plot_params,result_home,figure_unassigned_name)
   
   #######
-  figure_name <- str_glue("sequencing_depth_{dataset}_unlabeled_pctg.png")
+  figure_name <- str_glue("sequencing_depth_{dataset}_unlabeled_pctg.pdf")
   results_unlabeled_pctg <- dplyr::filter(dplyr::select(results$assign_results,methods,quantile,unlabeled_pctg),!is.na(unlabeled_pctg))
   results_unlabeled_pctg[,'label'] <- round(results_unlabeled_pctg$unlabeled_pctg,2)
   plot_params <- list(x="methods",y="unlabeled_pctg",label="label",fill="quantile",dodged=T,facet_wrap=F,width=6,height=4)
@@ -151,14 +151,14 @@ plot.sequencing_depth <- function(results,raw_results){
   # ggsave(
   #   figure_name,
   #   plot = last_plot(),
-  #   device = 'png',
+  #   device = 'pdf',
   #   path = result_home,
   #   width = 2*length(unique(results_unlabeled_pctg$methods)),
   #   height = 2*length(unique(results_unlabeled_pctg$methods)),
   #   units = "in"
   # )
   #####
-  # figure_name <- str_glue("sequencing_depth_{dataset}_sankey.png")
+  # figure_name <- str_glue("sequencing_depth_{dataset}_sankey.pdf")
   # n_methods <- length(colnames(dplyr::select(raw_results,-c(label,quantile))))
   # raw_results1 <- gather(raw_results,"methods","pred",-c(label,quantile)) %>%
   #   group_by(methods,label,pred,quantile) %>%
@@ -178,7 +178,7 @@ plot.sequencing_depth <- function(results,raw_results){
   # ggsave(
   #   figure_name,
   #   plot = last_plot(),
-  #   device = 'png',
+  #   device = 'pdf',
   #   path = result_home,
   #   width = n_methods*8,
   #   height = n_methods*4,
@@ -191,9 +191,9 @@ plot.batch_effects <- function(results,raw_results){
   
   results <- purrr::map(results,utils.get_methods)
   
-  figure_all_name <- str_glue("batch_effects_{dataset}_all_metrics.png")
-  figure_assigned_name <- str_glue("batch_effects_{dataset}_assigned_metrics.png")
-  figure_unassigned_name <- str_glue("batch_effects_{dataset}_unassigned_metrics.png")
+  figure_all_name <- str_glue("batch_effects_{dataset}_all_metrics.pdf")
+  figure_assigned_name <- str_glue("batch_effects_{dataset}_assigned_metrics.pdf")
+  figure_unassigned_name <- str_glue("batch_effects_{dataset}_unassigned_metrics.pdf")
 
   all_results <- dplyr::select(bind_rows(purrr::map(results,~dplyr::filter(.,is.na(assigned)))),-c(unlabeled_pctg,assigned)) %>%
     gather("metric","value",-c(methods,batch_effects_removed))
@@ -217,7 +217,7 @@ plot.batch_effects <- function(results,raw_results){
   plot.bar_plot(results_unassigned,plot_params,result_home,figure_unassigned_name)
   
 
-  figure_name <- str_glue("batch_effects_{dataset}_unlabeled_pctg.png")
+  figure_name <- str_glue("batch_effects_{dataset}_unlabeled_pctg.pdf")
   results_unlabeled_pctg <- dplyr::filter(dplyr::select(results$assign_results,methods,batch_effects_removed,unlabeled_pctg),!is.na(unlabeled_pctg))
   results_unlabeled_pctg$label <- round(results_unlabeled_pctg$unlabeled_pctg,2)
   plot_params <- list(x="methods",y="unlabeled_pctg",fill="batch_effects_removed",label="label",
@@ -230,7 +230,7 @@ plot.batch_effects <- function(results,raw_results){
   # ggsave(
   #   figure_name,
   #   plot = last_plot(),
-  #   device = 'png',
+  #   device = 'pdf',
   #   path = result_home,
   #   width = 2*length(unique(results_unlabeled_pctg$methods)),
   #   height = 2*length(unique(results_unlabeled_pctg$methods)),
@@ -270,7 +270,7 @@ plot.bar_plot <- function(results,params,fig_path,fig_name){
   ggsave(
     fig_name,
     plot = last_plot(),
-    device = 'png',
+    device = 'pdf',
     path = fig_path,
     width = params$width,
     height = params$height,
@@ -296,7 +296,7 @@ plot.sankey_plot <- function(raw_results,label,pred,fig_path,fig_name){
   ggsave(
     fig_name,
     plot = last_plot(),
-    device = 'png',
+    device = 'pdf',
     path = fig_path,
     width = 3.5*n_methods,
     height = 3.5*n_methods,
@@ -326,7 +326,7 @@ plot.line_plot <- function(results,params,fig_path,fig_name){
   ggsave(
     fig_name,
     plot = last_plot(),
-    device = 'png',
+    device = 'pdf',
     path = fig_path,
     width = width,
     height = height,
@@ -352,7 +352,7 @@ plot.heatmap_plot <- function(results,params,fig_path,fig_name){
   ggsave(
     fig_name,
     plot = last_plot(),
-    device = 'png',
+    device = 'pdf',
     path = fig_path,
     width = params$width,
     height = params$height,

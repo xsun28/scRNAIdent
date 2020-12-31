@@ -16,12 +16,12 @@ source("R/preprocess_data.R")
 source("R/plot.R")
 library(SingleCellExperiment)
 ##Wrapper
-runExperiments <- function(experiment=c("simple_accuracy","cell_number", "sequencing_depth","cell_types", "batch_effects")){
+runExperiments <- function(experiment=c("simple_accuracy","cell_number", "sequencing_depth","celltype_structure", "batch_effects")){
   switch(experiment,
          simple_accuracy = experiments.simple_accuracy(experiment),
          cell_number = experiments.cell_number(experiment),
          sequencing_depth = experiments.sequencing_depth(experiment),
-         cell_types = experiments.cell_types(experiment),
+         celltype_structure = experiments.celltype_structure(experiment),
          batch_effects = experiments.batch_effects(experiment),
          stop("Unkown experiments")
          )
