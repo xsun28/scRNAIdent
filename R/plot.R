@@ -36,28 +36,31 @@ plot.simple_accuracy <- function(results,raw_results){
                                           measure.vars=c('ARI','AMI','FMI')))
   all_results_table$methods <- factor(all_results_table$methods)
   all_results_table$label <- round(all_results_table$value,2)
-  plot.dodge_bar_plot(all_results_table,"methods","value",result_home,figure_all_name)
+  plot_params <- list(x="methods",y="value",fill="variable",label="label",
+                      facet_var="variable",dodged=F,facet_wrap=T,width=10,height=7,nrow=3)
+  plot.bar_plot(all_results_table,plot_params,result_home,figure_all_name)
   
   results_assign_table <- data.table(melt(results_assigned,
                                    id.vars = c('methods'),    
                                    measure.vars=c('ARI','AMI','FMI')))
   results_assign_table$methods <- factor(results_assign_table$methods)
   results_assign_table$label <- round(results_assign_table$value,2)
-  plot.dodge_bar_plot(results_assign_table,"methods","value",result_home,figure_assigned_name)
+  plot.bar_plot(results_assign_table,plot_params,result_home,figure_assigned_name)
   
   results_unassign_table <- data.table(melt(results_unassigned,
                                           id.vars = c('methods'),    
                                           measure.vars=c('ARI','AMI','FMI')))
   results_unassign_table$methods <- factor(results_unassign_table$methods)
   results_unassign_table$label <- round(results_unassign_table$value,2)
-  plot.dodge_bar_plot(results_unassign_table,"methods","value",result_home,figure_unassigned_name)
+  plot.bar_plot(results_unassign_table,plot_params,result_home,figure_unassigned_name)
   
   #####unlabeled pctg 
   figure_name <- str_glue("simple_accuracy_{dataset}_unlabeled_pctg.png")
   results_unlabeled_pctg <- results[["all_assign_results"]]['unlabeled_pctg']
   results_unlabeled_pctg[,'methods'] <- factor(rownames(results_unlabeled_pctg))
   results_unlabeled_pctg[,'label'] <- round(results_unlabeled_pctg$unlabeled_pctg,2)
-  plot.bar_plot(results_unlabeled_pctg,'methods','unlabeled_pctg',result_home,figure_name)
+  plot_params <- list(x="methods",y="unlabeled_pctg",label="label",fill="methods",dodged=F,facet_wrap=F,width=6,height=4)
+  plot.bar_plot(results_unlabeled_pctg,plot_params,result_home,figure_name)
   
  #####sankey plot
   figure_name <- str_glue("simple_accuracy_{dataset}_sankey.png")
@@ -79,33 +82,30 @@ plot.cell_number <- function(results,raw_results){
   results <- purrr::map(results,utils.get_methods)
   all_results <- dplyr::select(bind_rows(purrr::map(results,~dplyr::filter(.,is.na(assigned)))),-c(unlabeled_pctg,assigned)) %>%
                 gather("metric","value",-c(methods,sample_num))
-  plot.line_plot(all_results,"sample_num","value",result_home,figure_all_name)
+  
+  plot_params <- list(x="sample_num",y="value",group="methods",line_color="methods",point_color="methods",
+                      facet_wrap=T,facet_var="metric",width=10,height=10)
+  plot.line_plot(all_results,plot_params,result_home,figure_all_name)
   
   results_assigned <- dplyr::select(bind_rows(purrr::map(results,~dplyr::filter(.,assigned))),-c(unlabeled_pctg,assigned)) %>%
     gather("metric","value",-c(methods,sample_num))
-  plot.line_plot(results_assigned,"sample_num","value",result_home,figure_assigned_name)
+  plot.line_plot(results_assigned,plot_params,result_home,figure_assigned_name)
   
   results_unassigned <- dplyr::select(bind_rows(purrr::map(results,~dplyr::filter(.,!assigned))),-c(unlabeled_pctg,assigned)) %>%
     gather("metric","value",-c(methods,sample_num))
   
-  plot.line_plot(results_unassigned,"sample_num","value",result_home,figure_unassigned_name)
+  plot.line_plot(results_unassigned,plot_params,result_home,figure_unassigned_name)
   
   ######
   figure_name <- str_glue("cell_number_{dataset}_unlabeled_pctg.png")
   results_unlabeled_pctg <- dplyr::filter(dplyr::select(results$assign_results,methods,sample_num,unlabeled_pctg),!is.na(unlabeled_pctg))
-  ggplot(results_unlabeled_pctg, aes(x=sample_num, y=unlabeled_pctg, group=methods)) +
-    geom_line(aes(color=methods))+
-    geom_point(aes(color=methods))
-  ggsave(
-    figure_name,
-    plot = last_plot(),
-    device = 'png',
-    path = result_home,
-    width = 2*length(unique(results_unlabeled_pctg$methods)),
-    height = 2*length(unique(results_unlabeled_pctg$methods)),
-    units = "in"
-  )
+  
+  plot_params <- list(x="sample_num",y="unlabeled_pctg",group="methods",line_color="methods",point_color="methods",
+                      facet_wrap=F,width=2*length(unique(results_unlabeled_pctg$methods)),
+                      height=2*length(unique(results_unlabeled_pctg$methods)))
+  plot.line_plot(results_unlabeled_pctg,plot_params,result_home,figure_name)
 }
+
 
 plot.sequencing_depth <- function(results,raw_results){
   dataset <- experiments.data$sequencing_depth
@@ -122,61 +122,68 @@ plot.sequencing_depth <- function(results,raw_results){
   
   all_results <- dplyr::select(bind_rows(purrr::map(results,~dplyr::filter(.,is.na(assigned)))),-c(unlabeled_pctg,assigned)) %>%
     gather("metric","value",-c(methods,quantile))
-  plot.heatmap_plot(all_results,"quantile","methods",result_home,figure_all_name)
+  all_results$label <- round(all_results$value,2)
+  plot_params <- list(x="methods",y="value",fill="quantile",label="label",
+                      facet_wrap=T,dodged=T,facet_var="metric",width=10,height=7,nrow=2)
+  plot.bar_plot(all_results,plot_params,result_home,figure_all_name)
+  # plot.heatmap_plot(all_results,"quantile","methods",result_home,figure_all_name)
   
   results_assigned <- dplyr::select(bind_rows(purrr::map(results,~dplyr::filter(.,assigned))),-c(unlabeled_pctg,assigned)) %>%
     gather("metric","value",-c(methods,quantile))
-  
-  plot.heatmap_plot(results_assigned,"quantile","methods",result_home,figure_assigned_name)
+  results_assigned$label <- round(results_assigned$value,2)
+  plot.bar_plot(results_assigned,plot_params,result_home,figure_assigned_name)
   
   results_unassigned <- dplyr::select(bind_rows(purrr::map(results,~dplyr::filter(.,!assigned))),-c(unlabeled_pctg,assigned)) %>%
     gather("metric","value",-c(methods,quantile))
-  plot.heatmap_plot(results_unassigned,"quantile","methods",result_home,figure_unassigned_name)
-  
+  results_unassigned$label <- round(results_unassigned$value,2)
+  plot.bar_plot(results_unassigned,plot_params,result_home,figure_unassigned_name)
   
   #######
   figure_name <- str_glue("sequencing_depth_{dataset}_unlabeled_pctg.png")
   results_unlabeled_pctg <- dplyr::filter(dplyr::select(results$assign_results,methods,quantile,unlabeled_pctg),!is.na(unlabeled_pctg))
-  ggplot(results_unlabeled_pctg, aes(quantile,methods, fill=unlabeled_pctg)) + 
-    geom_tile() +
-    scale_fill_distiller(palette = "RdPu") +
-    theme_ipsum()
-  ggsave(
-    figure_name,
-    plot = last_plot(),
-    device = 'png',
-    path = result_home,
-    width = 2*length(unique(results_unlabeled_pctg$methods)),
-    height = 2*length(unique(results_unlabeled_pctg$methods)),
-    units = "in"
-  )
+  results_unlabeled_pctg[,'label'] <- round(results_unlabeled_pctg$unlabeled_pctg,2)
+  plot_params <- list(x="methods",y="unlabeled_pctg",label="label",fill="quantile",dodged=T,facet_wrap=F,width=6,height=4)
+  plot.bar_plot(results_unlabeled_pctg,plot_params,result_home,figure_name)
+  # ggplot(results_unlabeled_pctg, aes(quantile,methods, fill=unlabeled_pctg)) + 
+  #   geom_tile() +
+  #   scale_fill_distiller(palette = "RdPu") +
+  #   theme_ipsum()
+  # ggsave(
+  #   figure_name,
+  #   plot = last_plot(),
+  #   device = 'png',
+  #   path = result_home,
+  #   width = 2*length(unique(results_unlabeled_pctg$methods)),
+  #   height = 2*length(unique(results_unlabeled_pctg$methods)),
+  #   units = "in"
+  # )
   #####
-  figure_name <- str_glue("sequencing_depth_{dataset}_sankey.png")
-  n_methods <- length(colnames(dplyr::select(raw_results,-c(label,quantile))))
-  raw_results1 <- gather(raw_results,"methods","pred",-c(label,quantile)) %>%
-    group_by(methods,label,pred,quantile) %>%
-    summarize(freq=n()) %>%
-    filter(freq>0)
-  raw_results1$quantile <- factor(raw_results1$quantile)
-  ggplot(as.data.frame(raw_results1),
-         aes(y="freq",axis1 = label, axis2 = pred)) +
-    geom_alluvium(aes(fill = label), width = 1/12) +
-    geom_stratum(width = 1/12, fill = "black", color = "grey") +
-    geom_label(stat = "stratum", aes(label = after_stat(stratum))) +
-    scale_x_discrete(limits = c("label", "value"), expand = c(.05, .05)) +
-    scale_fill_brewer(type = "qual", palette = "Set1") +
-    facet_grid(quantile ~ methods,labeller = label_both)+
-    theme(strip.text = element_text(size=n_methods*3),legend.title = element_text(color = "blue", size = n_methods*3),
-          legend.text = element_text(size=n_methods*3))
-  ggsave(
-    figure_name,
-    plot = last_plot(),
-    device = 'png',
-    path = result_home,
-    width = n_methods*8,
-    height = n_methods*4,
-    units = "in"
-  )
+  # figure_name <- str_glue("sequencing_depth_{dataset}_sankey.png")
+  # n_methods <- length(colnames(dplyr::select(raw_results,-c(label,quantile))))
+  # raw_results1 <- gather(raw_results,"methods","pred",-c(label,quantile)) %>%
+  #   group_by(methods,label,pred,quantile) %>%
+  #   summarize(freq=n()) %>%
+  #   filter(freq>0)
+  # raw_results1$quantile <- factor(raw_results1$quantile)
+  # ggplot(as.data.frame(raw_results1),
+  #        aes(y="freq",axis1 = label, axis2 = pred)) +
+  #   geom_alluvium(aes(fill = label), width = 1/12) +
+  #   geom_stratum(width = 1/12, fill = "black", color = "grey") +
+  #   geom_label(stat = "stratum", aes(label = after_stat(stratum))) +
+  #   scale_x_discrete(limits = c("label", "value"), expand = c(.05, .05)) +
+  #   scale_fill_brewer(type = "qual", palette = "Set1") +
+  #   facet_grid(quantile ~ methods,labeller = label_both)+
+  #   theme(strip.text = element_text(size=n_methods*3),legend.title = element_text(color = "blue", size = n_methods*3),
+  #         legend.text = element_text(size=n_methods*3))
+  # ggsave(
+  #   figure_name,
+  #   plot = last_plot(),
+  #   device = 'png',
+  #   path = result_home,
+  #   width = n_methods*8,
+  #   height = n_methods*4,
+  #   units = "in"
+  # )
 }
 
 plot.batch_effects <- function(results,raw_results){
@@ -190,74 +197,88 @@ plot.batch_effects <- function(results,raw_results){
 
   all_results <- dplyr::select(bind_rows(purrr::map(results,~dplyr::filter(.,is.na(assigned)))),-c(unlabeled_pctg,assigned)) %>%
     gather("metric","value",-c(methods,batch_effects_removed))
-  plot.heatmap_plot(all_results,"batch_effects_removed","methods",result_home,figure_all_name)
+  
+  all_results$label <- round(all_results$value,2)
+  plot_params <- list(x="methods",y="value",fill="batch_effects_removed",label="label",
+                      facet_wrap=T,dodged=T,facet_var="metric",width=10,height=7,nrow=3)
+  plot.bar_plot(all_results,plot_params,result_home,figure_all_name)
+  
+  # plot.heatmap_plot(all_results,"batch_effects_removed","methods",result_home,figure_all_name)
   
   results_assigned <- dplyr::select(bind_rows(purrr::map(results,~dplyr::filter(.,assigned))),-c(unlabeled_pctg,assigned)) %>%
     gather("metric","value",-c(methods,batch_effects_removed))
+  results_assigned$label <- round(results_assigned$value,2)
+  plot.bar_plot(results_assigned,plot_params,result_home,figure_assigned_name)
   
-  plot.heatmap_plot(results_assigned,"batch_effects_removed","methods",result_home,figure_assigned_name)
-  
+
   results_unassigned <- dplyr::select(bind_rows(purrr::map(results,~dplyr::filter(.,!assigned))),-c(unlabeled_pctg,assigned)) %>%
     gather("metric","value",-c(methods,batch_effects_removed))
-  plot.heatmap_plot(results_unassigned,"batch_effects_removed","methods",result_home,figure_unassigned_name)
+  results_unassigned$label <- round(results_unassigned$value,2)
+  plot.bar_plot(results_unassigned,plot_params,result_home,figure_unassigned_name)
   
+
   figure_name <- str_glue("batch_effects_{dataset}_unlabeled_pctg.png")
   results_unlabeled_pctg <- dplyr::filter(dplyr::select(results$assign_results,methods,batch_effects_removed,unlabeled_pctg),!is.na(unlabeled_pctg))
-  ggplot(results_unlabeled_pctg, aes(batch_effects_removed,methods, fill=unlabeled_pctg)) + 
-    geom_tile() +
-    scale_fill_distiller(palette = "RdPu") +
-    theme_ipsum()
-  ggsave(
-    figure_name,
-    plot = last_plot(),
-    device = 'png',
-    path = result_home,
-    width = 2*length(unique(results_unlabeled_pctg$methods)),
-    height = 2*length(unique(results_unlabeled_pctg$methods)),
-    units = "in"
-  )
+  results_unlabeled_pctg$label <- round(results_unlabeled_pctg$unlabeled_pctg,2)
+  plot_params <- list(x="methods",y="unlabeled_pctg",fill="batch_effects_removed",label="label",
+                      facet_wrap=F,dodged=T,width=10,height=7)
+  plot.bar_plot(results_unlabeled_pctg,plot_params,result_home,figure_name)
+   # ggplot(results_unlabeled_pctg, aes(batch_effects_removed,methods, fill=unlabeled_pctg)) + 
+  #   geom_tile() +
+  #   scale_fill_distiller(palette = "RdPu") +
+  #   theme_ipsum()
+  # ggsave(
+  #   figure_name,
+  #   plot = last_plot(),
+  #   device = 'png',
+  #   path = result_home,
+  #   width = 2*length(unique(results_unlabeled_pctg$methods)),
+  #   height = 2*length(unique(results_unlabeled_pctg$methods)),
+  #   units = "in"
+  # )
 }
 
-plot.dodge_bar_plot <- function(results,x,y,fig_path,fig_name){
-  ggplot(results,aes_string(x=x,y = y,fill = "variable")) + 
-    geom_bar(position = "dodge",width = 0.8, stat = "identity") +
-    scale_fill_brewer(palette = "Pastel1") +
-    geom_text(aes_string(x = x,label = "label"),
+plot.bar_plot <- function(results,params,fig_path,fig_name){
+  x <- params$x
+  y <- params$y
+  label <- params$label
+  plot_str <- "ggplot(results,aes_string(x= x,y = y,fill = {params$fill})) +
+                geom_bar("
+  if(params$dodged){
+    plot_str <- str_glue(
+    "{plot_str} position=\"dodge\",")
+  } 
+  plot_str <- str_glue("
+    {plot_str} width = 0.8, stat = \"identity\") +
+    scale_fill_brewer(palette = \"Pastel1\") +
+    geom_text(aes_string(x = x,label = label),
               vjust = 0.1,size=2,hjust=0.7,    
-              colour = "brown",
+              colour = \"brown\"")
+  if(params$dodged){
+    plot_str <- str_glue("{plot_str},
               position = position_dodge(width = 0.5),
-              show.legend = F)+
-    scale_x_discrete(guide = guide_axis(n.dodge=3))+
-    #facet_wrap(~ assigned,nrow=1,labeller = label_both)
+              show.legend = F")
+    }
+  plot_str <- str_glue("{plot_str})+
+                        scale_x_discrete(guide = guide_axis(n.dodge=3))")
+  
+  if(params$facet_wrap){
+    plot_str <- str_glue("{plot_str} + 
+                          facet_wrap(~ {params$facet_var},nrow={params$nrow})")
+  }
+  eval(parse(text = plot_str))
   ggsave(
     fig_name,
     plot = last_plot(),
     device = 'png',
     path = fig_path,
-    width = 10,
-    height = 7,
+    width = params$width,
+    height = params$height,
     units = "in"
   )
+  
 }
 
-plot.bar_plot <- function(results,x,y,fig_path,fig_name){
-  ggplot(results,aes_string(x = x,y = y)) +
-    geom_bar(width = 0.8, stat = "identity") +
-    scale_fill_brewer(palette = "Blues") +
-    geom_text(aes_string(x = x,label = "label"),
-              vjust = 0.1,size=6,hjust=0.7,    
-              colour = "brown")+
-    scale_x_discrete(guide = guide_axis(n.dodge=3))
-  ggsave(
-    fig_name,
-    plot = last_plot(),
-    device = 'png',
-    path = fig_path,
-    width = 10,
-    height = 7,
-    units = "in"
-  )
-}
 
 plot.sankey_plot <- function(raw_results,label,pred,fig_path,fig_name){
   require(ggalluvial)
@@ -283,36 +304,58 @@ plot.sankey_plot <- function(raw_results,label,pred,fig_path,fig_name){
   )
 }
 
-plot.line_plot <- function(results,x,y,fig_path,fig_name){
-  ggplot(results, aes_string(x=x, y=y, group="methods")) +
-    geom_line(aes(color=methods))+
-    geom_point(aes(color=methods))+
-    facet_wrap(~metric)
+plot.line_plot <- function(results,params,fig_path,fig_name){
+  x <- params$x
+  y <- params$y
+  group <- params$group
+  line_color <- params$line_color
+  point_color <- params$point_color
+  width <- params$width
+  height <- params$height
+  plot_str <- 
+  "ggplot(results, aes_string(x=x, y=y, group=group)) +
+    geom_line(aes_string(color=line_color))+
+    geom_point(aes_string(color=point_color))"
+  if(params$facet_wrap){   
+    plot_str <- str_glue("{plot_str}+
+      facet_wrap(~{params$facet_var})"
+    )
+  }
+  print(plot_str)
+  eval(parse(text = plot_str))
   ggsave(
     fig_name,
     plot = last_plot(),
     device = 'png',
     path = fig_path,
-    width = 10,
-    height = 10,
+    width = width,
+    height = height,
     units = "in"
   )
 }
 
-plot.heatmap_plot <- function(results,x,y,fig_path,fig_name){
+plot.heatmap_plot <- function(results,params,fig_path,fig_name){
   require(hrbrthemes)
-  ggplot(results, aes_string(x,y, fill= "value")) + 
+  x <- params$x
+  y <- params$y
+  fill <- params$fill
+  
+  plot_str <- "
+  ggplot(results, aes_string(x,y, fill=fill)) + 
     geom_tile() +
-    scale_fill_distiller(palette = "RdPu") +
-    theme_ipsum()+
-    facet_wrap(~metric,nrow=length(unique(results$metric)))
+    scale_fill_distiller(palette = \"RdPu\") +
+    theme_ipsum()"
+  if(params$facet_wrap){
+    plot_str <- str_glue("{plot_str}+
+      facet_wrap(~{params$facet_var},nrow={length(unique(results$metric))})")
+  }
   ggsave(
     fig_name,
     plot = last_plot(),
     device = 'png',
     path = fig_path,
-    width = 8,
-    height = 10,
+    width = params$width,
+    height = params$height,
     units = "in"
   )
 }

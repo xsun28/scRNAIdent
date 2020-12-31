@@ -227,7 +227,11 @@ experiments.sequencing_depth <- function(experiment){
   final_results
 }
 #####experiments with different cell types
-experiments.cell_types <- function(experiment){
+experiments.celltype_structure <- function(experiment){
+  
+}
+
+experiments.celltype_complexity <- function(experiment){
   
 }
 ####experiments of inter-datasets with batch effects removed or not
