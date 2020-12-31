@@ -1,0 +1,9 @@
+﻿Cell,Level1,Level2,Level3,Level4
+CD4_T_helper,Lymphoid_Progenitor,T_Cell_Progenitor,Naive_T_Helper,CD4_T_helper
+B_cells,Lymphoid_Progenitor,B_cells,,
+cd14_monocytes,Myeloid_Progenitor,cd14_monocytes,,
+cd56_NK,Lymphoid_Progenitor,cd56_NK,,
+memory_T,Lymphoid_Progenitor,T_Cell_Progenitor,Naive_T_Helper,memory_T
+naive_cytotoxic_T,Lymphoid_Progenitor,T_Cell_Progenitor,naive_cytotoxic_T,naive_cytotoxic_T
+naive_T,Lymphoid_Progenitor,T_Cell_Progenitor,naive_T,
+regulatory_T,Lymphoid_Progenitor,T_Cell_Progenitor,Naive_T_Helper,regulatory_T
