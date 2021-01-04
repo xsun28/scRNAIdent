@@ -228,7 +228,8 @@ experiments.sequencing_depth <- function(experiment){
 }
 #####experiments with different cell types
 experiments.celltype_structure <- function(experiment){
-  
+  exp_config <- experiments.parameters[[experiment]]
+  cell_numbers <- exp_config$sample_num
 }
 
 experiments.celltype_complexity <- function(experiment){
