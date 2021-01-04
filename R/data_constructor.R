@@ -59,5 +59,20 @@ constructor.batch_effects <- function(data,config,if_train){
   
 }
 
+constructor.celltype_structure <- function(data,config,if_train){
+  
+}
+
+constructor.type_architecturer <- function(type_file,data){
+  rule <- read.csv(type_file)
+  for(i in 2:ncol(rule)){
+    missing_idx <- which(unlist(purrr::map(rule[i],str_length))==0)
+    if(length(missing_idx)>0){
+      rule[missing_idx,i] <- rule[missing_idx,i-1] ####using previous level label to fill current level
+    }
+  }
+  colData(data) <- merge(colData(data),rule,by.x='label',by.y='Cell') 
+  data
+}
 
 

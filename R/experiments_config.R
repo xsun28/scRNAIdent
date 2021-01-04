@@ -39,7 +39,7 @@ experiments.parameters <- list(
                    marker_gene_file=NULL),
   sequencing_depth=list(quantile=list(low=0.2,high=0.8),cv=TRUE,cv_fold=5,metrics=c('ARI','AMI','FMI'),
                         marker_gene_file=NULL),
-  celltype_structure=list(),
+  celltype_structure=list(sample_num=400,cv=TRUE,cv_fold=5,metrics=c('wNMI','wRI'),structure_file="PBMC_celltypes.csv"),
   batch_effects=list(sample_num=NA,cv=FALSE,remove_batch=TRUE,metrics=c('ARI','AMI','FMI'),
                      marker_gene_file=NULL)
 )

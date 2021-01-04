@@ -12,7 +12,7 @@ plot.plot <- function(experiment,results,raw_results){
     simple_accuracy = plot.simple_accuracy(results,raw_results),
     cell_number = plot.cell_number(results,raw_results),
     sequencing_depth = plot.sequencing_depth(results,raw_results),
-    cell_type = plot.cell_type(results,raw_results),
+    celltype_structure = plot.celltype_structure(results,raw_results),
     batch_effects = plot.batch_effects(results,raw_results)
   )
 }
