@@ -8,7 +8,7 @@ constructor.data_constructor <- function(data,config,experiment,if_train=TRUE){
     simple_accuracy = constructor.simple_accuracy(data,config,if_train),
     cell_number = constructor.cell_number(data,config,if_train),
     sequencing_depth = constructor.sequencing_depth(data,config,if_train),
-    cell_types = constructor.cell_types(data,config,if_train),
+    celltype_structure = constructor.celltype_structure(data,config,if_train),
     batch_effects = constructor.batch_effects(data,config,if_train),
     stop("Can't constructor dataset for unkown experiments")
   )
@@ -60,18 +60,35 @@ constructor.batch_effects <- function(data,config,if_train){
 }
 
 constructor.celltype_structure <- function(data,config,if_train){
-  
+  if(if_train){
+    data <- utils.filter(data) %>%
+      utils.sampler(sample_num=config$sample_num,types=unique(colData(data)[[config$level]]),column = config$level)
+  }else{
+    data <- utils.filter(data,filter_gene=FALSE) 
+  }
+  colData(data)$label <- colData(data)[[config$level]]
+  data <- data[,!duplicated(colnames(data))]
 }
 
-constructor.type_architecturer <- function(type_file,data){
-  rule <- read.csv(type_file)
+constructor.type_architecturer <- function(config,dataset){
+  data <- utils.load_datasets(dataset) 
+  structure_file <- str_glue("{type_home}/{config$structure_file}")
+  rule <- read.csv(structure_file)
   for(i in 2:ncol(rule)){
     missing_idx <- which(unlist(purrr::map(rule[i],str_length))==0)
     if(length(missing_idx)>0){
       rule[missing_idx,i] <- rule[missing_idx,i-1] ####using previous level label to fill current level
     }
+    if(length(unique(rule[,i]))<=2){
+      print(str_glue("{colnames(rule)[[i]]} has cell types fewer than 2, ignoring this level"))
+    }
   }
-  colData(data) <- merge(colData(data),rule,by.x='label',by.y='Cell') 
+  
+  rule <- dplyr::select(rule,-colnames(rule)[which(purrr::map_lgl(colnames(rule),~{return(length(unique(rule[,.]))<=2)}))])
+
+  newColData <- merge(colData(data),rule,by.x='label',by.y='Cell') 
+  rownames(newColData) <- rownames(colData(data))
+  colData(data) <- newColData
   data
 }
 

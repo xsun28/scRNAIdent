@@ -107,6 +107,37 @@ plot.cell_number <- function(results,raw_results){
 }
 
 
+plot.celltype_structure <- function(results,raw_results){
+  dataset <- experiments.data$celltype_structure
+  figure_all_name <- str_glue("celtype_structure_{dataset}_all_metrics.pdf")
+  figure_assigned_name <- str_glue("celtype_structure_{dataset}_assigned_metrics.pdf")
+  
+  results <- purrr::map(results,utils.get_methods)
+  all_results <- dplyr::select(bind_rows(purrr::map(results,~dplyr::filter(.,is.na(assigned)))),-c(unlabeled_pctg,assigned)) %>%
+    gather("metric","value",-c(methods,level))
+  all_results$level <- factor(all_results$level)
+  
+  plot_params <- list(x="level",y="value",group="methods",line_color="methods",point_color="methods",
+                      facet_wrap=T,facet_var="metric",width=10,height=10)
+  plot.line_plot(all_results,plot_params,result_home,figure_all_name)
+  
+  results_assigned <- dplyr::select(bind_rows(purrr::map(results,~dplyr::filter(.,assigned))),-c(unlabeled_pctg,assigned)) %>%
+    gather("metric","value",-c(methods,level))
+  results_assigned$level <- factor(results_assigned$level)
+  plot.line_plot(results_assigned,plot_params,result_home,figure_assigned_name)
+  
+  
+  ######
+  figure_name <- str_glue("celltype_structure_{dataset}_unlabeled_pctg.pdf")
+  results_unlabeled_pctg <- dplyr::filter(dplyr::select(results$assign_results,methods,level,unlabeled_pctg),!is.na(unlabeled_pctg))
+  results_unlabeled_pctg$level <- factor(results_unlabeled_pctg$level)
+  plot_params <- list(x="level",y="unlabeled_pctg",group="methods",line_color="methods",point_color="methods",
+                      facet_wrap=F,width=2*length(unique(results_unlabeled_pctg$methods)),
+                      height=2*length(unique(results_unlabeled_pctg$methods)))
+  plot.line_plot(results_unlabeled_pctg,plot_params,result_home,figure_name)
+}
+
+
 plot.sequencing_depth <- function(results,raw_results){
   dataset <- experiments.data$sequencing_depth
   
