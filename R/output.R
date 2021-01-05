@@ -4,7 +4,7 @@ output.sink <- function(experiment,raw_results,results){
          simple_accuracy = output.simple_accuracy(raw_results,results),
          cell_number = output.cell_number(raw_results,results),
          sequencing_depth = output.sequencing_depth(raw_results,results),
-         cell_types = output.cell_types(raw_results,results),
+         celltype_structure = output.celltype_structure(raw_results,results),
          batch_effects = output.batch_effects(raw_results,results),
          stop("Unkown experiments")
   )
@@ -23,6 +23,11 @@ output.cell_number <- function(raw_results,results){
 output.sequencing_depth <- function(raw_results,results){
   dataset <- experiments.data$sequencing_depth
   output.write_results("sequencing_depth",dataset,raw_results,results)
+}
+
+output.celltype_structure <- function(raw_results,results){
+  dataset <- experiments.data$celltype_structure
+  output.write_results("celltype_structure",dataset,raw_results,results)
 }
 
 output.batch_effects <- function(raw_results,results){

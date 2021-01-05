@@ -51,31 +51,16 @@ analysis.assign.unlabeled_pctg <- function(labels,pred){
 }
 
 
-###### create cell hierarchy for wNMI
-analysis.cluster.createHierarchy <- function(data,labels){
-  require(Wind)
-  stopifnot(is(data,"SingleCellExperiment"))
-  ge_matrix <- as.matrix(counts(data))
-  createRef(ge_matrix,labels)
-}
 
-
-####### create weights for wRI
-analysis.culster.createWeights <- function(data,labels){
-  require(Wind)
-  stopifnot(is(data,"SingleCellExperiment"))
-  ge_matrix <- as.matrix(counts(data))
-  createWeights(ge_matrix,labels)
-}
   
 #######calculate wNMI
-analysis.cluster.wNMI <- function(data,labels,preds){
-  analysis.cluster.createHierarchy(data,labels) %>%
-    wNMI(labels,preds)
+analysis.cluster.wNMI <- function(labels,preds){
+  require(Wind)
+  wNMI(current_celltype_hierarchy,labels,preds)
 }
 
 #######calculate wRI
-analysis.cluster.wRI <- function(data,labels,preds){
-  weights <- analysis.culster.createWeights(data,labels)
-  wRI(labels,preds,weights$W0,weights$W1)[[1]]
+analysis.cluster.wRI <- function(labels,preds){
+  require(Wind)
+  wRI(labels,preds,current_celltype_weights$W0,current_celltype_weights$W1)[[1]]
 }

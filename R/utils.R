@@ -87,9 +87,9 @@ utils.filter <- function(data,filter_gene=TRUE, filter_cells=TRUE, filter_cell_t
 }
 
 ###sampling sample_num cells from each cell type
-utils.sampler <- function(data,sample_num,types){
-  sample_idx <- purrr::map(types,~ which(colData(data)$label==.)) %>% 
-    purrr::map(~sample(.,sample_num,replace=FALSE)) 
+utils.sampler <- function(data,sample_num,types,column="label"){
+  sample_idx <- purrr::map(types,~ which(colData(data)[[column]]==.)) %>% 
+    purrr::map(~sample(.,min(sample_num,length(.)),replace=FALSE)) 
   data[,unlist(sample_idx)]
 }
 
@@ -246,4 +246,22 @@ utils.try_catch_method_error <- function(code, silent=FALSE){
     if (!silent) warning(c)
     invisible(structure(msg, class = "try-error"))
   })
+}
+
+
+###### create cell hierarchy for wNMI
+utils.createCellTypeHierarchy <- function(data,labels){
+  require(Wind)
+  stopifnot(is(data,"SingleCellExperiment"))
+  data <- as.matrix(counts(data))
+  createRef(data,labels)
+}
+
+
+####### create weights for wRI
+utils.createCellTypeWeights <- function(data,labels){
+  require(Wind)
+  stopifnot(is(data,"SingleCellExperiment"))
+  data <- as.matrix(counts(data))
+  createWeights(data,labels)
 }

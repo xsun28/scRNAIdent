@@ -111,13 +111,20 @@ experiments.base.analyze <- function(assign_results,cluster_results,exp_config){
   
   ####
   assigned_results <- utils.select_assigned(results)
-  unassigned_results <- utils.select_unassigned(results)
   
   cluster_analysis_assigned_results <- analysis.run(assigned_results$cluster_results,cluster_methods,exp_config$metrics)
   cluster_analysis_assigned_results$assigned <- TRUE
   assign_analysis_assigned_results <- analysis.run(assigned_results$assign_results,assign_methods,exp_config$metrics)
   assign_analysis_assigned_results$assigned <- TRUE
   
+  if(experiment %in% c('celltype_structure')){
+    report_results <- list(all_assign_results=assign_analysis_results,
+                           all_cluster_results=cluster_analysis_results,
+                           assigned_assign_results=assign_analysis_assigned_results,
+                           assigned_cluster_results=cluster_analysis_assigned_results)
+    return(report_results)
+  }
+  unassigned_results <- utils.select_unassigned(results)
   cluster_analysis_unassigned_results <- analysis.run(unassigned_results$cluster_results,cluster_methods,exp_config$metrics)
   cluster_analysis_unassigned_results$assigned <- FALSE
   assign_analysis_unassigned_results <- analysis.run(unassigned_results$assign_results,assign_methods,exp_config$metrics)
@@ -143,6 +150,10 @@ experiments.base <- function(experiment, exp_config){
   }
   cluster_results <- experiments.base.cluster(experiment,exp_config,assign_data)
   combined_results <- bind_cols(assign_results,dplyr::select(cluster_results,-label))
+  if(experiment %in% c("celltype_structure")){
+    current_celltype_hierarchy <<- utils.createCellTypeHierarchy(assign_data,colData(assign_data)$label)
+    current_celltype_weights <<- utils.createCellTypeWeights(assign_data,colData(assign_data)$label)
+  }
   report_results <- experiments.base.analyze(assign_results,cluster_results)
   list(pred_results=combined_results,analy_results=report_results)
 }
@@ -226,10 +237,54 @@ experiments.sequencing_depth <- function(experiment){
   plot.plot(experiment,final_results,combined_raw_results)
   final_results
 }
+
+
 #####experiments with different cell types
 experiments.celltype_structure <- function(experiment){
   exp_config <- experiments.parameters[[experiment]]
-  cell_numbers <- exp_config$sample_num
+  ####assigning
+  assign_train_dataset <- experiments.assign.data$train_dataset[[experiment]]
+  assign_test_dataset <- experiments.assign.data$test_dataset[[experiment]]
+  data <- constructor.type_architecturer(exp_config, assign_train_dataset)
+  levels <- colnames(colData(data))[grepl("Level*",colnames(colData(data)))]
+  write_rds(data, str_glue("{data_home}{metadata(data)$study}_celltype_structure_dataset.RDS"))
+  experiments.assign.data$train_dataset[[experiment]] <<- str_glue("{metadata(data)$study}_celltype_structure_dataset.RDS")
+  if(assign_test_dataset!=assign_train_dataset){
+    data <- constructor.type_architecturer(exp_config, assign_test_dataset)
+    write_rds(data, str_glue("{data_home}{metadata(data)$study}_celltype_structure_test_dataset.RDS"))
+    experiments.assign.data$test_dataset[[experiment]] <<- str_glue("{metadata(data)$study}_celltype_structure_test_dataset.RDS")
+  }else{
+    experiments.assign.data$test_dataset[[experiment]] <<- str_glue("{metadata(data)$study}_celltype_structure_dataset.RDS")
+  }
+  combined_cluster_results <- vector('list',length(levels))
+  combined_assign_results <- vector('list',length(levels))
+  combined_raw_results <- vector('list',length(levels))
+  methods <- experiments.methods[[experiment]]
+  
+  for(i in seq_along(levels)){
+    level <- levels[[i]]
+    print(str_glue('starting cell type level:{level}'))
+    config <- exp_config
+    config$level <- level
+    config$sample_num <- (length(levels)-i+1)*exp_config$sample_num
+    base_results <- experiments.base(experiment,config) 
+    
+    results <- base_results$analy_results%>% 
+      purrr::map(~{.$level<-level
+      return(.)})
+    raw_results <- base_results$pred_results
+    raw_results$level <- level
+    combined_assign_results[[i]] <- bind_rows(results[grepl(".*_assign_.*",names(results))])
+    combined_cluster_results[[i]] <- bind_rows(results[grepl(".*cluster.*",names(results))])
+    combined_raw_results[[i]] <- raw_results
+  }
+  combined_assign_results <- bind_rows(combined_assign_results)
+  combined_cluster_results <- bind_rows(combined_cluster_results)
+  combined_raw_results <- bind_rows(combined_raw_results)
+  final_results <- list(assign_results=combined_assign_results,cluster_results=combined_cluster_results)
+  output.sink(experiment,combined_raw_results,final_results)
+  plot.plot(experiment,final_results,combined_raw_results)
+  final_results
 }
 
 experiments.celltype_complexity <- function(experiment){
@@ -401,7 +456,8 @@ experiments.run_cv <- function(methods, data,exp_config){
       print(str_glue('start assign method {m} in {i}th fold of CV'))
       m_result <- utils.try_catch_method_error(run_assign_methods(m,train_data,test_data,exp_config))
       if(inherits(m_result,"try-error")){
-        combined_results[[m]][-folds[[i]]] <- NULL
+        # combined_results[[m]][-folds[[i]]] <- NULL
+        next
       }else{
         combined_results[[m]][-folds[[i]]] <- m_result
       }
