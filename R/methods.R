@@ -102,7 +102,11 @@ assign.garnett <- function(train_data,test_data,exp_config){
   pretrained_classifier_name <- m_config[[study]]$pretrained_classifier
 
   if(is_null(pretrained_classifier_name)){
-    marker_file_path <- m_config[[study]]$marker_file_path
+    if(experiment %in% c("celltype_structure")){
+      marker_file_path <- str_glue("Garnett_{study}_marker_{gene_name_type}_{exp_config$level}.txt")
+    }else{
+      marker_file_path <- m_config[[study]]$marker_file_path
+    }
     if(purrr::is_null(marker_file_path)||!file.exists(str_glue("{marker_home}/{marker_file_path}"))){
       print("Garnett marker file not exist, generating marker file...")
       if(purrr::is_null(marker_file_path))
@@ -117,7 +121,12 @@ assign.garnett <- function(train_data,test_data,exp_config){
       check_results <- utils.check_marker_genes(train_data,marker_gene_file, generated_marker_gene_file,marker_gene_method,study) 
       markers_mat <- check_results$markers_mat
       matchidx <- check_results$matchidx
-      assign.garnett.generate_marker_file(markers_mat,marker_file_path,gene_name_type)
+      if(!file.exists(str_glue("{marker_home}/{marker_file_path}"))){
+        print(str_glue("{marker_file_path} not exist, generating...."))
+        assign.garnett.generate_marker_file(markers_mat,marker_file_path,gene_name_type)
+      }
+    }else{
+      print(str_glue("{marker_file_path} exists,skipping generating..."))
     }
     
     

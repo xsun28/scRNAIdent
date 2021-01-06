@@ -199,7 +199,7 @@ utils.check_marker_genes <- function(data,marker_gene_file,generated_marker_gene
   if(purrr::is_null(marker_gene_file)){
     if(!file.exists(str_glue("{marker_home}/{generated_marker_gene_file}.RDS"))){
       print(str_glue("Generating {marker_home}/{generated_marker_gene_file}.RDS"))
-      markers_mat <- generate_marker_genes(marker_gene_method,data,str_glue("{marker_home}/{study}_markergene"))
+      markers_mat <- markergene.generate_marker_genes(marker_gene_method,data,str_glue("{marker_home}/{generated_marker_gene_file}"))
     }
     else{
       print(str_glue("Loading {marker_home}/{generated_marker_gene_file}.RDS"))

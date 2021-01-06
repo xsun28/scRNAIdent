@@ -1,5 +1,5 @@
 source('R/markergene_config.R')
-generate_marker_genes <- function(method,data,file_name){
+markergene.generate_marker_genes <- function(method,data,file_name){
   switch(method,
          cellassign = markergene.cellassign(data,file_name),
          seurat = markergene.seurat(data,file_name),
@@ -72,7 +72,7 @@ markergene.cellassign <- function(data,file_name){
   marker_gene_mat <- expr_mat_thres[(maxdiffs >= quantile(maxdiffs, c(.99))) 
                                     & (thres_vals <= log(2)),] %>%
     as.matrix
-  write_rds(marker_gene_mat,str_glue("{file_name}_cellassign.RDS"))
+  write_rds(marker_gene_mat,str_glue("{file_name}.RDS"))
   marker_gene_mat
 }
 
@@ -109,6 +109,6 @@ markergene.seurat <- function(data,file_name){
     type_marker_genes <- Markers[,type]
     marker_gene_mat[,type][type_marker_genes] <- 1
   }
-  write_rds(marker_gene_mat,str_glue("{file_name}_seurat.RDS"))
+  write_rds(marker_gene_mat,str_glue("{file_name}.RDS"))
   marker_gene_mat
 }
