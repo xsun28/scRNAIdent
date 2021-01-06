@@ -108,7 +108,11 @@ assign.garnett <- function(train_data,test_data,exp_config){
       if(purrr::is_null(marker_file_path))
         marker_file_path <- str_glue("Garnett_{study}_marker_{gene_name_type}.txt")
       marker_gene_file <- exp_config$marker_gene_file
-      generated_marker_gene_file <- str_glue("{study}_markergene_{m_config[[study]]$marker_gene_method}")
+      if(experiment %in% c("celltype_structure")){
+        generated_marker_gene_file <- str_glue("{study}_markergene_{m_config[[study]]$marker_gene_method}_{exp_config$level}")
+      }else{
+        generated_marker_gene_file <- str_glue("{study}_markergene_{m_config[[study]]$marker_gene_method}")
+      }
       marker_gene_method <- m_config[[study]]$marker_gene_method
       check_results <- utils.check_marker_genes(train_data,marker_gene_file, generated_marker_gene_file,marker_gene_method,study) 
       markers_mat <- check_results$markers_mat
@@ -220,7 +224,12 @@ assign.cellassign <- function(data,exp_config){
   m_config <- methods.config.cellassign
   marker_gene_file <- exp_config$marker_gene_file
   study <- metadata(data)$study[[1]]
-  generated_marker_gene_file <- str_glue("{study}_markergene_{m_config$marker_gene_method}")
+  if(experiment %in% c("celltype_structure")){
+    generated_marker_gene_file <- str_glue("{study}_markergene_{m_config$marker_gene_method}_{exp_config$level}")
+  }
+  else{
+    generated_marker_gene_file <- str_glue("{study}_markergene_{m_config$marker_gene_method}")
+  }
   marker_gene_method <- m_config$marker_gene_method
   check_results <- utils.check_marker_genes(data,marker_gene_file, generated_marker_gene_file,marker_gene_method,study) 
   markers_mat <- check_results$markers_mat
