@@ -241,6 +241,7 @@ experiments.sequencing_depth <- function(experiment){
 
 #####experiments with different cell types
 experiments.celltype_structure <- function(experiment){
+  source("R/experiments_config.R") ####reset global environment to default value
   exp_config <- experiments.parameters[[experiment]]
   ####assigning
   assign_train_dataset <- experiments.assign.data$train_dataset[[experiment]]
