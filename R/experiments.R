@@ -1,4 +1,5 @@
 library(reticulate)
+options(reticulate.conda_binary = conda_home)
 use_condaenv('r-reticulate')
 library(stringr)
 library(tidyverse)
