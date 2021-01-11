@@ -1,5 +1,5 @@
-raw_datasets <- list(PBMC="PBMC_AllCells_withLabels.Rdata",
-                     pancreas=c("Muraro_pancreas.Rdata","Segerstolpe_pancreas.Rdata","Xin_pancreas.Rdata"))
+raw_datasets <- list(PBMC="PBMC_AllCells_withLabels.RData",
+                     pancreas=c("Muraro_pancreas.RData","Segerstolpe_pancreas.RData","Xin_pancreas.RData"))
 
 datasets <- list(PBMC="PBMC_AllCells_withLabels.RDS",
                  pancreas=list(muraro="Muraro_pancreas_clean.RDS",

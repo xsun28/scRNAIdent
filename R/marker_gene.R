@@ -89,7 +89,7 @@ markergene.seurat <- function(data,file_name){
   Markers <- matrix(nrow = marker_config$marker_gene_num,ncol = length(unique(Labels)))
   colnames(Markers) <- unique(Labels)
   for (i in unique(Labels)){
-    TempList <- DEgenes$gene[((DEgenes$cluster == i) & (DEgenes$avg_logFC > 0))]
+    TempList <- DEgenes$gene[((DEgenes$cluster == i) & (DEgenes$avg_log2FC > 0))]
     MarkerGenes <- DEgenes$p_val_adj[DEgenes$cluster == i]
     print(MarkerGenes[1:marker_config$marker_gene_num])
     if (length(TempList) >= marker_config$marker_gene_num){
