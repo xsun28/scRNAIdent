@@ -118,13 +118,13 @@ experiments.base.analyze <- function(assign_results,cluster_results,exp_config){
   assign_analysis_assigned_results <- analysis.run(assigned_results$assign_results,assign_methods,exp_config$metrics)
   assign_analysis_assigned_results$assigned <- TRUE
   
-  if(experiment %in% c('celltype_structure')){
-    report_results <- list(all_assign_results=assign_analysis_results,
-                           all_cluster_results=cluster_analysis_results,
-                           assigned_assign_results=assign_analysis_assigned_results,
-                           assigned_cluster_results=cluster_analysis_assigned_results)
-    return(report_results)
-  }
+  # if(experiment %in% c('celltype_structure')){
+  #   report_results <- list(all_assign_results=assign_analysis_results,
+  #                          all_cluster_results=cluster_analysis_results,
+  #                          assigned_assign_results=assign_analysis_assigned_results,
+  #                          assigned_cluster_results=cluster_analysis_assigned_results)
+  #   return(report_results)
+  # }
   unassigned_results <- utils.select_unassigned(results)
   cluster_analysis_unassigned_results <- analysis.run(unassigned_results$cluster_results,cluster_methods,exp_config$metrics)
   cluster_analysis_unassigned_results$assigned <- FALSE
@@ -137,6 +137,7 @@ experiments.base.analyze <- function(assign_results,cluster_results,exp_config){
                          unassigned_assign_results=assign_analysis_unassigned_results,
                          unassigned_cluster_results=cluster_analysis_unassigned_results
                          )
+  report_results
 }
 
 ###base function for all experiments except batch effects
@@ -394,7 +395,7 @@ experiments.run_assign <- function(methods, train_data, test_data=NA, exp_config
   }else{
     results <- as_tibble(data.frame(matrix(nrow=dim(colData(test_data))[[1]],ncol=length(methods))))
     colnames(results) <- methods
-    results <- mutate(results,label=colData(test_data)$label)
+    results <- mutate(results,label=as.character(colData(test_data)$label))
     for(m in methods){
       print(str_glue('start assign method {m}'))
       m_result <- utils.try_catch_method_error(run_assign_methods(m,train_data,test_data,exp_config))
@@ -414,7 +415,7 @@ experiments.run_assign <- function(methods, train_data, test_data=NA, exp_config
 experiments.run_marker_gene_assign <- function(methods,data,exp_config){
   results <- as_tibble(data.frame(matrix(nrow=dim(colData(data))[[1]],ncol=length(methods))))
   colnames(results) <- methods
-  results <- mutate(results,label=colData(data)$label)
+  results <- mutate(results,label=as.character(colData(data)$label))
   for(m in methods){
     print(str_glue('start marker gene assign method {m}'))
     m_result <- utils.try_catch_method_error(run_assign_methods(m,data,NULL,exp_config))
@@ -433,7 +434,7 @@ experiments.run_marker_gene_assign <- function(methods,data,exp_config){
 experiments.run_cluster <- function(methods,data,exp_config){
   results <- as_tibble(data.frame(matrix(nrow=dim(colData(data))[[1]],ncol=length(methods))))
   colnames(results) <- methods
-  results <- mutate(results,label=colData(data)$label)
+  results <- mutate(results,label=as.character(colData(data)$label))
   for(m in methods){
     print(str_glue('start cluster method {m}'))
     m_result <- utils.try_catch_method_error(run_cluster_methods(m,data))
@@ -456,7 +457,7 @@ experiments.run_cv <- function(methods, data,exp_config){
   folds <- createFolds(factor(colData(data)$label),cv_folds,returnTrain = TRUE)
   combined_results <- as_tibble(data.frame(matrix(nrow=dim(colData(data))[[1]],ncol=length(methods))))
   colnames(combined_results) <- methods
-  combined_results <- mutate(combined_results,label=colData(data)$label)
+  combined_results <- mutate(combined_results,label=as.character(colData(data)$label))
   for(i in seq_along(folds)){
     train_data <- data[,folds[[i]]]
     test_data <- data[,-folds[[i]]]

@@ -1,5 +1,4 @@
-source('R/utils.R')
-source('R/experiments_config.R')
+
 ###separate assigned and unassigned and analyze respectively
 
 analysis.run <- function(results,methods,metrics){
@@ -17,7 +16,7 @@ analysis.run <- function(results,methods,metrics){
   for (m in methods){
     for(metric in metrics){
       f <- get(metrics_functions_mapping[[metric]])
-      analysis_results[m,metric] <- f(results$label,results[[m]])
+      analysis_results[m,metric] <- f(as.character(results$label),results[[m]])
     }
   }
   analysis_results
