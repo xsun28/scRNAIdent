@@ -1,4 +1,4 @@
-source('R/config.R')
+
 output.sink <- function(experiment,raw_results,results){
   switch(experiment,
          simple_accuracy = output.simple_accuracy(raw_results,results),

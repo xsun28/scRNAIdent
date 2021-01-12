@@ -1,5 +1,3 @@
-source('R/config.R')
-source('R/dataset_config.R')
 source('R/marker_gene.R')
 library(tidyverse)
 library(stringr)

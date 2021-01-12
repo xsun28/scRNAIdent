@@ -1,7 +1,4 @@
 source("R/methods_config.R")
-source("R/config.R")
-source("R/marker_gene.R")
-source("R/utils.R")
 run_assign_methods <- function(method,train_data, test_data,exp_config){
   switch(method,
          scmap_cluster = assign.scmap_cluster(train_data, test_data),
