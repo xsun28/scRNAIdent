@@ -1,10 +1,11 @@
+source("R/config.R")
 library(reticulate)
+options(reticulate.conda_binary = conda_home)
 use_condaenv('r-reticulate')
 library(stringr)
 library(tidyverse)
 library(tensorflow)
 tf$constant("Tensorflow test")
-source("R/config.R")
 source("R/dataset_config.R")
 source("R/experiments_config.R")
 source("R/utils.R")
@@ -400,6 +401,9 @@ experiments.run_assign <- function(methods, train_data, test_data=NA, exp_config
       if(inherits(m_result,"try-error")){
         results <- dplyr::select(results,-m)
       }else{
+        if(is.factor(m_result)){
+          m_result <- as.character(m_result)
+        }
         results[[m]] <- m_result
       }
     }
@@ -417,6 +421,9 @@ experiments.run_marker_gene_assign <- function(methods,data,exp_config){
     if(inherits(m_result,"try-error")){
       results <- dplyr::select(results,-m)
     }else{
+      if(is.factor(m_result)){
+        m_result <- as.character(m_result)
+      }
       results[[m]] <- m_result
     }
   }
@@ -460,6 +467,9 @@ experiments.run_cv <- function(methods, data,exp_config){
         # combined_results[[m]][-folds[[i]]] <- NULL
         next
       }else{
+        if(is.factor(m_result)){
+          m_result <- as.character(m_result)
+        }
         combined_results[[m]][-folds[[i]]] <- m_result
       }
     }

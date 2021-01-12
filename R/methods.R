@@ -33,6 +33,8 @@ assign.scmap_cluster <- function(train_data, test_data){
   require(scater)
   stopifnot(is(train_data,"SingleCellExperiment"))
   stopifnot(is(test_data,"SingleCellExperiment"))
+  counts(train_data) <- as.matrix(counts(train_data))
+  counts(test_data) <- as.matrix(counts(test_data))
   train_data <- logNormCounts(train_data)
   rowData(train_data)$feature_symbol <- rownames(train_data)
   train_data <- selectFeatures(train_data,n_features=methods.config.scmap[['nfeatures']]) %>%
@@ -49,6 +51,8 @@ assign.scmap_cell <- function(train_data, test_data){
   require(scater)
   stopifnot(is(train_data,"SingleCellExperiment"))
   stopifnot(is(test_data,"SingleCellExperiment"))
+  counts(train_data) <- as.matrix(counts(train_data))
+  counts(test_data) <- as.matrix(counts(test_data))
   train_data <- logNormCounts(train_data)
   rowData(train_data)$feature_symbol <- rownames(train_data)
   if(purrr::is_null(methods.config.scmap[['seed']]))
@@ -389,7 +393,7 @@ cluster.liger <- function(data){
   data_list <- list(counts(data))
   names(data_list) <- metadata(data)$study[[1]]
   liger_data <- createLiger(data_list)
-  liger_data <- normalize(liger_data)
+  liger_data <- liger::normalize(liger_data)
   liger_data <- selectGenes(liger_data, var.thresh = c(0.3, 0.875), do.plot = F)
   liger_data <- scaleNotCenter(liger_data)
   if(m_config$suggestK==TRUE){

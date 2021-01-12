@@ -1,5 +1,7 @@
 home <- '/Users/Xiaobo/git/scRNAIdent/'
+conda_home <- "/Users/Xiaobo/opt/anaconda3/bin/conda"
 data_home <- paste(home, 'data/',sep='')
+dir.create(data_home)
 result_home <- paste(home,'results/',sep='')
 marker_home <- paste(home,'markers/',sep='')
 type_home <- str_glue("{home}types")
