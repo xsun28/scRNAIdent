@@ -1,4 +1,3 @@
-source("R/utils.R")
 
 plot.plot <- function(experiment,results,raw_results){
   dataset <- experiments.data[[experiment]]
@@ -110,7 +109,8 @@ plot.cell_number <- function(results,raw_results){
 plot.celltype_structure <- function(results,raw_results){
   dataset <- experiments.data$celltype_structure
   figure_all_name <- str_glue("celtype_structure_{dataset}_all_metrics.pdf")
-  figure_assigned_name <- str_glue("celtype_structure_{dataset}_assigned_metrics.pdf")
+  figure_assigned_name <- str_glue("celltype_structure_{dataset}_assigned_metrics.pdf")
+  figure_unassigned_name <- str_glue("celltype_structure_{dataset}_unassigned_metrics.pdf")
   
   results <- purrr::map(results,utils.get_methods)
   all_results <- dplyr::select(bind_rows(purrr::map(results,~dplyr::filter(.,is.na(assigned)))),-c(unlabeled_pctg,assigned)) %>%
@@ -126,6 +126,10 @@ plot.celltype_structure <- function(results,raw_results){
   results_assigned$level <- factor(results_assigned$level)
   plot.line_plot(results_assigned,plot_params,result_home,figure_assigned_name)
   
+  results_unassigned <- dplyr::select(bind_rows(purrr::map(results,~dplyr::filter(.,!assigned))),-c(unlabeled_pctg,assigned)) %>%
+    gather("metric","value",-c(methods,level))
+  results_unassigned$level <- factor(results_unassigned$level)
+  plot.line_plot(results_unassigned,plot_params,result_home,figure_unassigned_name)
   
   ######
   figure_name <- str_glue("celltype_structure_{dataset}_unlabeled_pctg.pdf")
