@@ -73,7 +73,7 @@ constructor.celltype_structure <- function(data,config,if_train){
 constructor.type_architecturer <- function(config,dataset){
   data <- utils.load_datasets(dataset) 
   structure_file <- str_glue("{type_home}/{config$structure_file}")
-  rule <- read.csv(structure_file)
+  rule <- read.csv(structure_file, stringsAsFactors = FALSE)
   for(i in 2:ncol(rule)){
     missing_idx <- which(unlist(purrr::map(rule[i],str_length))==0)
     if(length(missing_idx)>0){

@@ -163,11 +163,13 @@ utils.remove_batch_effects <- function(batches){
   require(batchelor)
   require(scater)
   require(scran)
-  batches <- multiBatchNorm(batches)
+  batches <- do.call(multiBatchNorm,as.list(batches))
   decs <- purrr::map(batches,modelGeneVar)
   combined.decs <- do.call('combineVar',decs)
   chosen.hvgs <- combined.decs$bio > 0
-  f.out <- fastMNN(batches,subset.row=chosen.hvgs)
+  args <- list()
+  args$subset.row <- chosen.hvgs
+  f.out <- do.call(fastMNN,c(as.list(batches),args))
   sces_batch_free <- purrr::map(batches,~f.out[,colnames(.)])
   add_col_row_data <- function(x,y){
     colData(x)[,c('label','sampleId')] <- colData(y)[,c('label','sampleId')]
