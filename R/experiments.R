@@ -107,16 +107,20 @@ experiments.base.analyze <- function(assign_results,cluster_results,exp_config){
   unlabeled_pctg_results <- analysis.run(assign_results,assign_methods,c("unlabeled_pctg"))
   results <- list(assign_results=assign_results,cluster_results=cluster_results)
   cluster_analysis_results <- analysis.run(results$cluster_results,cluster_methods,exp_config$metrics)
+  cluster_analysis_results$supervised <- F
   assign_analysis_results <- analysis.run(results$assign_results,assign_methods,exp_config$metrics) %>%
-    dplyr::bind_cols(unlabeled_pctg_results) 
+    dplyr::bind_cols(unlabeled_pctg_results)
+  assign_analysis_results$supervised <- T
   
   ####
   assigned_results <- utils.select_assigned(results)
   
   cluster_analysis_assigned_results <- analysis.run(assigned_results$cluster_results,cluster_methods,exp_config$metrics)
   cluster_analysis_assigned_results$assigned <- TRUE
+  cluster_analysis_assigned_results$supervised <- F
   assign_analysis_assigned_results <- analysis.run(assigned_results$assign_results,assign_methods,exp_config$metrics)
   assign_analysis_assigned_results$assigned <- TRUE
+  assign_analysis_assigned_results$supervised <- T
   
   # if(experiment %in% c('celltype_structure')){
   #   report_results <- list(all_assign_results=assign_analysis_results,
@@ -128,8 +132,10 @@ experiments.base.analyze <- function(assign_results,cluster_results,exp_config){
   unassigned_results <- utils.select_unassigned(results)
   cluster_analysis_unassigned_results <- analysis.run(unassigned_results$cluster_results,cluster_methods,exp_config$metrics)
   cluster_analysis_unassigned_results$assigned <- FALSE
+  cluster_analysis_unassigned_results$supervised <- F
   assign_analysis_unassigned_results <- analysis.run(unassigned_results$assign_results,assign_methods,exp_config$metrics)
   assign_analysis_unassigned_results$assigned <- FALSE
+  assign_analysis_unassigned_results$supervised <- T
   report_results <- list(all_assign_results=assign_analysis_results,
                          all_cluster_results=cluster_analysis_results,
                          assigned_assign_results=assign_analysis_assigned_results,
