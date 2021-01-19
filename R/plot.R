@@ -19,9 +19,9 @@ plot.plot <- function(experiment,results,raw_results){
 plot.simple_accuracy <- function(results,raw_results){
   require(data.table)
   dataset <- experiments.data$simple_accuracy
-  figure_all_name <- str_glue("simple_accuracy_{dataset}_all_metrics.pdf")
-  figure_assigned_name <- str_glue("simple_accuracy_{dataset}_assigned_metrics.pdf")
-  figure_unassigned_name <- str_glue("simple_accuracy_{dataset}_unassigned_metrics.pdf")
+  figure_all_name <- str_glue("simple_accuracy_{dataset}_all")
+  figure_assigned_name <- str_glue("simple_accuracy_{dataset}_assigned")
+  figure_unassigned_name <- str_glue("simple_accuracy_{dataset}_unassigned")
   
   all_results <- bind_rows(results[grepl("^all_.*",names(results))])
   all_results[,'methods'] <- rownames(all_results)
@@ -31,27 +31,37 @@ plot.simple_accuracy <- function(results,raw_results){
   results_unassigned[,'methods'] <- rownames(results_unassigned)
 
   all_results_table <- data.table(melt(all_results,
-                                          id.vars = c('methods'),    
+                                          id.vars = c('methods','supervised'),    
                                           measure.vars=c('ARI','AMI','FMI')))
   all_results_table$methods <- factor(all_results_table$methods)
   all_results_table$label <- round(all_results_table$value,2)
-  plot_params <- list(x="methods",y="value",fill="variable",label="label",
-                      facet_var="variable",dodged=F,facet_wrap=T,width=10,height=7,nrow=3)
-  plot.bar_plot(all_results_table,plot_params,result_home,figure_all_name)
+  plot_params <- list(x="methods",y="value",fill="supervised",label="label",xlabel="methods",
+                      facet_var="supervised",dodged=T,facet_wrap=F,width=10,height=7,nrow=1)
+  plot_params$ylabel <- "ARI"
+  plot.bar_plot(all_results_table[,all_results_table[variable=="ARI"]],plot_params,result_home,str_glue("{figure_all_name}_ARI.pdf"))
+  plot_params$ylabel <- "AMI"
+  plot.bar_plot(all_results_table[,all_results_table[variable=="AMI"]],plot_params,result_home,str_glue("{figure_all_name}_AMI.pdf"))
+  plot_params$ylabel <- "FMI"
+  plot.bar_plot(all_results_table[,all_results_table[variable=="FMI"]],plot_params,result_home,str_glue("{figure_all_name}_FMI.pdf"))
   
   results_assign_table <- data.table(melt(results_assigned,
-                                   id.vars = c('methods'),    
+                                   id.vars = c('methods','supervised'),    
                                    measure.vars=c('ARI','AMI','FMI')))
   results_assign_table$methods <- factor(results_assign_table$methods)
   results_assign_table$label <- round(results_assign_table$value,2)
-  plot.bar_plot(results_assign_table,plot_params,result_home,figure_assigned_name)
+  plot.bar_plot(results_assign_table[,results_assign_table[variable=="ARI"]],plot_params,result_home,str_glue("{figure_assigned_name}_ARI.pdf"))
+  plot.bar_plot(results_assign_table[,results_assign_table[variable=="AMI"]],plot_params,result_home,str_glue("{figure_assigned_name}_AMI.pdf"))
+  plot.bar_plot(results_assign_table[,results_assign_table[variable=="FMI"]],plot_params,result_home,str_glue("{figure_assigned_name}_FMI.pdf"))
+  
   
   results_unassign_table <- data.table(melt(results_unassigned,
-                                          id.vars = c('methods'),    
+                                          id.vars = c('methods','supervised'),    
                                           measure.vars=c('ARI','AMI','FMI')))
   results_unassign_table$methods <- factor(results_unassign_table$methods)
   results_unassign_table$label <- round(results_unassign_table$value,2)
-  plot.bar_plot(results_unassign_table,plot_params,result_home,figure_unassigned_name)
+  plot.bar_plot(results_unassign_table[,results_unassign_table[variable=="ARI"]],plot_params,result_home,str_glue("{figure_unassigned_name}_ARI.pdf"))
+  plot.bar_plot(results_unassign_table[,results_unassign_table[variable=="AMI"]],plot_params,result_home,str_glue("{figure_unassigned_name}_AMI.pdf"))
+  plot.bar_plot(results_unassign_table[,results_unassign_table[variable=="FMI"]],plot_params,result_home,str_glue("{figure_unassigned_name}_FMI.pdf"))
   
   #####unlabeled pctg 
   figure_name <- str_glue("simple_accuracy_{dataset}_unlabeled_pctg.pdf")
@@ -73,27 +83,52 @@ plot.simple_accuracy <- function(results,raw_results){
 
 plot.cell_number <- function(results,raw_results){
   dataset <- experiments.data$cell_number
-  figure_all_name <- str_glue("cell_number_{dataset}_all_metrics.pdf")
-  figure_assigned_name <- str_glue("cell_number_{dataset}_assigned_metrics.pdf")
-  figure_unassigned_name <- str_glue("cell_number_{dataset}_unassigned_metrics.pdf")
+  figure_all_name <- str_glue("cell_number_{dataset}_all")
+  figure_assigned_name <- str_glue("cell_number_{dataset}_assigned")
+  figure_unassigned_name <- str_glue("cell_number_{dataset}_unassigned")
   
   
   results <- purrr::map(results,utils.get_methods)
   all_results <- dplyr::select(bind_rows(purrr::map(results,~dplyr::filter(.,is.na(assigned)))),-c(unlabeled_pctg,assigned)) %>%
-                gather("metric","value",-c(methods,sample_num))
+                gather("metric","value",-c(methods,sample_num,supervised))
+  all_results$label <- round(all_results$value,2)
+  # plot_params <-
+  # list(x="sample_num",y="value",group="methods",line_color="methods",point_color="methods",
+  # facet_wrap=T,facet_var="metric",width=10,height=10)
+  # plot.line_plot(all_results[all_results$metric=="ARI",],plot_params,result_home,figure_all_name)
   
-  plot_params <- list(x="sample_num",y="value",group="methods",line_color="methods",point_color="methods",
-                      facet_wrap=T,facet_var="metric",width=10,height=10)
-  plot.line_plot(all_results,plot_params,result_home,figure_all_name)
+  plot_params <- list(x="methods",y="value",fill="supervised",label="label",xlabel="methods",
+                      facet_wrap=T,dodged=T,facet_var='sample_num',width=10,height=7,nrow=3)
+  plot_params$ylabel <- "ARI"
+  plot.bar_plot(all_results[all_results$metric=="ARI",],plot_params,result_home,str_glue("{figure_all_name}_ARI.pdf"))
+  plot_params$ylabel <- "AMI"
+  plot.bar_plot(all_results[all_results$metric=="AMI",],plot_params,result_home,str_glue("{figure_all_name}_AMI.pdf"))
+  plot_params$ylabel <- "FMI"
+  plot.bar_plot(all_results[all_results$metric=="FMI",],plot_params,result_home,str_glue("{figure_all_name}_FMI.pdf"))
+  
   
   results_assigned <- dplyr::select(bind_rows(purrr::map(results,~dplyr::filter(.,assigned))),-c(unlabeled_pctg,assigned)) %>%
-    gather("metric","value",-c(methods,sample_num))
-  plot.line_plot(results_assigned,plot_params,result_home,figure_assigned_name)
+    gather("metric","value",-c(methods,sample_num,supervised))
+  results_assigned$label <- round(results_assigned$value,2)
+  plot_params$ylabel <- "ARI"
+  plot.bar_plot(results_assigned[results_assigned$metric=="ARI",],plot_params,result_home,str_glue("{figure_assigned_name}_ARI.pdf"))
+  plot_params$ylabel <- "AMI"
+  plot.bar_plot(results_assigned[results_assigned$metric=="AMI",],plot_params,result_home,str_glue("{figure_assigned_name}_AMI.pdf"))
+  plot_params$ylabel <- "FMI"
+  plot.bar_plot(results_assigned[results_assigned$metric=="FMI",],plot_params,result_home,str_glue("{figure_assigned_name}_FMI.pdf"))
+  # plot.line_plot(results_assigned,plot_params,result_home,figure_assigned_name)
   
   results_unassigned <- dplyr::select(bind_rows(purrr::map(results,~dplyr::filter(.,!assigned))),-c(unlabeled_pctg,assigned)) %>%
-    gather("metric","value",-c(methods,sample_num))
+    gather("metric","value",-c(methods,sample_num,supervised))
+  results_unassigned$label <- round(results_unassigned$value,2)
+  plot_params$ylabel <- "ARI"
+  plot.bar_plot(results_unassigned[results_unassigned$metric=="ARI",],plot_params,result_home,str_glue("{figure_unassigned_name}_ARI.pdf"))
+  plot_params$ylabel <- "AMI"
+  plot.bar_plot(results_unassigned[results_unassigned$metric=="AMI",],plot_params,result_home,str_glue("{figure_unassigned_name}_AMI.pdf"))
+  plot_params$ylabel <- "FMI"
+  plot.bar_plot(results_unassigned[results_unassigned$metric=="FMI",],plot_params,result_home,str_glue("{figure_unassigned_name}_FMI.pdf"))
   
-  plot.line_plot(results_unassigned,plot_params,result_home,figure_unassigned_name)
+  # plot.line_plot(results_unassigned,plot_params,result_home,figure_unassigned_name)
   
   ######
   figure_name <- str_glue("cell_number_{dataset}_unlabeled_pctg.pdf")
@@ -108,28 +143,49 @@ plot.cell_number <- function(results,raw_results){
 
 plot.celltype_structure <- function(results,raw_results){
   dataset <- experiments.data$celltype_structure
-  figure_all_name <- str_glue("celtype_structure_{dataset}_all_metrics.pdf")
-  figure_assigned_name <- str_glue("celltype_structure_{dataset}_assigned_metrics.pdf")
-  figure_unassigned_name <- str_glue("celltype_structure_{dataset}_unassigned_metrics.pdf")
+  figure_all_name <- str_glue("celtype_structure_{dataset}_all")
+  figure_assigned_name <- str_glue("celltype_structure_{dataset}_assigned")
+  figure_unassigned_name <- str_glue("celltype_structure_{dataset}_unassigned")
   
   results <- purrr::map(results,utils.get_methods)
   all_results <- dplyr::select(bind_rows(purrr::map(results,~dplyr::filter(.,is.na(assigned)))),-c(unlabeled_pctg,assigned)) %>%
-    gather("metric","value",-c(methods,level))
+    gather("metric","value",-c(methods,level,supervised))
   all_results$level <- factor(all_results$level)
+  all_results$label <- round(all_results$value,2)
   
-  plot_params <- list(x="level",y="value",group="methods",line_color="methods",point_color="methods",
-                      facet_wrap=T,facet_var="metric",width=10,height=10)
-  plot.line_plot(all_results,plot_params,result_home,figure_all_name)
+  plot_params <- list(x="methods",y="value",fill="supervised",label="label",xlabel="methods",
+                      facet_wrap=T,dodged=T,facet_var='level',width=10,height=7,nrow=length(unique(all_results$level)))
+  plot_params$ylabel <- "wRI"
+  plot.bar_plot(all_results[all_results$metric=="wRI",],plot_params,result_home,str_glue("{figure_all_name}_wRI.pdf"))
+  plot_params$ylabel <- "wNMI"
+  plot.bar_plot(all_results[all_results$metric=="wNMI",],plot_params,result_home,str_glue("{figure_all_name}_wNMI.pdf"))
+  
+  
+  # plot_params <- list(x="level",y="value",group="methods",line_color="methods",point_color="methods",
+  #                     facet_wrap=T,facet_var="metric",width=10,height=10)
+  # plot.line_plot(all_results,plot_params,result_home,figure_all_name)
   
   results_assigned <- dplyr::select(bind_rows(purrr::map(results,~dplyr::filter(.,assigned))),-c(unlabeled_pctg,assigned)) %>%
-    gather("metric","value",-c(methods,level))
+    gather("metric","value",-c(methods,level,supervised))
   results_assigned$level <- factor(results_assigned$level)
-  plot.line_plot(results_assigned,plot_params,result_home,figure_assigned_name)
+  results_assigned$label <- round(results_assigned$value,2)
+  # plot.line_plot(results_assigned,plot_params,result_home,figure_assigned_name)
+  plot_params$ylabel <- "wRI"
+  plot.bar_plot(results_assigned[results_assigned$metric=="wRI",],plot_params,result_home,str_glue("{figure_assigned_name}_wRI.pdf"))
+  plot_params$ylabel <- "wNMI"
+  plot.bar_plot(results_assigned[results_assigned$metric=="wNMI",],plot_params,result_home,str_glue("{figure_assigned_name}_wNMI.pdf"))
+  
   
   results_unassigned <- dplyr::select(bind_rows(purrr::map(results,~dplyr::filter(.,!assigned))),-c(unlabeled_pctg,assigned)) %>%
-    gather("metric","value",-c(methods,level))
+    gather("metric","value",-c(methods,level,supervised))
   results_unassigned$level <- factor(results_unassigned$level)
-  plot.line_plot(results_unassigned,plot_params,result_home,figure_unassigned_name)
+  results_unassigned$label <- round(results_unassigned$value,2)
+  plot_params$ylabel <- "wRI"
+  plot.bar_plot(results_unassigned[results_unassigned$metric=="wRI",],plot_params,result_home,str_glue("{figure_unassigned_name}_wRI.pdf"))
+  plot_params$ylabel <- "wNMI"
+  plot.bar_plot(results_unassigned[results_unassigned$metric=="wNMI",],plot_params,result_home,str_glue("{figure_unassigned_name}_wNMI.pdf"))
+  
+  # plot.line_plot(results_unassigned,plot_params,result_home,figure_unassigned_name)
   
   ######
   figure_name <- str_glue("celltype_structure_{dataset}_unlabeled_pctg.pdf")
@@ -150,28 +206,45 @@ plot.sequencing_depth <- function(results,raw_results){
     return(.)
     })
   #######
-  figure_all_name <- str_glue("sequencing_depth_{dataset}_all_metrics.pdf")
-  figure_assigned_name <- str_glue("sequencing_depth_{dataset}_assigned_metrics.pdf")
-  figure_unassigned_name <- str_glue("sequencing_depth_{dataset}_unassigned_metrics.pdf")
+  figure_all_name <- str_glue("sequencing_depth_{dataset}_all")
+  figure_assigned_name <- str_glue("sequencing_depth_{dataset}_assigned")
+  figure_unassigned_name <- str_glue("sequencing_depth_{dataset}_unassigned")
   
   
   all_results <- dplyr::select(bind_rows(purrr::map(results,~dplyr::filter(.,is.na(assigned)))),-c(unlabeled_pctg,assigned)) %>%
-    gather("metric","value",-c(methods,quantile))
+    gather("metric","value",-c(methods,quantile,supervised))
   all_results$label <- round(all_results$value,2)
-  plot_params <- list(x="methods",y="value",fill="quantile",label="label",
-                      facet_wrap=T,dodged=T,facet_var="metric",width=10,height=7,nrow=2)
-  plot.bar_plot(all_results,plot_params,result_home,figure_all_name)
+  plot_params <- list(x="methods",y="value",fill="supervised",label="label",xlabel="methods",
+                      facet_wrap=T,dodged=T,facet_var="quantile",width=10,height=7,nrow=length(unique(all_results$quantile)))
+  plot_params$ylabel <- "ARI"
+  plot.bar_plot(all_results[all_results$metric=="ARI",],plot_params,result_home,str_glue("{figure_all_name}_ARI.pdf"))
+  plot_params$ylabel <- "AMI"
+  plot.bar_plot(all_results[all_results$metric=="AMI",],plot_params,result_home,str_glue("{figure_all_name}_AMI.pdf"))
+  plot_params$ylabel <- "FMI"
+  plot.bar_plot(all_results[all_results$metric=="FMI",],plot_params,result_home,str_glue("{figure_all_name}_FMI.pdf"))
+  
   # plot.heatmap_plot(all_results,"quantile","methods",result_home,figure_all_name)
   
   results_assigned <- dplyr::select(bind_rows(purrr::map(results,~dplyr::filter(.,assigned))),-c(unlabeled_pctg,assigned)) %>%
-    gather("metric","value",-c(methods,quantile))
+    gather("metric","value",-c(methods,quantile,supervised))
   results_assigned$label <- round(results_assigned$value,2)
-  plot.bar_plot(results_assigned,plot_params,result_home,figure_assigned_name)
+  plot_params$ylabel <- "ARI"
+  plot.bar_plot(results_assigned[results_assigned$metric=="ARI",],plot_params,result_home,str_glue("{figure_assigned_name}_ARI.pdf"))
+  plot_params$ylabel <- "AMI"
+  plot.bar_plot(results_assigned[results_assigned$metric=="AMI",],plot_params,result_home,str_glue("{figure_assigned_name}_AMI.pdf"))
+  plot_params$ylabel <- "FMI"
+  plot.bar_plot(results_assigned[results_assigned$metric=="FMI",],plot_params,result_home,str_glue("{figure_assigned_name}_FMI.pdf"))
+  
   
   results_unassigned <- dplyr::select(bind_rows(purrr::map(results,~dplyr::filter(.,!assigned))),-c(unlabeled_pctg,assigned)) %>%
-    gather("metric","value",-c(methods,quantile))
+    gather("metric","value",-c(methods,quantile,supervised))
   results_unassigned$label <- round(results_unassigned$value,2)
-  plot.bar_plot(results_unassigned,plot_params,result_home,figure_unassigned_name)
+  plot_params$ylabel <- "ARI"
+  plot.bar_plot(results_unassigned[results_unassigned$metric=="ARI",],plot_params,result_home,str_glue("{figure_unassigned_name}_ARI.pdf"))
+  plot_params$ylabel <- "AMI"
+  plot.bar_plot(results_unassigned[results_unassigned$metric=="AMI",],plot_params,result_home,str_glue("{figure_unassigned_name}_AMI.pdf"))
+  plot_params$ylabel <- "FMI"
+  plot.bar_plot(results_unassigned[results_unassigned$metric=="FMI",],plot_params,result_home,str_glue("{figure_unassigned_name}_FMI.pdf"))
   
   #######
   figure_name <- str_glue("sequencing_depth_{dataset}_unlabeled_pctg.pdf")
@@ -226,30 +299,45 @@ plot.batch_effects <- function(results,raw_results){
   
   results <- purrr::map(results,utils.get_methods)
   
-  figure_all_name <- str_glue("batch_effects_{dataset}_all_metrics.pdf")
-  figure_assigned_name <- str_glue("batch_effects_{dataset}_assigned_metrics.pdf")
-  figure_unassigned_name <- str_glue("batch_effects_{dataset}_unassigned_metrics.pdf")
+  figure_all_name <- str_glue("batch_effects_{dataset}_all")
+  figure_assigned_name <- str_glue("batch_effects_{dataset}_assigned")
+  figure_unassigned_name <- str_glue("batch_effects_{dataset}_unassigned")
 
   all_results <- dplyr::select(bind_rows(purrr::map(results,~dplyr::filter(.,is.na(assigned)))),-c(unlabeled_pctg,assigned)) %>%
-    gather("metric","value",-c(methods,batch_effects_removed))
+    gather("metric","value",-c(methods,batch_effects_removed,supervised))
   
   all_results$label <- round(all_results$value,2)
-  plot_params <- list(x="methods",y="value",fill="batch_effects_removed",label="label",
-                      facet_wrap=T,dodged=T,facet_var="metric",width=10,height=7,nrow=3)
-  plot.bar_plot(all_results,plot_params,result_home,figure_all_name)
+  plot_params <- list(x="methods",y="value",fill="supervised",label="label",xlabel="methods",
+                      facet_wrap=T,dodged=T,facet_var="batch_effects_removed",width=10,height=7,nrow=2)
+  plot_params$ylabel <- "ARI"
+  plot.bar_plot(all_results[all_results$metric=="ARI",],plot_params,result_home,str_glue("{figure_all_name}_ARI.pdf"))
+  plot_params$ylabel <- "AMI"
+  plot.bar_plot(all_results[all_results$metric=="AMI",],plot_params,result_home,str_glue("{figure_all_name}_AMI.pdf"))
+  plot_params$ylabel <- "FMI"
+  plot.bar_plot(all_results[all_results$metric=="FMI",],plot_params,result_home,str_glue("{figure_all_name}_FMI.pdf"))
   
   # plot.heatmap_plot(all_results,"batch_effects_removed","methods",result_home,figure_all_name)
   
   results_assigned <- dplyr::select(bind_rows(purrr::map(results,~dplyr::filter(.,assigned))),-c(unlabeled_pctg,assigned)) %>%
-    gather("metric","value",-c(methods,batch_effects_removed))
+    gather("metric","value",-c(methods,batch_effects_removed,supervised))
   results_assigned$label <- round(results_assigned$value,2)
-  plot.bar_plot(results_assigned,plot_params,result_home,figure_assigned_name)
+  plot_params$ylabel <- "ARI"
+  plot.bar_plot(results_assigned[results_assigned$metric=="ARI",],plot_params,result_home,str_glue("{figure_assigned_name}_ARI.pdf"))
+  plot_params$ylabel <- "AMI"
+  plot.bar_plot(results_assigned[results_assigned$metric=="AMI",],plot_params,result_home,str_glue("{figure_assigned_name}_AMI.pdf"))
+  plot_params$ylabel <- "FMI"
+  plot.bar_plot(results_assigned[results_assigned$metric=="FMI",],plot_params,result_home,str_glue("{figure_assigned_name}_FMI.pdf"))
   
 
   results_unassigned <- dplyr::select(bind_rows(purrr::map(results,~dplyr::filter(.,!assigned))),-c(unlabeled_pctg,assigned)) %>%
-    gather("metric","value",-c(methods,batch_effects_removed))
+    gather("metric","value",-c(methods,batch_effects_removed,supervised))
   results_unassigned$label <- round(results_unassigned$value,2)
-  plot.bar_plot(results_unassigned,plot_params,result_home,figure_unassigned_name)
+  plot_params$ylabel <- "ARI"
+  plot.bar_plot(results_unassigned[results_unassigned$metric=="ARI",],plot_params,result_home,str_glue("{figure_unassigned_name}_ARI.pdf"))
+  plot_params$ylabel <- "AMI"
+  plot.bar_plot(results_unassigned[results_unassigned$metric=="AMI",],plot_params,result_home,str_glue("{figure_unassigned_name}_AMI.pdf"))
+  plot_params$ylabel <- "FMI"
+  plot.bar_plot(results_unassigned[results_unassigned$metric=="FMI",],plot_params,result_home,str_glue("{figure_unassigned_name}_FMI.pdf"))
   
 
   figure_name <- str_glue("batch_effects_{dataset}_unlabeled_pctg.pdf")
@@ -295,11 +383,12 @@ plot.bar_plot <- function(results,params,fig_path,fig_name){
               show.legend = F")
     }
   plot_str <- str_glue("{plot_str})+
+                        labs(x=\"{params$xlabel}\",y = \"{params$ylabel}\") +
                         scale_x_discrete(guide = guide_axis(n.dodge=3))")
   
   if(params$facet_wrap){
     plot_str <- str_glue("{plot_str} + 
-                          facet_wrap(~ {params$facet_var},nrow={params$nrow})")
+                          facet_wrap(~ {params$facet_var},nrow={params$nrow},labeller = label_both)")
   }
   eval(parse(text = plot_str))
   ggsave(
