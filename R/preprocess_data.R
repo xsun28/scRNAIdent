@@ -40,30 +40,33 @@ preprocess_PBMC <- function(dataset){
   
   ##load GSE96583_batch1_3_samples.RData
   dataset_names <- load(dataset_paths[[2]])
-  sces <- map(map(dataset_names,~eval(as.name(.))), ~{colData(.)$sampleId <- colData(.)$ind
+  sces <- map(map(dataset_names,~eval(as.name(.))), ~{colData(.)$sampleId <- rownames(colData(.))
                                                     colData(.)$label <- colData(.)$cell.type
                                                     return(.)})
-  sces <- utils.combine_SCEdatasets(sces,if_combined=T)
+  colData_cols <- colnames(colData(sces[[1]]))
+  sces <- utils.combine_SCEdatasets(sces,if_combined=T,colData_cols)
   metadata(sces) <- list(study='PBMC', study_name="GSE96583_batch1_3_samples")
   new_dataset_path <- utils.get_dataset_paths(data_home,datasets[[dataset]][[2]])
   write_rds(sces,new_dataset_path)
   
   ###load GSE96583_8_Stim_Pats.RData
   dataset_names <- load(dataset_paths[[3]])
-  sces <- map(eval(as.name(dataset_names[[1]])), ~{colData(.)$sampleId <- colData(.)$ind
+  sces <- map(eval(as.name(dataset_names[[1]])), ~{colData(.)$sampleId <- rownames(colData(.))
                                                    colData(.)$label <- colData(.)$cell
                                                    return(.)})
-  sces <- utils.combine_SCEdatasets(sces,if_combined=T)
+  colData_cols <- colnames(colData(sces[[1]]))
+  sces <- utils.combine_SCEdatasets(sces,if_combined=T,colData_cols)
   metadata(sces) <- list(study='PBMC', study_name="GSE96583_8_Stim_Pats")
   new_dataset_path <- utils.get_dataset_paths(data_home,datasets[[dataset]][[3]])
   write_rds(sces,new_dataset_path)
   
   ###load GSE96583_8_Ctrl_Pats.RData
   dataset_names <- load(dataset_paths[[4]])
-  sces <- map(eval(as.name(dataset_names[[1]])), ~{colData(.)$sampleId <- colData(.)$ind
+  sces <- map(eval(as.name(dataset_names[[1]])), ~{colData(.)$sampleId <- rownames(colData(.))
                                                    colData(.)$label <- colData(.)$cell
                                                    return(.)})
-  sces <- utils.combine_SCEdatasets(sces,if_combined=T)
+  colData_cols <- colnames(colData(sces[[1]]))
+  sces <- utils.combine_SCEdatasets(sces,if_combined=T,colData_cols)
   metadata(sces) <- list(study='PBMC', study_name="GSE96583_8_Ctrl_Pats")
   new_dataset_path <- utils.get_dataset_paths(data_home,datasets[[dataset]][[4]])
   write_rds(sces,new_dataset_path)
@@ -108,7 +111,7 @@ preprocess_ADASD <- function(dataset){
   AD_data <- utils.convert_to_SingleCellExperiment(AD_cnt,rownames(AD_cnt),colnames(AD_cnt),tibble(label=AD_labels),
                                                    list(study='ADASD',study_name="AD"))
   rowData(AD_data)$geneName <- rownames(AD_data)
-  write_rds(AD_data,paste(data_home,"ADASD_AD.RDS"))
+  write_rds(AD_data,paste(data_home,"ADASD_AD.RDS",sep = ""))
   
   autism <- x[3:4]
   autism_cnt <- eval(as.name(autism[[1]])) %>%
@@ -119,12 +122,38 @@ preprocess_ADASD <- function(dataset){
   autism_data <- utils.convert_to_SingleCellExperiment(autism_cnt,rownames(autism_cnt),colnames(autism_cnt),tibble(label=autism_labels),
                                                        list(study='ADASD',study_name="autism"))
   rowData(autism_data)$geneName <- rownames(autism_data)
-  write_rds(autism_data,paste(data_home,"ADASD_autism.RDS"))
+  write_rds(autism_data,paste(data_home,"ADASD_autism.RDS",sep = ""))
 }
 
 
 ##convert PBMC dataset into singcellexperiment R objects and save
 preprocess_midbrain <- function(dataset){
+  require(Matrix)
+  require(tidyverse)
+  dataset_paths <- utils.get_dataset_paths(raw_data_home,raw_datasets[[dataset]])
+  dataset_names <- load(dataset_paths[[1]])
+  sces <- map(map(dataset_names,~eval(as.name(.))), ~{colData(.)$sampleId <- rownames(colData(.))
+                                                      colData(.)$label <- colData(.)$cell.type
+                                                      colData(.)$species <- purrr::map_chr(colData(.)$celltypes,~str_sub(.,1,1))
+                                                      return(.)})
+  converted_genes <- utils.convertMouseGeneList(rowData(sces[[1]])$genes)
+  converted_genes <- merge(rowData(sces[[1]]),converted_genes,by="genes",all.x=T)
+  new_mouse_sces <- sces[[1]][converted_genes$genes,]
+  rowData(new_mouse_sces) <- converted_genes
+  rowData(sces[[2]])$human_gene <- rowData(sces[[2]])$genes
+  new_dataset_path <- utils.get_dataset_paths(data_home,datasets[[dataset]])
+  metadata(new_mouse_sces) <- list(study="midbrain",study_name="mouse")
+  metadata(sces[[1]]) <- list(study="midbrain",study_name="human")
+  write_rds(new_mouse_sces,new_dataset_path[[2]])
+  write_rds(sces[[2]],new_dataset_path[[1]])
+}
+
+#####convert lung cancer cells  into singcellexperiment R objects and save
+preprocess_lung_cancer <- function(dataset){
+  require(Matrix)
+  require(tidyverse)
+  dataset_paths <- utils.get_dataset_paths(raw_data_home,raw_datasets[[dataset]])
+  dataset_names <- load(dataset_paths[[1]])
   
 }
 
