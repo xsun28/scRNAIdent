@@ -15,13 +15,15 @@ utils.load_datasets <- function(file_names){
 
 
 ###combine multiple singlecellexperiment into one
-utils.combine_SCEdatasets <- function(sces,if_combined=TRUE){
+utils.combine_SCEdatasets <- function(sces,if_combined=TRUE,colDatas_cols=NULL){
     require(purrr)
     require(SingleCellExperiment)
     require(scater)
     intersected_genes <- purrr::reduce(purrr::map(sces,~rownames(rowData(.))),intersect)
     if(if_combined){
-      colDatas_cols <- if('batch' %in% colnames(colData(sces[[1]]))) c('batch','label','sampleId') else c('label','sampleId')
+      if(purrr::is_null(colDatas_cols)){
+        colDatas_cols <- if('batch' %in% colnames(colData(sces[[1]]))) c('batch','label','sampleId') else c('label','sampleId')
+        }
       colDatas <- purrr::reduce((purrr::map(sces,~colData(.)[,colDatas_cols])),rbind)
      
       metaDatas <- purrr::reduce((purrr::map(sces,~metadata(.))),bind_rows)
@@ -269,4 +271,16 @@ utils.createCellTypeWeights <- function(data,labels){
   stopifnot(is(data,"SingleCellExperiment"))
   data <- as.matrix(counts(data))
   createWeights(data,labels)
+}
+
+
+
+#####convert mouse genes to human genes
+utils.convertMouseGeneList <- function(x){
+  require("biomaRt")
+  human = useMart("ensembl", dataset = "hsapiens_gene_ensembl")
+  mouse = useMart("ensembl", dataset = "mmusculus_gene_ensembl")
+  genesV2 = getLDS(attributes = c("mgi_symbol"), filters = "mgi_symbol", values = x , mart = mouse, attributesL = c("hgnc_symbol"), martL = human, uniqueRows=T)
+  names(genesV2) <- c("genes","human_gene")
+  genesV2
 }
