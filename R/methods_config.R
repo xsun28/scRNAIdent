@@ -3,8 +3,10 @@ methods.config.seurat <- list(nfeatures=2000,pc_dims=10,resolution=0.5)
 methods.config.tscan <- list(cvcutoff=0.01,k=8)
 methods.config.sc3 <- list(nfeatures=500,k=8,gene_filter = T)
 methods.config.sc3.batch_free <- list(nfeatures=500,k=8,gene_filter = FALSE)
-methods.config.cellassign <- list(learning_rate=1e-2,shrinkage=TRUE,marker_gene_method='seurat')
+methods.config.cellassign <- list(learning_rate=1e-2,shrinkage=TRUE,marker_gene_method='seurat',
+                                  gene_name_type=dataset.gene_name_types[[experiments.data[[experiment]]]][[datasets[[experiments.data[[experiment]]]][[experiments.dataset_index[[experiment]]]]]])
 methods.config.liger <- list(suggestK=F,k.suggest=25,lambda=NULL,resolution=NULL,thresh=NULL)
 methods.config.singlecellnet <- list(cross_species=FALSE,common_gene_file=NULL,ncells=50,nRand=70,nTrees=1000,nTopGenes=10,nTopGenePairs=25)
-methods.config.garnett <- list(PBMC=list(marker_file_path="Garnett_PBMC_marker_ENSEMBL.txt",gene_name_type="ENSEMBL",pretrained_classifier=NULL,marker_gene_method='seurat'),
+methods.config.garnett <- list(PBMC=list(marker_file_path=str_glue("Garnett_PBMC_marker_{dataset.gene_name_types$PBMC[[datasets$PBMC[[experiments.dataset_index[[experiment]]]]]]}.txt"),
+                                         gene_name_type=dataset.gene_name_types$PBMC[[datasets$PBMC[[experiments.dataset_index[[experiment]]]]]],pretrained_classifier=NULL,marker_gene_method='seurat'),
                                pancreas=list(marker_file_path="Garnett_pancreas_marker_SYMBOL.txt",gene_name_type="SYMBOL",pretrained_classifier=NULL,marker_gene_method='seurat'))

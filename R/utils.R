@@ -284,3 +284,18 @@ utils.convertMouseGeneList <- function(x){
   names(genesV2) <- c("genes","human_gene")
   genesV2
 }
+
+#####convert from ensemblId to gene symbols 
+utils.convert2GeneSymbols <- function(ensemblIDs){
+  require("org.Hs.eg.db") 
+  symbols <- mapIds(org.Hs.eg.db, keys = ensemblIDs, keytype = "ENSEMBL", column="SYMBOL")
+  symbols
+}
+
+#####convert from gene symbols to ensemblId 
+utils.convert2EnsemblIDs <- function(symbols){
+  require("org.Hs.eg.db") 
+  ensembls <- mapIds(org.Hs.eg.db, keys = symbols, keytype = "SYMBOL", column="ENSEMBL")
+  ensembls
+}
+

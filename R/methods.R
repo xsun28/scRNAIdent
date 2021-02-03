@@ -1,5 +1,5 @@
-source("R/methods_config.R")
 run_assign_methods <- function(method,train_data, test_data,exp_config){
+  source("R/methods_config.R")
   switch(method,
          scmap_cluster = assign.scmap_cluster(train_data, test_data),
          scmap_cell = assign.scmap_cell(train_data, test_data),
@@ -114,9 +114,9 @@ assign.garnett <- function(train_data,test_data,exp_config){
         marker_file_path <- str_glue("Garnett_{study}_marker_{gene_name_type}.txt")
       marker_gene_file <- exp_config$marker_gene_file
       if(experiment %in% c("celltype_structure")){
-        generated_marker_gene_file <- str_glue("{study}_markergene_{m_config[[study]]$marker_gene_method}_{exp_config$level}")
+        generated_marker_gene_file <- str_glue("{study}_markergene_{m_config[[study]]$marker_gene_method}_{gene_name_type}_{exp_config$level}")
       }else{
-        generated_marker_gene_file <- str_glue("{study}_markergene_{m_config[[study]]$marker_gene_method}")
+        generated_marker_gene_file <- str_glue("{study}_markergene_{m_config[[study]]$marker_gene_method}_{gene_name_type}")
       }
       marker_gene_method <- m_config[[study]]$marker_gene_method
       check_results <- utils.check_marker_genes(train_data,marker_gene_file, generated_marker_gene_file,marker_gene_method,study) 
@@ -234,11 +234,13 @@ assign.cellassign <- function(data,exp_config){
   m_config <- methods.config.cellassign
   marker_gene_file <- exp_config$marker_gene_file
   study <- metadata(data)$study[[1]]
+  gene_name_type <- m_config$gene_name_type
+  
   if(experiment %in% c("celltype_structure")){
-    generated_marker_gene_file <- str_glue("{study}_markergene_{m_config$marker_gene_method}_{exp_config$level}")
+    generated_marker_gene_file <- str_glue("{study}_markergene_{m_config$marker_gene_method}_{gene_name_type}_{exp_config$level}")
   }
   else{
-    generated_marker_gene_file <- str_glue("{study}_markergene_{m_config$marker_gene_method}")
+    generated_marker_gene_file <- str_glue("{study}_markergene_{m_config$marker_gene_method}_{gene_name_type}")
   }
   marker_gene_method <- m_config$marker_gene_method
   check_results <- utils.check_marker_genes(data,marker_gene_file, generated_marker_gene_file,marker_gene_method,study) 
@@ -384,13 +386,13 @@ cluster.sc3 <- function(data) {
 
 #####liger
 cluster.liger <- function(data){
-  require(liger)
+  require(rliger)
   m_config <- methods.config.liger
   stopifnot(is(data,"SingleCellExperiment"))
   data_list <- list(counts(data))
   names(data_list) <- metadata(data)$study[[1]]
   liger_data <- createLiger(data_list)
-  liger_data <- liger::normalize(liger_data)
+  liger_data <- rliger::normalize(liger_data)
   liger_data <- selectGenes(liger_data, var.thresh = c(0.3, 0.875), do.plot = F)
   liger_data <- scaleNotCenter(liger_data)
   if(m_config$suggestK==TRUE){

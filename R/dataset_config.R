@@ -24,3 +24,7 @@ dataset.properties <- list(pancreas=list(sample_threshold=100,cell_types=c('beta
                            midbrain=list(sample_threshold=100),
                            lung_cancer=list(sample_threshold=100)
                            )
+
+dataset.gene_name_types <- list(PBMC=list(PBMC_AllCells_withLabels.RDS="ENSEMBL",GSE96583_batch1_3_samples.RDS="SYMBOL",
+                                          GSE96583_8_Stim_Pats.RDS="SYMBOL",GSE96583_8_Ctrl_Pats.RDS="SYMBOL"),
+                                pancreas="SYMBOL")
