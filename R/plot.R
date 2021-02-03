@@ -1,6 +1,9 @@
 
 plot.plot <- function(experiment,results,raw_results){
-  dataset <- experiments.data[[experiment]]
+  dataset <- if(!is_null(experiments.dataset_index[[experiment]])){
+    str_split(datasets[[experiments.data[[experiment]]]][[experiments.dataset_index[[experiment]]]],"\\.")[[1]][[1]]
+  }else{experiments.data[[experiment]]} 
+  
   if(purrr::is_null(results)){
     results <- read_rds(str_glue("{result_home}/{experiment}_{dataset}_results.rds"))
   }
@@ -8,17 +11,17 @@ plot.plot <- function(experiment,results,raw_results){
     raw_results <- read_rds(str_glue("{result_home}/{experiment}_{dataset}_raw_results.rds"))
   }
   switch(experiment,
-    simple_accuracy = plot.simple_accuracy(results,raw_results),
-    cell_number = plot.cell_number(results,raw_results),
-    sequencing_depth = plot.sequencing_depth(results,raw_results),
-    celltype_structure = plot.celltype_structure(results,raw_results),
-    batch_effects = plot.batch_effects(results,raw_results)
+    simple_accuracy = plot.simple_accuracy(results,raw_results,dataset),
+    cell_number = plot.cell_number(results,raw_results,dataset),
+    sequencing_depth = plot.sequencing_depth(results,raw_results,dataset),
+    celltype_structure = plot.celltype_structure(results,raw_results,dataset),
+    batch_effects = plot.batch_effects(results,raw_results,dataset)
   )
 }
 
-plot.simple_accuracy <- function(results,raw_results){
+plot.simple_accuracy <- function(results,raw_results,dataset){
   require(data.table)
-  dataset <- experiments.data$simple_accuracy
+  # dataset <- datasets[[experiments.data$simple_accuracy]][[experiments.dataset_index$simple_accuracy]]
   figure_all_name <- str_glue("simple_accuracy_{dataset}_all")
   figure_assigned_name <- str_glue("simple_accuracy_{dataset}_assigned")
   figure_unassigned_name <- str_glue("simple_accuracy_{dataset}_unassigned")
@@ -81,8 +84,8 @@ plot.simple_accuracy <- function(results,raw_results){
   plot.sankey_plot(raw_results1,"label","pred",result_home,figure_name)                   
 }
 
-plot.cell_number <- function(results,raw_results){
-  dataset <- experiments.data$cell_number
+plot.cell_number <- function(results,raw_results,dataset){
+  # dataset <- experiments.data$cell_number
   figure_all_name <- str_glue("cell_number_{dataset}_all")
   figure_assigned_name <- str_glue("cell_number_{dataset}_assigned")
   figure_unassigned_name <- str_glue("cell_number_{dataset}_unassigned")
@@ -141,8 +144,8 @@ plot.cell_number <- function(results,raw_results){
 }
 
 
-plot.celltype_structure <- function(results,raw_results){
-  dataset <- experiments.data$celltype_structure
+plot.celltype_structure <- function(results,raw_results,dataset){
+  # dataset <- experiments.data$celltype_structure
   figure_all_name <- str_glue("celtype_structure_{dataset}_all")
   figure_assigned_name <- str_glue("celltype_structure_{dataset}_assigned")
   figure_unassigned_name <- str_glue("celltype_structure_{dataset}_unassigned")
@@ -198,8 +201,8 @@ plot.celltype_structure <- function(results,raw_results){
 }
 
 
-plot.sequencing_depth <- function(results,raw_results){
-  dataset <- experiments.data$sequencing_depth
+plot.sequencing_depth <- function(results,raw_results,dataset){
+  # dataset <- experiments.data$sequencing_depth
   
   results <- purrr::map(results,utils.get_methods)%>%
     purrr::map(~{.$quantile <- factor(.$quantile)
@@ -294,8 +297,8 @@ plot.sequencing_depth <- function(results,raw_results){
   # )
 }
 
-plot.batch_effects <- function(results,raw_results){
-  dataset <- experiments.data$batch_effects
+plot.batch_effects <- function(results,raw_results,dataset){
+  # dataset <- experiments.data$batch_effects
   
   results <- purrr::map(results,utils.get_methods)
   

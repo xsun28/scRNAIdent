@@ -17,13 +17,15 @@ source("R/preprocess_data.R")
 source("R/plot.R")
 library(SingleCellExperiment)
 ##Wrapper
-runExperiments <- function(experiment=c("simple_accuracy","cell_number", "sequencing_depth","celltype_structure", "batch_effects")){
+runExperiments <- function(experiment=c("simple_accuracy","cell_number", "sequencing_depth","celltype_structure",
+                                        "batch_effects","inter_diseases")){
   switch(experiment,
          simple_accuracy = experiments.simple_accuracy(experiment),
          cell_number = experiments.cell_number(experiment),
          sequencing_depth = experiments.sequencing_depth(experiment),
          celltype_structure = experiments.celltype_structure(experiment),
          batch_effects = experiments.batch_effects(experiment),
+         inter_diseases = experiments.inter_diseases(experiment),
          stop("Unkown experiments")
          )
 }
@@ -299,6 +301,12 @@ experiments.celltype_structure <- function(experiment){
 experiments.celltype_complexity <- function(experiment){
   
 }
+
+############
+experiments.inter_diseases <- function(experiment){
+  
+}
+
 ####experiments of inter-datasets with batch effects removed or not
 experiments.batch_effects <- function(experiment){
   exp_config <- experiments.parameters[[experiment]]

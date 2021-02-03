@@ -1,23 +1,25 @@
 
 experiments.data <- list(simple_accuracy="PBMC", cell_number="PBMC", sequencing_depth="PBMC",
                          celltype_structure="PBMC",batch_effects="pancreas")
-  
-experiments.cluster.data <- list(simple_accuracy=datasets[[experiments.data$simple_accuracy]], 
-                                 cell_number=datasets[[experiments.data$cell_number]], 
-                                 sequencing_depth=datasets[[experiments.data$sequencing_depth]],
-                                 celltype_structure=datasets[[experiments.data$celltype_structure]],
+
+experiments.dataset_index <- list(simple_accuracy=3, cell_number=3, sequencing_depth=3, celltype_structure=2)
+
+experiments.cluster.data <- list(simple_accuracy=datasets[[experiments.data$simple_accuracy]][[experiments.dataset_index$simple_accuracy]], 
+                                 cell_number=datasets[[experiments.data$cell_number]][[experiments.dataset_index$cell_number]], 
+                                 sequencing_depth=datasets[[experiments.data$sequencing_depth]][[experiments.dataset_index$sequencing_depth]],
+                                 celltype_structure=datasets[[experiments.data$celltype_structure]][[experiments.dataset_index$celltype_structure]],
                                  batch_effects_no_free=datasets[[experiments.data$batch_effects]])
 
 experiments.assign.data <- list(
-  train_dataset=list(simple_accuracy=datasets[[experiments.data$simple_accuracy]], 
-                     cell_number=datasets[[experiments.data$cell_number]], 
-                     sequencing_depth=datasets[[experiments.data$sequencing_depth]],
-                     celltype_structure=datasets[[experiments.data$celltype_structure]]),
+  train_dataset=list(simple_accuracy=datasets[[experiments.data$simple_accuracy]][[experiments.dataset_index$simple_accuracy]], 
+                     cell_number=datasets[[experiments.data$cell_number]][[experiments.dataset_index$cell_number]], 
+                     sequencing_depth=datasets[[experiments.data$sequencing_depth]][[experiments.dataset_index$sequencing_depth]],
+                     celltype_structure=datasets[[experiments.data$celltype_structure]][[experiments.dataset_index$celltype_structure]]),
   
-  test_dataset=list(simple_accuracy=datasets[[experiments.data$simple_accuracy]], 
-                    cell_number=datasets[[experiments.data$cell_number]], 
-                    sequencing_depth=datasets[[experiments.data$sequencing_depth]],
-                    celltype_structure=datasets[[experiments.data$celltype_structure]])
+  test_dataset=list(simple_accuracy=datasets[[experiments.data$simple_accuracy]][[experiments.dataset_index$simple_accuracy]], 
+                    cell_number=datasets[[experiments.data$cell_number]][[experiments.dataset_index$cell_number]], 
+                    sequencing_depth=datasets[[experiments.data$sequencing_depth]][[experiments.dataset_index$sequencing_depth]],
+                    celltype_structure=datasets[[experiments.data$celltype_structure]][[experiments.dataset_index$celltype_structure]])
   )
   
 ##for batch effects removed, scmap and singlecellnet doesn't work
