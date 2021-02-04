@@ -184,15 +184,16 @@ utils.remove_batch_effects <- function(batches){
 
 ####append one singlecellexperiment onto another
 utils.append_sce <- function(sce1,sce2){
-  colDatas <- rbind(colData(sce1),colData(sce2))
+  common_cols <- intersect(colnames(colData(sce1)),colnames(colData(sce2)))
+  colDatas <- rbind(colData(sce1)[common_cols],colData(sce2)[common_cols])
   metaDatas <- bind_rows(metadata(sce1),metadata(sce2))
-  allcounts <- utils.col2rowNames(merge(as.matrix(counts(sce1)),as.matrix(counts(sce2)),by=0),1)  
+  allcounts <- utils.col2rowNames(merge(as.matrix(counts(sce1)),as.matrix(counts(sce2)),by=0,all=F),1)  
 
-  sce <- SingleCellExperiment(list(counts=as.matrix(allcounts)),
+  allcounts <- SingleCellExperiment(list(counts=as.matrix(allcounts)),
                               colData=colDatas,
                               metadata=metaDatas)
-  rowData(sce) <- tibble(count=nexprs(sce,byrow=TRUE),geneName=rowData(sce1)$geneName)
-  return(sce)
+  rowData(allcounts) <- tibble(count=nexprs(allcounts,byrow=TRUE),geneName=rownames(allcounts))
+  return(allcounts)
 }
 
 utils.get_methods <- function(data){

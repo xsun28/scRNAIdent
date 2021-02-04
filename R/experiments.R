@@ -314,7 +314,7 @@ experiments.batch_effects <- function(experiment){
   raw_data <- utils.load_datasets(experiments.cluster.data$batch_effects_no_free)
   methods <- experiments.methods[[experiment]]
   ###not remove batch effects
-  print(str_glue("before global experiments.cluster.data {experiment} is {experiments.cluster.data[[experiment]]}"))
+  # print(str_glue("before global experiments.cluster.data {experiment} is {experiments.cluster.data[[experiment]]}"))
   
   experiments.cluster.data[[experiment]] <<- purrr::map(raw_data,~{str_glue("{metadata(.)$study_name}_intersected.RDS")})
   print(str_glue("after global experiments.cluster.data {experiment} is {experiments.cluster.data[[experiment]]}"))
