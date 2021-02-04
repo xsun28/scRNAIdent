@@ -1,6 +1,6 @@
 raw_datasets <- list(PBMC=c("PBMC_AllCells_withLabels.RData","GSE96583_batch1_3_samples.RData","GSE96583_8_Stim_Pats.RData","GSE96583_8_Ctrl_Pats.RData"),
                      pancreas=c("Muraro_pancreas.RData","Segerstolpe_pancreas.RData","Xin_pancreas.RData"),
-                     adasd="AD_autism_data.RData",
+                     ADASD="AD_autism_data.RData",
                      midbrain="midbrain.RData",
                      lung_cancer="lung_cancer.RData")
 
@@ -11,20 +11,28 @@ datasets <- list(PBMC=list("PBMC_AllCells_withLabels.RDS","GSE96583_batch1_3_sam
                  ADASD=list(AD="ADASD_AD.RDS",autism="ADASD_autism.RDS"),
                  midbrain=list(human="midbrain_human.RDS",mouse="midbrain_mouse.RDS"))
 
-batch_effects_free_datasets <-list(pancreas=list(muraro="Muraro_pancreas_batch_effects_free.RDS",
-                                                 seger="Muraro_pancreas_batch_effects_free.RDS",
-                                                 xin="Xin_pancreas_batch_effects_free.RDS"
-))
 
-dataset.properties <- list(pancreas=list(sample_threshold=100,cell_types=c('beta','alpha','delta',
-                                                                           'acinar','ductal','gamma',
-                                                                           'endothelial')),
-                           PBMC=list(sample_threshold=100),
-                           ADASD=list(sample_threshold=100),
-                           midbrain=list(sample_threshold=100),
-                           lung_cancer=list(sample_threshold=100)
-                           )
+dataset.properties <- list(
+                          PBMC_AllCells_withLabels=list(sample_threshold=100,gene_name_type="SYMBOL"),
+                          GSE96583_batch1_3_samples=list(sample_threshold=100,gene_name_type="SYMBOL"),
+                          GSE96583_8_Stim_Pats=list(sample_threshold=100,gene_name_type="SYMBOL"),
+                          GSE96583_8_Ctrl_Pats=list(sample_threshold=100,gene_name_type="SYMBOL"),
+                          ADASD_AD=list(sample_threshold=100,gene_name_type="SYMBOL"),
+                          ADASD_autism=list(sample_threshold=100,gene_name_type="SYMBOL"),
+                          Muraro_pancreas=list(sample_threshold=100,gene_name_type="SYMBOL",
+                                                              cell_types=c('beta','alpha','delta',
+                                                                          'acinar','ductal','gamma',
+                                                                          'endothelial')),
+                          Segerstolpe_pancreas=list(sample_threshold=100,gene_name_type="SYMBOL",
+                                               cell_types=c('beta','alpha','delta',
+                                                            'acinar','ductal','gamma',
+                                                            'endothelial')),
+                          Xin_pancreas=list(sample_threshold=100,gene_name_type="SYMBOL",
+                                               cell_types=c('beta','alpha','delta',
+                                                            'acinar','ductal','gamma',
+                                                            'endothelial')),
+                          midbrain_human=list(sample_threshold=100,gene_name_type="SYMBOL"),
+                          midbrain_mouse=list(sample_threshold=100,gene_name_type="SYMBOL"),
+                          lung_cancer=list(sample_threshold=100)
+                      )
 
-dataset.gene_name_types <- list(PBMC=list(PBMC_AllCells_withLabels.RDS="ENSEMBL",GSE96583_batch1_3_samples.RDS="SYMBOL",
-                                          GSE96583_8_Stim_Pats.RDS="SYMBOL",GSE96583_8_Ctrl_Pats.RDS="SYMBOL"),
-                                pancreas="SYMBOL")

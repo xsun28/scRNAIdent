@@ -63,8 +63,8 @@ utils.get_dataset_paths <- function(data_home,dataset_names){
 utils.filter <- function(data,filter_gene=TRUE, filter_cells=TRUE, filter_cell_type=TRUE){
   require(SingleCellExperiment)
   stopifnot(is(data,"SingleCellExperiment"))
-  study <- metadata(data)$study[[1]]
-  properties <- dataset.properties[[study]]
+  study_name <- metadata(data)$study_name[[1]]
+  properties <- dataset.properties[[study_name]]
   threshold <- properties$sample_threshold
   if(!is_null(properties$cell_types)){
     print(str_glue("only keep cell types with marker genes: {properties$cell_types}"))
@@ -201,7 +201,7 @@ utils.get_methods <- function(data){
   data
 }
 
-utils.check_marker_genes <- function(data,marker_gene_file,generated_marker_gene_file,marker_gene_method,study){
+utils.check_marker_genes <- function(data,marker_gene_file,generated_marker_gene_file,marker_gene_method){
   
   if(purrr::is_null(marker_gene_file)){
     if(!file.exists(str_glue("{marker_home}/{generated_marker_gene_file}.RDS"))){

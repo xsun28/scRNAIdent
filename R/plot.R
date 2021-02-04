@@ -1,8 +1,6 @@
 
 plot.plot <- function(experiment,results,raw_results){
-  dataset <- if(!is_null(experiments.dataset_index[[experiment]])){
-    str_split(datasets[[experiments.data[[experiment]]]][[experiments.dataset_index[[experiment]]]],"\\.")[[1]][[1]]
-  }else{experiments.data[[experiment]]} 
+  dataset <- output.dataset_name[[experiment]]
   
   if(purrr::is_null(results)){
     results <- read_rds(str_glue("{result_home}/{experiment}_{dataset}_results.rds"))
@@ -21,7 +19,6 @@ plot.plot <- function(experiment,results,raw_results){
 
 plot.simple_accuracy <- function(results,raw_results,dataset){
   require(data.table)
-  # dataset <- datasets[[experiments.data$simple_accuracy]][[experiments.dataset_index$simple_accuracy]]
   figure_all_name <- str_glue("simple_accuracy_{dataset}_all")
   figure_assigned_name <- str_glue("simple_accuracy_{dataset}_assigned")
   figure_unassigned_name <- str_glue("simple_accuracy_{dataset}_unassigned")
