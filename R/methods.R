@@ -99,27 +99,28 @@ assign.garnett <- function(train_data,test_data,exp_config){
   stopifnot(is(train_data,"SingleCellExperiment"))
   m_config <- methods.config.garnett
   study <- metadata(train_data)$study[[1]]
-  gene_name_type <- m_config[[study]]$gene_name_type
-  pretrained_classifier_name <- m_config[[study]]$pretrained_classifier
+  study_name <- metadata(train_data)$study_name[[1]]
+  gene_name_type <- dataset.properties[[study_name]]$gene_name_type
+  pretrained_classifier_name <- m_config[[study_name]]$pretrained_classifier
 
   if(is_null(pretrained_classifier_name)){
     if(experiment %in% c("celltype_structure")){
-      marker_file_path <- str_glue("Garnett_{study}_marker_{gene_name_type}_{exp_config$level}.txt")
+      marker_file_path <- str_glue("Garnett_{study_name}_marker_{gene_name_type}_{exp_config$level}.txt")
     }else{
-      marker_file_path <- m_config[[study]]$marker_file_path
+      marker_file_path <- m_config[[study_name]]$marker_file_path
     }
     if(purrr::is_null(marker_file_path)||!file.exists(str_glue("{marker_home}/{marker_file_path}"))){
       print("Garnett marker file not exist, generating marker file...")
       if(purrr::is_null(marker_file_path))
-        marker_file_path <- str_glue("Garnett_{study}_marker_{gene_name_type}.txt")
+        marker_file_path <- str_glue("Garnett_{study_name}_marker_{gene_name_type}.txt")
       marker_gene_file <- exp_config$marker_gene_file
       if(experiment %in% c("celltype_structure")){
-        generated_marker_gene_file <- str_glue("{study}_markergene_{m_config[[study]]$marker_gene_method}_{gene_name_type}_{exp_config$level}")
+        generated_marker_gene_file <- str_glue("{study_name}_markergene_{m_config[[study_name]]$marker_gene_method}_{gene_name_type}_{exp_config$level}")
       }else{
-        generated_marker_gene_file <- str_glue("{study}_markergene_{m_config[[study]]$marker_gene_method}_{gene_name_type}")
+        generated_marker_gene_file <- str_glue("{study_name}_markergene_{m_config[[study_name]]$marker_gene_method}_{gene_name_type}")
       }
-      marker_gene_method <- m_config[[study]]$marker_gene_method
-      check_results <- utils.check_marker_genes(train_data,marker_gene_file, generated_marker_gene_file,marker_gene_method,study) 
+      marker_gene_method <- m_config[[study_name]]$marker_gene_method
+      check_results <- utils.check_marker_genes(train_data,marker_gene_file, generated_marker_gene_file,marker_gene_method) 
       markers_mat <- check_results$markers_mat
       matchidx <- check_results$matchidx
       if(!file.exists(str_glue("{marker_home}/{marker_file_path}"))){
@@ -139,7 +140,7 @@ assign.garnett <- function(train_data,test_data,exp_config){
                                              cds_gene_id_type = gene_name_type,
                                              num_unknown = 50,
                                              marker_file_gene_id_type = gene_name_type)
-    write_rds(classifier,str_glue("{pretrained_classifier_home}/pretrained_{study}_{gene_name_type}_classifier.rds"))
+    write_rds(classifier,str_glue("{pretrained_classifier_home}/pretrained_{study_name}_{gene_name_type}_classifier.rds"))
   }else{
     classifier_path <- str_glue("{pretrained_classifier_home}/{pretrained_classifier_name}")
     classifier <- readRDS(classifier_path)
@@ -233,17 +234,17 @@ assign.cellassign <- function(data,exp_config){
   stopifnot(is(data,"SingleCellExperiment"))
   m_config <- methods.config.cellassign
   marker_gene_file <- exp_config$marker_gene_file
-  study <- metadata(data)$study[[1]]
-  gene_name_type <- m_config$gene_name_type
+  study_name <- metadata(data)$study_name[[1]]
+  gene_name_type <- dataset.properties[[study_name]]$gene_name_type
   
   if(experiment %in% c("celltype_structure")){
-    generated_marker_gene_file <- str_glue("{study}_markergene_{m_config$marker_gene_method}_{gene_name_type}_{exp_config$level}")
+    generated_marker_gene_file <- str_glue("{study_name}_markergene_{m_config$marker_gene_method}_{gene_name_type}_{exp_config$level}")
   }
   else{
-    generated_marker_gene_file <- str_glue("{study}_markergene_{m_config$marker_gene_method}_{gene_name_type}")
+    generated_marker_gene_file <- str_glue("{study_name}_markergene_{m_config$marker_gene_method}_{gene_name_type}")
   }
   marker_gene_method <- m_config$marker_gene_method
-  check_results <- utils.check_marker_genes(data,marker_gene_file, generated_marker_gene_file,marker_gene_method,study) 
+  check_results <- utils.check_marker_genes(data,marker_gene_file, generated_marker_gene_file,marker_gene_method) 
   markers_mat <- check_results$markers_mat
   matchidx <- check_results$matchidx
   counts(data) <- as.matrix(counts(data))

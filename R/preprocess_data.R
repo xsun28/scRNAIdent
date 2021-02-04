@@ -32,9 +32,10 @@ preprocess_PBMC <- function(dataset){
   labels <- flatten_chr(labels)
   rm(AllCounts)
   gc(TRUE)
-  data <- utils.convert_to_SingleCellExperiment(data,rownames(data),colnames(data),tibble(label=labels),list(study='PBMC', study_name="All_PBMC"))
+  data <- utils.convert_to_SingleCellExperiment(data,rownames(data),colnames(data),tibble(label=labels),list(study='PBMC', study_name="PBMC_AllCells_withLabels"))
   rowData(data)$EnsembleId <- purrr::map_chr(rownames(data),~str_split(.,"\\t")[[1]][[1]])
   rowData(data)$geneName <- purrr::map_chr(rownames(data), ~str_split(.,"\\t")[[1]][[2]])
+  rownames(data) <- rowData(data)$geneName
   new_dataset_path <- utils.get_dataset_paths(data_home,datasets[[dataset]][[1]])
   write_rds(data,new_dataset_path)
   
@@ -42,12 +43,13 @@ preprocess_PBMC <- function(dataset){
   dataset_names <- load(dataset_paths[[2]])
   sces <- map(map(dataset_names,~eval(as.name(.))), ~{colData(.)$sampleId <- rownames(colData(.))
                                                     colData(.)$label <- colData(.)$cell.type
+                                                    counts(.) <- as(counts(.),'sparseMatrix')
                                                     return(.)})
   colData_cols <- colnames(colData(sces[[1]]))
   sces <- utils.combine_SCEdatasets(sces,if_combined=T,colData_cols)
   metadata(sces) <- list(study='PBMC', study_name="GSE96583_batch1_3_samples")
-  rowData(sces)$EnsembleId <- rownames(sces)
-  rowData(data)$geneName <- utils.convert2GeneSymbols(rownames(sces))
+  rowData(sces)$geneName <- rownames(sces)
+  rowData(sces)$EnsembleId <- utils.convert2EnsemblIDs(rownames(sces))
   new_dataset_path <- utils.get_dataset_paths(data_home,datasets[[dataset]][[2]])
   write_rds(sces,new_dataset_path)
   
@@ -55,12 +57,13 @@ preprocess_PBMC <- function(dataset){
   dataset_names <- load(dataset_paths[[3]])
   sces <- map(eval(as.name(dataset_names[[1]])), ~{colData(.)$sampleId <- rownames(colData(.))
                                                    colData(.)$label <- colData(.)$cell
+                                                   counts(.) <- as(counts(.),'sparseMatrix')
                                                    return(.)})
   colData_cols <- colnames(colData(sces[[1]]))
   sces <- utils.combine_SCEdatasets(sces,if_combined=T,colData_cols)
   metadata(sces) <- list(study='PBMC', study_name="GSE96583_8_Stim_Pats")
-  rowData(sces)$EnsembleId <- rownames(sces)
-  rowData(data)$geneName <- utils.convert2GeneSymbols(rownames(sces))
+  rowData(sces)$geneName <- rownames(sces)
+  rowData(sces)$EnsembleId <- utils.convert2EnsemblIDs(rownames(sces))
   new_dataset_path <- utils.get_dataset_paths(data_home,datasets[[dataset]][[3]])
   write_rds(sces,new_dataset_path)
   
@@ -68,12 +71,13 @@ preprocess_PBMC <- function(dataset){
   dataset_names <- load(dataset_paths[[4]])
   sces <- map(eval(as.name(dataset_names[[1]])), ~{colData(.)$sampleId <- rownames(colData(.))
                                                    colData(.)$label <- colData(.)$cell
+                                                   counts(.) <- as(counts(.),'sparseMatrix')
                                                    return(.)})
   colData_cols <- colnames(colData(sces[[1]]))
   sces <- utils.combine_SCEdatasets(sces,if_combined=T,colData_cols)
   metadata(sces) <- list(study='PBMC', study_name="GSE96583_8_Ctrl_Pats")
-  rowData(sces)$EnsembleId <- rownames(sces)
-  rowData(data)$geneName <- utils.convert2GeneSymbols(rownames(sces))
+  rowData(sces)$geneName <- rownames(sces)
+  rowData(sces)$EnsembleId <- utils.convert2EnsemblIDs(rownames(sces))
   new_dataset_path <- utils.get_dataset_paths(data_home,datasets[[dataset]][[4]])
   write_rds(sces,new_dataset_path)
 }
@@ -116,7 +120,7 @@ preprocess_ADASD <- function(dataset){
   gc(T)
   AD_labels <- eval(as.name(AD[[2]]))
   AD_data <- utils.convert_to_SingleCellExperiment(AD_cnt,rownames(AD_cnt),colnames(AD_cnt),tibble(label=AD_labels),
-                                                   list(study='ADASD',study_name="AD"))
+                                                   list(study='ADASD',study_name="ADASD_AD"))
   rowData(AD_data)$geneName <- rownames(AD_data)
   rowData(AD_data)$EnsembleId <- utils.convert2EnsemblIDs(rownames(AD_data))
   write_rds(AD_data,paste(data_home,"ADASD_AD.RDS",sep = ""))
@@ -128,9 +132,10 @@ preprocess_ADASD <- function(dataset){
   gc(T)
   autism_labels <- eval(as.name(autism[[2]]))
   autism_data <- utils.convert_to_SingleCellExperiment(autism_cnt,rownames(autism_cnt),colnames(autism_cnt),tibble(label=autism_labels),
-                                                       list(study='ADASD',study_name="autism"))
-  rowData(autism_data)$geneName <- rownames(autism_data)
-  rowData(autism_data)$EnsembleId <- utils.convert2EnsemblIDs(rownames(autism_data))
+                                                       list(study='ADASD',study_name="ADASD_autism"))
+  rowData(autism_data)$EnsembleId <- purrr::map_chr(rownames(autism_data),~str_split(.,"\\t")[[1]][[1]])
+  rowData(autism_data)$geneName <- purrr::map_chr(rownames(autism_data), ~str_split(.,"\\t")[[1]][[2]])
+  rownames(autism_data) <- rowData(autism_data)$geneName
   write_rds(autism_data,paste(data_home,"ADASD_autism.RDS",sep = ""))
 }
 
@@ -144,6 +149,7 @@ preprocess_midbrain <- function(dataset){
   sces <- map(map(dataset_names,~eval(as.name(.))), ~{colData(.)$sampleId <- rownames(colData(.))
                                                       colData(.)$label <- colData(.)$cell.type
                                                       colData(.)$species <- purrr::map_chr(colData(.)$celltypes,~str_sub(.,1,1))
+                                                      counts(.) <- as(counts(.),'sparseMatrix')
                                                       return(.)})
   converted_genes <- utils.convertMouseGeneList(rowData(sces[[1]])$genes)
   converted_genes <- merge(rowData(sces[[1]]),converted_genes,by="genes",all.x=T)
@@ -157,8 +163,8 @@ preprocess_midbrain <- function(dataset){
   rowData(sces[[2]])$geneName <- rowData(sces[[2]])$human_gene
     
   new_dataset_path <- utils.get_dataset_paths(data_home,datasets[[dataset]])
-  metadata(new_mouse_sces) <- list(study="midbrain",study_name="mouse")
-  metadata(sces[[2]]) <- list(study="midbrain",study_name="human")
+  metadata(new_mouse_sces) <- list(study="midbrain",study_name="midbrain_mouse")
+  metadata(sces[[2]]) <- list(study="midbrain",study_name="midbrain_human")
   write_rds(new_mouse_sces,new_dataset_path[[2]])
   write_rds(sces[[2]],new_dataset_path[[1]])
 }

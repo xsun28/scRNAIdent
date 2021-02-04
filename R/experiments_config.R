@@ -1,25 +1,19 @@
-
-experiments.data <- list(simple_accuracy="PBMC", cell_number="PBMC", sequencing_depth="PBMC",
-                         celltype_structure="PBMC",batch_effects="pancreas")
-
-experiments.dataset_index <- list(simple_accuracy=3, cell_number=3, sequencing_depth=3, celltype_structure=2)
-
-experiments.cluster.data <- list(simple_accuracy=datasets[[experiments.data$simple_accuracy]][[experiments.dataset_index$simple_accuracy]], 
-                                 cell_number=datasets[[experiments.data$cell_number]][[experiments.dataset_index$cell_number]], 
-                                 sequencing_depth=datasets[[experiments.data$sequencing_depth]][[experiments.dataset_index$sequencing_depth]],
-                                 celltype_structure=datasets[[experiments.data$celltype_structure]][[experiments.dataset_index$celltype_structure]],
-                                 batch_effects_no_free=datasets[[experiments.data$batch_effects]])
+experiments.cluster.data <- list(simple_accuracy="GSE96583_8_Stim_Pats.RDS", 
+                                 cell_number="GSE96583_8_Stim_Pats.RDS", 
+                                 sequencing_depth="GSE96583_8_Stim_Pats.RDS",
+                                 celltype_structure="GSE96583_8_Stim_Pats.RDS",
+                                 batch_effects_no_free=list(muraro="Muraro_pancreas_clean.RDS",seger="Segerstolpe_pancreas_clean.RDS",xin="Xin_pancreas_clean.RDS"))
 
 experiments.assign.data <- list(
-  train_dataset=list(simple_accuracy=datasets[[experiments.data$simple_accuracy]][[experiments.dataset_index$simple_accuracy]], 
-                     cell_number=datasets[[experiments.data$cell_number]][[experiments.dataset_index$cell_number]], 
-                     sequencing_depth=datasets[[experiments.data$sequencing_depth]][[experiments.dataset_index$sequencing_depth]],
-                     celltype_structure=datasets[[experiments.data$celltype_structure]][[experiments.dataset_index$celltype_structure]]),
+  train_dataset=list(simple_accuracy="GSE96583_8_Stim_Pats.RDS", 
+                     cell_number="GSE96583_8_Stim_Pats.RDS", 
+                     sequencing_depth="GSE96583_8_Stim_Pats.RDS",
+                     celltype_structure="GSE96583_8_Stim_Pats.RDS"),
   
-  test_dataset=list(simple_accuracy=datasets[[experiments.data$simple_accuracy]][[experiments.dataset_index$simple_accuracy]], 
-                    cell_number=datasets[[experiments.data$cell_number]][[experiments.dataset_index$cell_number]], 
-                    sequencing_depth=datasets[[experiments.data$sequencing_depth]][[experiments.dataset_index$sequencing_depth]],
-                    celltype_structure=datasets[[experiments.data$celltype_structure]][[experiments.dataset_index$celltype_structure]])
+  test_dataset=list(simple_accuracy="GSE96583_8_Stim_Pats.RDS", 
+                    cell_number="GSE96583_8_Stim_Pats.RDS", 
+                    sequencing_depth="GSE96583_8_Stim_Pats.RDS",
+                    celltype_structure="GSE96583_8_Stim_Pats.RDS")
   )
   
 ##for batch effects removed, scmap and singlecellnet doesn't work
