@@ -9,22 +9,31 @@ constructor.data_constructor <- function(data,config,experiment,if_train=TRUE){
     sequencing_depth = constructor.sequencing_depth(data,config,if_train),
     celltype_structure = constructor.celltype_structure(data,config,if_train),
     batch_effects = constructor.batch_effects(data,config,if_train),
+    inter_diseases = constructor.inter_diseases(data,config,if_train),
+    celltype_complexity = constructor.celltype_complexity(data,config,if_train),
+    inter_species = constructor.inter_species(data,config,if_train),
+    random_noise = constructor.random_noise(data,config,if_train),
+    inter_protocol = constructor.inter_protocol(data,config,if_train),
     stop("Can't constructor dataset for unkown experiments")
   )
 }
 
-constructor.simple_accuracy <- function(data,config, if_train){
+constructor.base <- function(data,config,if_train){
   if(if_train){
     data <- utils.filter(data) %>%
-              utils.sampler(sample_num=config$sample_num,types=unique(colData(data)$label))
+      utils.sampler(sample_num=config$sample_num,types=unique(colData(data)$label))
   }else{
     data <- utils.filter(data,filter_gene=FALSE) 
   }
   data <- data[,!duplicated(colnames(data))]
 }
 
+constructor.simple_accuracy <- function(data,config, if_train){
+  constructor.base(data,config,if_train)
+}
+
 constructor.cell_number <- function(data,config, if_train){
-  constructor.simple_accuracy(data,config,if_train)
+  constructor.base(data,config,if_train)
 }
 
 constructor.sequencing_depth <- function(data,config,if_train){
@@ -91,4 +100,22 @@ constructor.type_architecturer <- function(config,dataset){
   data
 }
 
+constructor.inter_diseases <- function(data,config,if_train){
+  constructor.base(data,config,if_train)
+}
 
+constructor.celltype_complexity <- function(data,config,if_train){
+  
+}
+
+constructor.inter_species <- function(data,config,if_train){
+  
+}
+
+constructor.random_noise <- function(data,config,if_train){
+  
+}
+
+constructor.inter_protocol <- function(data,config,if_train){
+  
+}

@@ -7,6 +7,11 @@ output.sink <- function(experiment,raw_results,results){
          sequencing_depth = output.sequencing_depth(raw_results,results,dataset),
          celltype_structure = output.celltype_structure(raw_results,results,dataset),
          batch_effects = output.batch_effects(raw_results,results,dataset),
+         inter_diseases = output.inter_diseases(raw_results,results,dataset),
+         celltype_complexity = output.celltype_complexity(raw_results,results,dataset),
+         inter_species = output.inter_species(raw_results,results,dataset),
+         random_noise = output.random_noise(raw_results,results,dataset),
+         inter_protocol = output.inter_protocol(raw_results,results,dataset),
          stop("Unkown experiments")
   )
 }
@@ -29,6 +34,26 @@ output.celltype_structure <- function(raw_results,results,dataset){
 
 output.batch_effects <- function(raw_results,results,dataset){
   output.write_results("batch_effects",dataset,raw_results,results)
+}
+
+output.inter_diseases <- function(raw_results,results,dataset){
+  output.write_results("inter_diseases",dataset,raw_results,results)
+}
+
+output.celltype_complexity <- function(raw_results,results,dataset){
+  output.write_results("celltype_complexity",dataset,raw_results,results)
+}
+
+output.inter_species <- function(raw_results,results,dataset){
+  output.write_results("inter_species",dataset,raw_results,results)
+}
+
+output.random_noise <- function(raw_results,results,dataset){
+  output.write_results("random_noise",dataset,raw_results,results)
+}
+
+output.inter_protocol <- function(raw_results,results,dataset){
+  output.write_results("inter_protocol",dataset,raw_results,results)
 }
 
 output.write_results <- function(experiment,dataset,raw_results,results){

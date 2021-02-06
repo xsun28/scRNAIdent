@@ -13,7 +13,13 @@ plot.plot <- function(experiment,results,raw_results){
     cell_number = plot.cell_number(results,raw_results,dataset),
     sequencing_depth = plot.sequencing_depth(results,raw_results,dataset),
     celltype_structure = plot.celltype_structure(results,raw_results,dataset),
-    batch_effects = plot.batch_effects(results,raw_results,dataset)
+    batch_effects = plot.batch_effects(results,raw_results,dataset),
+    inter_diseases = plot.inter_diseases(results,raw_results,dataset),
+    celltype_complexity = plot.celltype_complexity(results,raw_results,dataset),
+    inter_species = plot.inter_species(results,raw_results,dataset),
+    random_noise = plot.random_noise(results,raw_results,dataset),
+    inter_protocol = plot.inter_protocol(results,raw_results,dataset),
+    stop("Unkown experiments")
   )
 }
 
@@ -360,6 +366,27 @@ plot.batch_effects <- function(results,raw_results,dataset){
   #   units = "in"
   # )
 }
+
+plot.inter_diseases <- function(results,raw_results,dataset){
+  
+}
+
+plot.celltype_complexity <- function(results,raw_results,dataset){
+  
+}
+
+plot.inter_species <- function(results,raw_results,dataset){
+  
+}
+
+plot.random_noise <- function(results,raw_results,dataset){
+  
+}
+
+plot.inter_protocol <- function(results,raw_results,dataset){
+  
+}
+
 
 plot.bar_plot <- function(results,params,fig_path,fig_name){
   x <- params$x
