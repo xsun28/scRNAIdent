@@ -19,7 +19,8 @@ source("R/plot.R")
 library(SingleCellExperiment)
 ##Wrapper
 runExperiments <- function(experiment=c("simple_accuracy","cell_number", "sequencing_depth","celltype_structure",
-                                        "batch_effects","inter_diseases")){
+                                        "batch_effects","inter_diseases","celltype_complexity","inter_species",
+                                        "random_noise","inter_protocol")){
   switch(experiment,
          simple_accuracy = experiments.simple_accuracy(experiment),
          cell_number = experiments.cell_number(experiment),
@@ -27,6 +28,10 @@ runExperiments <- function(experiment=c("simple_accuracy","cell_number", "sequen
          celltype_structure = experiments.celltype_structure(experiment),
          batch_effects = experiments.batch_effects(experiment),
          inter_diseases = experiments.inter_diseases(experiment),
+         celltype_complexity = experiments.celltype_complexity(experiment),
+         inter_species = experiments.inter_species(experiment),
+         random_noise = experiments.random_noise(experiment),
+         inter_protocol = experiments.inter_protocol(experiment),
          stop("Unkown experiments")
          )
 }
@@ -299,12 +304,31 @@ experiments.celltype_structure <- function(experiment){
   final_results
 }
 
+###############
 experiments.celltype_complexity <- function(experiment){
   
 }
 
 ############
 experiments.inter_diseases <- function(experiment){
+  exp_config <- experiments.parameters[[experiment]]
+  base_results <- experiments.base(experiment,exp_config)
+  report_results <- base_results$analy_results
+  pred_results <- base_results$pred_results
+  output.sink(experiment,pred_results,report_results)
+  plot.plot(experiment,report_results,pred_results)
+  report_results
+}
+############
+experiments.inter_species <- function(experiment){
+  
+}
+############
+experiments.random_noise <- function(experiment){
+  
+}
+############
+experiments.inter_protocol <- function(experiment){
   
 }
 
