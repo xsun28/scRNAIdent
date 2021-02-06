@@ -1,0 +1,6 @@
+﻿from,to
+B cells,B_cells
+CD14+ Monocytes,cd14_monocytes
+CD4 T cells,CD4_T_helper
+NK cells,cd56_NK
+CD8 T cells,naive_cytotoxic_T

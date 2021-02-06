@@ -14,9 +14,9 @@ datasets <- list(PBMC=list("PBMC_AllCells_withLabels.RDS","GSE96583_batch1_3_sam
 
 dataset.properties <- list(
                           PBMC_AllCells_withLabels=list(sample_threshold=100,gene_name_type="SYMBOL"),
-                          GSE96583_batch1_3_samples=list(sample_threshold=100,gene_name_type="SYMBOL"),
-                          GSE96583_8_Stim_Pats=list(sample_threshold=100,gene_name_type="SYMBOL"),
-                          GSE96583_8_Ctrl_Pats=list(sample_threshold=100,gene_name_type="SYMBOL"),
+                          GSE96583_batch1_3_samples=list(sample_threshold=100,gene_name_type="SYMBOL",cell_type_map="PBMC_celltype_map.csv"),
+                          GSE96583_8_Stim_Pats=list(sample_threshold=100,gene_name_type="SYMBOL",cell_type_map="PBMC_celltype_map.csv"),
+                          GSE96583_8_Ctrl_Pats=list(sample_threshold=100,gene_name_type="SYMBOL",cell_type_map="PBMC_celltype_map.csv"),
                           ADASD_AD=list(sample_threshold=100,gene_name_type="SYMBOL"),
                           ADASD_autism=list(sample_threshold=100,gene_name_type="SYMBOL"),
                           Muraro_pancreas=list(sample_threshold=100,gene_name_type="SYMBOL",
