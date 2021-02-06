@@ -40,9 +40,12 @@ preprocess_PBMC <- function(dataset){
   write_rds(data,new_dataset_path)
   
   ##load GSE96583_batch1_3_samples.RData
+  map_path <- str_glue("{type_home}/{dataset.properties$GSE96583_batch1_3_samples$cell_type_map}")
+  type_map <- read_csv(map_path)
   dataset_names <- load(dataset_paths[[2]])
-  sces <- map(map(dataset_names,~eval(as.name(.))), ~{colData(.)$sampleId <- rownames(colData(.))
-                                                    colData(.)$label <- colData(.)$cell.type
+  sces <- map(map(dataset_names,~eval(as.name(.))), ~{
+                                                    colData(.)$sampleId <- rownames(colData(.))
+                                                    colData(.)$label <- utils.convertCellTypes(colData(.)$cell.type,type_map)
                                                     counts(.) <- as(counts(.),'sparseMatrix')
                                                     return(.)})
   colData_cols <- colnames(colData(sces[[1]]))
@@ -54,9 +57,11 @@ preprocess_PBMC <- function(dataset){
   write_rds(sces,new_dataset_path)
   
   ###load GSE96583_8_Stim_Pats.RData
+  map_path <- str_glue("{type_home}/{dataset.properties$GSE96583_8_Stim_Pats$cell_type_map}")
+  type_map <- read_csv(map_path)
   dataset_names <- load(dataset_paths[[3]])
   sces <- map(eval(as.name(dataset_names[[1]])), ~{colData(.)$sampleId <- rownames(colData(.))
-                                                   colData(.)$label <- colData(.)$cell
+                                                   colData(.)$label <- utils.convertCellTypes(colData(.)$cell,type_map)
                                                    counts(.) <- as(counts(.),'sparseMatrix')
                                                    return(.)})
   colData_cols <- colnames(colData(sces[[1]]))
@@ -68,9 +73,11 @@ preprocess_PBMC <- function(dataset){
   write_rds(sces,new_dataset_path)
   
   ###load GSE96583_8_Ctrl_Pats.RData
+  map_path <- str_glue("{type_home}/{dataset.properties$GSE96583_8_Ctrl_Pats$cell_type_map}")
+  type_map <- read_csv(map_path)
   dataset_names <- load(dataset_paths[[4]])
   sces <- map(eval(as.name(dataset_names[[1]])), ~{colData(.)$sampleId <- rownames(colData(.))
-                                                   colData(.)$label <- colData(.)$cell
+                                                   colData(.)$label <- utils.convertCellTypes(colData(.)$cell,type_map)
                                                    counts(.) <- as(counts(.),'sparseMatrix')
                                                    return(.)})
   colData_cols <- colnames(colData(sces[[1]]))

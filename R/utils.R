@@ -300,3 +300,10 @@ utils.convert2EnsemblIDs <- function(symbols){
   ensembls
 }
 
+
+utils.convertCellTypes <- function(from_type, type_map){
+  for(i in seq_along(rownames(type_map))){
+    from_type[which(from_type==type_map$from[[i]])]=type_map$to[[i]]
+  }
+  from_type
+}
