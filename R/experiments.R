@@ -312,12 +312,34 @@ experiments.celltype_complexity <- function(experiment){
 ############
 experiments.inter_diseases <- function(experiment){
   exp_config <- experiments.parameters[[experiment]]
-  base_results <- experiments.base(experiment,exp_config)
-  report_results <- base_results$analy_results
-  pred_results <- base_results$pred_results
-  output.sink(experiment,pred_results,report_results)
-  plot.plot(experiment,report_results,pred_results)
-  report_results
+  datasets_comb2 <- combn(experiments.cluster.data[[experiment]],2)
+  combined_cluster_results <- vector('list',dim(datasets_comb2)[[2]])
+  combined_assign_results <- vector('list',dim(datasets_comb2)[[2]])
+  combined_raw_results <- vector('list',dim(datasets_comb2)[[2]])
+  for(i in dim(datasets_comb2)[[2]]){
+    assign(experiments.cluster.data,unlist(datasets_comb2[,i]),envir = .GlobalEnv)
+    assign(experiments.assign.data$train_dataset[[experiment]],unlist(datasets_comb2[,i])[1],envir = .GlobalEnv)
+    assign(experiments.assign.data$test_dataset[[experiment]],unlist(datasets_comb2[,i])[2],envir = .GlobalEnv)
+    base_results <- experiments.base(experiment,exp_config)
+    results <- base_results$analy_results%>% 
+      purrr::map(~{.$train_dataset <- experiments.assign.data$train_dataset[[experiment]]
+                   .$test_dataset <- experiments.assign.data$test_dataset[[experiment]]
+                   return(.)}
+                 )
+    raw_results <- base_results$pred_results
+    raw_results$train_dataset <- experiments.assign.data$train_dataset[[experiment]]
+    raw_results$test_dataset <- experiments.assign.data$test_dataset[[experiment]]
+    combined_assign_results[[i]] <- bind_rows(results[grepl(".*_assign_.*",names(results))])
+    combined_cluster_results[[i]] <- bind_rows(results[grepl(".*cluster.*",names(results))])
+    combined_raw_results[[i]] <- raw_results
+  }
+  combined_assign_results <- bind_rows(combined_assign_results)
+  combined_cluster_results <- bind_rows(combined_cluster_results)
+  combined_raw_results <- bind_rows(combined_raw_results)
+  final_results <- list(assign_results=combined_assign_results,cluster_results=combined_cluster_results)
+  output.sink(experiment,combined_raw_results,final_results)
+  plot.plot(experiment,final_results,combined_raw_results)
+  final_results
 }
 ############
 experiments.inter_species <- function(experiment){
