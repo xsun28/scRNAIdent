@@ -3,13 +3,13 @@
 source("R/config.R")
 source("R/utils.R")
 source("R/dataset_config.R")
-preprocess_dataset <- function(dataset=c("PBMC","pancreas","midbrain","ADASD","lung_cancer")) {
+preprocess_dataset <- function(dataset=c("PBMC","pancreas","midbrain","ADASD","cellbench")) {
   switch(dataset,
          PBMC = preprocess_PBMC(dataset),
          pancreas = preprocess_pancreas(dataset),
          midbrain = preprocess_midbrain(dataset),
          ADASD = preprocess_ADASD(dataset),
-         lung_cancer = preprocess_lung_cancer(dataset),
+         cellbench = preprocess_cellbench(dataset),
          stop("Unknown datasets")
   )  
 }
@@ -177,14 +177,26 @@ preprocess_midbrain <- function(dataset){
 }
 
 #####convert lung cancer cells  into singcellexperiment R objects and save
-preprocess_lung_cancer <- function(dataset){
+preprocess_cellbench <- function(dataset){
   require(Matrix)
   require(tidyverse)
   dataset_paths <- utils.get_dataset_paths(raw_data_home,raw_datasets[[dataset]])
+  new_dataset_path <- utils.get_dataset_paths(data_home,datasets[[dataset]])
   dataset_names <- load(dataset_paths[[1]])
-  
+  for(i in seq_along(dataset_names)){
+    study_name <- dataset_names[[i]]
+    protocol <- unlist(str_split(datasets[[dataset]][[i]],"[\\._]"))[[2]]
+    print(str_glue('Preprocessing {protocol} protocol'))
+    sce <- eval(as.name(dataset_names[[i]]))
+    colData(sce)$sampleId <- rownames(colData(sce))
+    colData(sce)$label <- colData(sce)$cell_line_demuxlet
+    counts(sce) <- as(counts(sce),'sparseMatrix')
+    metadata(sce) <- list(study='cellbench', study_name=study_name,protocol=protocol)
+    rowData(sce)$EnsembleId <- rownames(sce)
+    rowData(sce)$geneName <- utils.convert2GeneSymbols(rownames(sce))
+    write_rds(sce,new_dataset_path[[i]])
+  }
 }
-
 
 ##remove batch effects of datasets and saves
 preprocess.remove_batch_effects <- function(sces,file_names){
