@@ -184,7 +184,7 @@ preprocess_cellbench <- function(dataset){
   new_dataset_path <- utils.get_dataset_paths(data_home,datasets[[dataset]])
   dataset_names <- load(dataset_paths[[1]])
   for(i in seq_along(dataset_names)){
-    study_name <- dataset_names[[i]]
+    study_name <- datasets$cellbench[[i]]
     protocol <- unlist(str_split(datasets[[dataset]][[i]],"[\\._]"))[[2]]
     print(str_glue('Preprocessing {protocol} protocol'))
     sce <- eval(as.name(dataset_names[[i]]))
