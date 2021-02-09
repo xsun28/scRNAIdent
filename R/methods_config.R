@@ -19,34 +19,34 @@ methods.config.garnett <- list(PBMC_AllCells_withLabels=list(marker_file_path=st
                                GSE96583_8_Ctrl_Pats=list(marker_file_path=str_glue("Garnett_GSE96583_8_Ctrl_Pats_marker_{dataset.properties$GSE96583_8_Ctrl_Pats$gene_name_type}.txt"),
                                                               pretrained_classifier=NULL,marker_gene_method='seurat'),
                                
-                               ADASD_AD=list(marker_file_path="Garnett_ADASD_AD_marker_{dataset.properties$ADASD_AD$gene_name_type}.txt",
+                               ADASD_AD=list(marker_file_path=str_glue("Garnett_ADASD_AD_marker_{dataset.properties$ADASD_AD$gene_name_type}.txt"),
                                                               pretrained_classifier=NULL,marker_gene_method='seurat'),
                                
-                               ADASD_autism=list(marker_file_path="Garnett_ADASD_autism_marker_{dataset.properties$ADASD_autism$gene_name_type}.txt",
+                               ADASD_autism=list(marker_file_path=str_glue("Garnett_ADASD_autism_marker_{dataset.properties$ADASD_autism$gene_name_type}.txt"),
                                                               pretrained_classifier=NULL,marker_gene_method='seurat'),
                                
-                               Muraro_pancreas=list(marker_file_path="Garnett_Muraro_pancreas_marker_{dataset.properties$Muraro_pancreas$gene_name_type}.txt",
+                               Muraro_pancreas=list(marker_file_path=str_glue("Garnett_Muraro_pancreas_marker_{dataset.properties$Muraro_pancreas$gene_name_type}.txt"),
                                                               pretrained_classifier=NULL,marker_gene_method='seurat'),
                                
-                               Segerstolpe_pancreas=list(marker_file_path="Garnett_Segerstolpe_pancreas_marker_{dataset.properties$Segerstolpe_pancreas$gene_name_type}.txt",
+                               Segerstolpe_pancreas=list(marker_file_path=str_glue("Garnett_Segerstolpe_pancreas_marker_{dataset.properties$Segerstolpe_pancreas$gene_name_type}.txt"),
                                                     pretrained_classifier=NULL,marker_gene_method='seurat'),
                                
-                               Xin_pancreas=list(marker_file_path="Garnett_Xin_pancreas_marker_{dataset.properties$Xin_pancreas$gene_name_type}.txt",
+                               Xin_pancreas=list(marker_file_path=str_glue("Garnett_Xin_pancreas_marker_{dataset.properties$Xin_pancreas$gene_name_type}.txt"),
                                                     pretrained_classifier=NULL,marker_gene_method='seurat'),
                                
-                               midbrain_human=list(marker_file_path="Garnett_midbrain_human_marker_{dataset.properties$midbrain_human$gene_name_type}.txt",
+                               midbrain_human=list(marker_file_path=str_glue("Garnett_midbrain_human_marker_{dataset.properties$midbrain_human$gene_name_type}.txt"),
                                                    pretrained_classifier=NULL,marker_gene_method='seurat'),
                                
-                               midbrain_mouse=list(marker_file_path="Garnett_midbrain_mouse_marker_{dataset.properties$midbrain_mouse$gene_name_type}.txt",
+                               midbrain_mouse=list(marker_file_path=str_glue("Garnett_midbrain_mouse_marker_{dataset.properties$midbrain_mouse$gene_name_type}.txt"),
                                                    pretrained_classifier=NULL,marker_gene_method='seurat'),
                                
-                               cellbench_10x=list(marker_file_path="Garnett_cellbench_10x_marker_{dataset.properties$cellbench_10x$gene_name_type}.txt",
+                               cellbench_10x=list(marker_file_path=str_glue("Garnett_cellbench_10x_marker_{dataset.properties$cellbench_10x$gene_name_type}.txt"),
                                                   pretrained_classifier=NULL,marker_gene_method='seurat'),
                                
-                               cellbench_CELseq2=list(marker_file_path="Garnett_cellbench_CELseq2_marker_{dataset.properties$cellbench_CELseq2$gene_name_type}.txt",
+                               cellbench_CELseq2=list(marker_file_path=str_glue("Garnett_cellbench_CELseq2_marker_{dataset.properties$cellbench_CELseq2$gene_name_type}.txt"),
                                                       pretrained_classifier=NULL,marker_gene_method='seurat'),
                                
-                               cellbench_Dropseq=list(marker_file_path="Garnett_cellbench_Dropseq_marker_{dataset.properties$cellbench_Dropseq$gene_name_type}.txt",
+                               cellbench_Dropseq=list(marker_file_path=str_glue("Garnett_cellbench_Dropseq_marker_{dataset.properties$cellbench_Dropseq$gene_name_type}.txt"),
                                                       pretrained_classifier=NULL,marker_gene_method='seurat')
                                
                                )
