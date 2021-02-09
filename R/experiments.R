@@ -59,7 +59,11 @@ experiments.base.assign <- function(experiment, exp_config){
       constructor.data_constructor(config=exp_config,experiment = experiment,if_train = TRUE)
     test_data <- utils.load_datasets(experiments.assign.data$test_dataset[[experiment]]) %>%
       constructor.data_constructor(config=exp_config,experiment = experiment,if_train = FALSE)
-    data <- utils.append_sce(train_data,test_data) ##using same dataset for clustering and marker gene based  below
+    if(exp_config$use_test_only){
+      data <- test_data ##using same dataset for clustering and marker gene based  below for other inter-dataset experiments
+    }else{
+      data <- utils.append_sce(train_data,test_data) ##using same dataset for clustering and marker gene based  below for batch effects
+    }
     assign_results <- experiments.run_assign(assign_methods,train_data,test_data,exp_config)
   }
   print("finish prediction for assign methods")
@@ -317,9 +321,12 @@ experiments.inter_diseases <- function(experiment){
   combined_assign_results <- vector('list',dim(datasets_comb2)[[2]])
   combined_raw_results <- vector('list',dim(datasets_comb2)[[2]])
   for(i in dim(datasets_comb2)[[2]]){
-    assign(experiments.cluster.data,unlist(datasets_comb2[,i]),envir = .GlobalEnv)
-    assign(experiments.assign.data$train_dataset[[experiment]],unlist(datasets_comb2[,i])[1],envir = .GlobalEnv)
-    assign(experiments.assign.data$test_dataset[[experiment]],unlist(datasets_comb2[,i])[2],envir = .GlobalEnv)
+    experiments.cluster.data[[experiment]] <<- unlist(datasets_comb2[,i])
+    print(str_glue("cluster data is {experiments.cluster.data[[experiment]]}"))
+    experiments.assign.data$train_dataset[[experiment]] <<- unlist(datasets_comb2[,i])[1]
+    print(str_glue("assign train data is {experiments.assign.data$train_dataset[[experiment]]}"))
+    experiments.assign.data$test_dataset[[experiment]] <<- unlist(datasets_comb2[,i])[2]
+    print(str_glue("assign test data is {experiments.assign.data$test_dataset[[experiment]]}"))
     base_results <- experiments.base(experiment,exp_config)
     results <- base_results$analy_results%>% 
       purrr::map(~{.$train_dataset <- experiments.assign.data$train_dataset[[experiment]]
