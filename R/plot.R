@@ -475,9 +475,9 @@ plot.bar_plot <- function(results,params,fig_path,fig_name){
                           facet_wrap(~ {params$facet_var},nrow={params$nrow},labeller = label_both)")
   }
   
-  if(!is_null(params$facet_grid)&&params$facet_wrap){
+  if(!is_null(params$facet_grid)&&params$facet_grid){
     plot_str <- str_glue("{plot_str} + 
-                          facet_grid({params$facet_wrap_x} ~ {params$facet_wrap_y},labeller = label_both)")
+                          facet_grid({params$facet_grid_x} ~ {params$facet_grid_y},labeller = label_both)")
   }
   eval(parse(text = plot_str))
   ggsave(
