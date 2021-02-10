@@ -58,7 +58,11 @@ output.inter_protocol <- function(raw_results,results,dataset){
 
 output.write_results <- function(experiment,dataset,raw_results,results){
   print(str_glue('start writing {dataset} {experiment} results'))
-  write_rds(raw_results,str_glue('{result_home}{experiment}_{dataset}_raw_results.rds'))
-  write_rds(results,str_glue('{result_home}{experiment}_{dataset}_results.rds'))
-  write_csv(rownames_to_column(bind_rows(results),'method'),str_glue('{result_home}{experiment}_{dataset}_results.csv'))
+  output_dir <- str_glue("{result_home}{experiment}/{dataset}")
+  if(!dir.exists(output_dir)){
+    dir.create(output_dir,recursive=T)
+  }
+  write_rds(raw_results,str_glue('{result_home}{experiment}/{dataset}/raw_results.rds'))
+  write_rds(results,str_glue('{result_home}{experiment}/{dataset}/results.rds'))
+  write_csv(rownames_to_column(bind_rows(results),'method'),str_glue('{result_home}{experiment}/{dataset}/results.csv'))
 }
