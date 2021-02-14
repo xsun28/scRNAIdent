@@ -20,10 +20,17 @@ constructor.data_constructor <- function(data,config,experiment,if_train=TRUE){
 
 constructor.base <- function(data,config,if_train){
   if(if_train){
-    data <- utils.filter(data) %>%
-      utils.sampler(sample_num=config$sample_num,types=unique(colData(data)$label))
+    data <- utils.filter(data)
+    if(!purrr::is_null(config$train_sample_num) && !is.na(config$train_sample_num)){
+      print(str_glue("start sampling train data: {config$train_sample_num} per cell type"))
+      data <- utils.sampler(data, sample_num=config$train_sample_num,types=unique(colData(data)$label))
+    }
   }else{
     data <- utils.filter(data,filter_gene=FALSE) 
+    if(!purrr::is_null(config$test_sample_num) && !is.na(config$test_sample_num)){
+      print(str_glue("start sampling test data: {config$test_sample_num} per cell type"))
+      data <- utils.sampler(data, sample_num=config$test_sample_num,types=unique(colData(data)$label))
+    }
   }
   data <- data[,!duplicated(colnames(data))]
 }
@@ -57,11 +64,16 @@ constructor.batch_effects <- function(data,config,if_train){
   }
   if(if_train){
     data <- utils.filter(data)
-    if(!is.na(config$sample_num)){
-      data <- utils.sampler(data, sample_num=config$sample_num,types=unique(colData(data)$label))
+    if(!purrr::is_null(config$train_sample_num) && !is.na(config$train_sample_num)){
+      print(str_glue("start sampling train data: {config$train_sample_num} per cell type"))
+      data <- utils.sampler(data, sample_num=config$train_sample_num,types=unique(colData(data)$label))
     }
   }else{
     data <- utils.filter(data,filter_gene=FALSE)
+    if(!purrr::is_null(config$test_sample_num) && !is.na(config$test_sample_num)){
+      print(str_glue("start sampling test data: {config$test_sample_num} per cell type"))
+      data <- utils.sampler(data, sample_num=config$test_sample_num,types=unique(colData(data)$label))
+    }
   }
   data[,!duplicated(colnames(data))]
   
@@ -69,10 +81,17 @@ constructor.batch_effects <- function(data,config,if_train){
 
 constructor.celltype_structure <- function(data,config,if_train){
   if(if_train){
-    data <- utils.filter(data) %>%
-      utils.sampler(sample_num=config$sample_num,types=unique(colData(data)[[config$level]]),column = config$level)
+    data <- utils.filter(data)
+    if(!purrr::is_null(config$train_sample_num) && !is.na(config$train_sample_num)){
+      print(str_glue("start sampling train data: {config$train_sample_num} per cell type"))
+      data <- utils.sampler(data, sample_num=config$train_sample_num,types=unique(colData(data)[[config$level]]),column = config$level)
+    }
   }else{
     data <- utils.filter(data,filter_gene=FALSE) 
+    if(!purrr::is_null(config$test_sample_num) && !is.na(config$test_sample_num)){
+      print(str_glue("start sampling test data: {config$test_sample_num} per cell type"))
+      data <- utils.sampler(data, sample_num=config$test_sample_num,types=unique(colData(data)[[config$level]]),column = config$level)
+    }
   }
   colData(data)$label <- colData(data)[[config$level]]
   data <- data[,!duplicated(colnames(data))]

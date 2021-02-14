@@ -22,7 +22,7 @@ utils.combine_SCEdatasets <- function(sces,if_combined=TRUE,colDatas_cols=NULL){
     intersected_genes <- purrr::reduce(purrr::map(sces,~rownames(rowData(.))),intersect)
     if(if_combined){
       if(purrr::is_null(colDatas_cols)){
-        colDatas_cols <- if('batch' %in% colnames(colData(sces[[1]]))) c('batch','label','sampleId') else c('label','sampleId')
+        colDatas_cols <- if('batch' %in% colnames(colData(sces[[1]]))) c('batch','label') else 'label'
         }
       colDatas <- purrr::reduce((purrr::map(sces,~colData(.)[,colDatas_cols])),rbind)
      
@@ -172,7 +172,7 @@ utils.remove_batch_effects <- function(batches){
   f.out <- do.call(fastMNN,c(as.list(batches),args))
   sces_batch_free <- purrr::map(batches,~f.out[,colnames(.)])
   add_col_row_data <- function(x,y){
-    colData(x)[,c('label','sampleId')] <- colData(y)[,c('label','sampleId')]
+    colData(x)[,'label'] <- colData(y)[,'label']
     rowData(x)[,'count'] <- rowData(y)[,'count']
     rowData(x)[,'geneName'] <- rowData(y)[,'geneName']
     counts(x) <- exp(assays(x)$reconstructed)
@@ -239,9 +239,18 @@ utils.update_batch_effects_free_config <- function(experiment){
       assign(str_glue("methods.config.{m}"), get(str_glue("methods.config.{m}.batch_free")),envir = .GlobalEnv)
     }
   }
+  
   experiments.methods[[experiment]]$assign <<- experiments.methods[[experiment]]$assign_batch_free
   print(str_glue("batch effects free assign methods are: {experiments.methods[[experiment]]$assign}"))
   for(m in experiments.methods[[experiment]]$assign){
+    if(exists(str_glue("methods.config.{m}.batch_free"))){
+      assign(str_glue("methods.config.{m}"),get(str_glue("methods.config.{m}.batch_free")),envir = .GlobalEnv)
+    }
+  }
+  
+  experiments.methods[[experiment]]$marker_gene_assign <<- experiments.methods[[experiment]]$marker_gene_assign_batch_free
+  print(str_glue("batch effects free marker gene methods are: {experiments.methods[[experiment]]$marker_gene_assign}"))
+  for(m in experiments.methods[[experiment]]$marker_gene_assign){
     if(exists(str_glue("methods.config.{m}.batch_free"))){
       assign(str_glue("methods.config.{m}"),get(str_glue("methods.config.{m}.batch_free")),envir = .GlobalEnv)
     }
@@ -307,3 +316,29 @@ utils.convertCellTypes <- function(from_type, type_map){
   }
   from_type
 }
+
+utils.assign_test_cluster_label_from_training <- function(train_dataset_label,train_dataset_num,test_dataset_num){
+  require(modeest)
+  unique_cluster_num <- union(unique(train_dataset_num),unique(test_dataset_num))
+  train_label_num <- tibble(label=train_dataset_label,num=train_dataset_num)
+  test_label_num <- tibble(num=test_dataset_num) 
+  num_to_label <- train_label_num %>% 
+                  dplyr::group_by(num) %>%
+                  summarize(label=mfv(label)[[1]])
+  
+  test_label_num <- dplyr::left_join(test_label_num,num_to_label,by="num")
+  test_label_num[is.na(test_label_num$num),'label'] <- "unknown"
+  test_label_num[is.na(test_label_num$num),'num'] <- -1
+  test_label_num
+}
+
+# utils.remove_duplicated_sampleid <- function(...){
+#   datasets <- list(...)
+#   stopifnot(0==sum(purrr::map_lgl(datasets,~{!is(.,"SingleCellExperiment")})))
+#   sampleids <- purrr::reduce(purrr::map(datasets,~{rownames(colData(.))}),union)
+#   for(i in 1:length(datasets)){
+#     sampleid <- rownames(colData(datasets[[i]]))
+#     duplicated_sampleid <- purrr:map_lgl(sampleid,~{.%in%sampleids})
+#   }
+# }
+
