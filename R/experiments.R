@@ -441,21 +441,21 @@ experiments.batch_effects <- function(experiment){
 ############
 experiments.inter_diseases <- function(experiment){
   exp_config <- experiments.parameters[[experiment]]
-  datasets_comb2 <- combn(experiments.data[[experiment]],2)
+  datasets_perm2 <- gtools::permutations(n=length(experiments.data[[experiment]]),r=2,v=unlist(experiments.data[[experiment]]),repeats.allowed = F)
   combined_cluster_results <- vector('list',dim(datasets_comb2)[[2]])
   combined_assign_results <- vector('list',dim(datasets_comb2)[[2]])
   combined_raw_results <- vector('list',dim(datasets_comb2)[[2]])
-  for(i in dim(datasets_comb2)[[2]]){
+  for(i in dim(datasets_perm2)[[2]]){
     # experiments.data[[experiment]] <<- unlist(datasets_comb2[,i])
     print(str_glue("experiment data is {experiments.data[[experiment]]}"))
-    experiments.assign.data$train_dataset[[experiment]] <<- unlist(datasets_comb2[,i])[1]
+    experiments.assign.data$train_dataset[[experiment]] <<- unlist(datasets_perm2[,i])[1]
     print(str_glue("assign train data is {experiments.assign.data$train_dataset[[experiment]]}"))
-    experiments.assign.data$test_dataset[[experiment]] <<- unlist(datasets_comb2[,i])[2]
+    experiments.assign.data$test_dataset[[experiment]] <<- unlist(datasets_perm2[,i])[2]
     print(str_glue("assign test data is {experiments.assign.data$test_dataset[[experiment]]}"))
     base_results <- experiments.base(experiment,exp_config)
     results <- base_results$analy_results%>% 
-      purrr::map(~{.$train_dataset <- experiments.assign.data$train_dataset[[experiment]]
-                   .$test_dataset <- experiments.assign.data$test_dataset[[experiment]]
+      purrr::map(~{.$train_dataset <- str_split(datasets_perm2[1,i],"\\.")[[1]][[1]]
+                   .$test_dataset <- str_split(datasets_perm2[2,i],"\\.")[[1]][[1]]
                    return(.)}
                  )
     raw_results <- base_results$pred_results
