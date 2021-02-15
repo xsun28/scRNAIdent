@@ -317,7 +317,7 @@ plot.sequencing_depth <- function(results,raw_results,dataset){
 
 plot.batch_effects <- function(results,raw_results,dataset){
   # dataset <- experiments.data$batch_effects
-  
+  require(data.table)
   results <- utils.get_methods(results)
   # figure_all_name <- str_glue("batch_effects_{dataset}_all")
   # figure_assigned_name <- str_glue("batch_effects_{dataset}_assigned")
@@ -391,22 +391,29 @@ plot.batch_effects <- function(results,raw_results,dataset){
     #   units = "in"
     # )
   }
+}
   
-  plot.inter_diseases <- function(results,raw_results,dataset){
+plot.inter_diseases <- function(results,raw_results,dataset){
     
-    require(data.table)
-    fig_path <- str_glue("{result_home}{experiment}/{dataset}/")
+  require(data.table)
+  results <- utils.get_methods(results)
+  for(grouped_results in dplyr::group_split(results,train_dataset,test_dataset)){
+    train_dataset <- unique(grouped_results$train_dataset)
+    test_dataset <- unique(grouped_results$test_dataset)
+    fig_path <- str_glue("{result_home}{experiment}/{dataset}/{train_dataset}_{test_dataset}/")
     if(!dir.exists(fig_path)){
-      dir.create(fig_path)
+      dir.create(fig_path,recursive=T)
     }
+    print(str_glue("Generating figures for batch effect pairs {fig_path}"))
     
     # figure_all_name <- str_glue("inter_diseases_{dataset}_all")
     # figure_assigned_name <- str_glue("cell_number_{dataset}_assigned")
     # figure_unassigned_name <- str_glue("cell_number_{dataset}_unassigned")
     
-    results <- utils.get_methods(results)
-    all_results <- dplyr::select(dplyr::filter(results,is.na(assigned)),-c(unlabeled_pctg,assigned)) %>%
+
+    all_results <- dplyr::select(dplyr::filter(grouped_results,is.na(assigned)),-c(unlabeled_pctg,assigned)) %>%
       gather("metric","value",-c(methods,train_dataset,test_dataset,supervised))
+    all_results$value <- as.double(all_results$value)
     all_results$label <- round(all_results$value,2)
     # plot_params <-
     # list(x="sample_num",y="value",group="methods",line_color="methods",point_color="methods",
@@ -424,8 +431,9 @@ plot.batch_effects <- function(results,raw_results,dataset){
     plot.bar_plot(all_results[all_results$metric=="FMI",],plot_params,fig_path,"all_FMI.pdf")
     
     
-    results_assigned <- dplyr::select(dplyr::filter(results,assigned),-c(unlabeled_pctg,assigned)) %>%
+    results_assigned <- dplyr::select(dplyr::filter(grouped_results,assigned),-c(unlabeled_pctg,assigned)) %>%
       gather("metric","value",-c(methods,train_dataset,test_dataset,supervised))
+    results_assigned$value <- as.double(results_assigned$value)
     results_assigned$label <- round(results_assigned$value,2)
     plot_params$ylabel <- "ARI"
     plot.bar_plot(results_assigned[results_assigned$metric=="ARI",],plot_params,fig_path,"assigned_ARI.pdf")
@@ -435,8 +443,9 @@ plot.batch_effects <- function(results,raw_results,dataset){
     plot.bar_plot(results_assigned[results_assigned$metric=="FMI",],plot_params,fig_path,"assigned_FMI.pdf")
     # plot.line_plot(results_assigned,plot_params,result_home,figure_assigned_name)
     
-    results_unassigned <- dplyr::select(dplyr::filter(results,!assigned),-c(unlabeled_pctg,assigned)) %>%
+    results_unassigned <- dplyr::select(dplyr::filter(grouped_results,!assigned),-c(unlabeled_pctg,assigned)) %>%
       gather("metric","value",-c(methods,train_dataset,test_dataset,supervised))
+    results_unassigned$value <- as.double(results_unassigned$value)
     results_unassigned$label <- round(results_unassigned$value,2)
     plot_params$ylabel <- "ARI"
     plot.bar_plot(results_unassigned[results_unassigned$metric=="ARI",],plot_params,fig_path,"unassigned_ARI.pdf")
@@ -449,7 +458,7 @@ plot.batch_effects <- function(results,raw_results,dataset){
     
     ######
     # figure_name <- str_glue("inter_diseases_{dataset}_unlabeled_pctg.pdf")
-    results_unlabeled_pctg <- dplyr::filter(dplyr::select(results[results$supervised,],methods,train_dataset,test_dataset,unlabeled_pctg),!is.na(unlabeled_pctg))%>%
+    results_unlabeled_pctg <- dplyr::filter(dplyr::select(grouped_results[grouped_results$supervised,],methods,train_dataset,test_dataset,unlabeled_pctg),!is.na(unlabeled_pctg))%>%
       gather("metric","value",-c(methods,train_dataset,test_dataset))
     results_unlabeled_pctg$label <- round(results_unlabeled_pctg$value,2)
     plot_params <- list(x="methods",y="value",label="label",xlabel="methods",ylabel="unlabeled_pctg",
@@ -458,9 +467,10 @@ plot.batch_effects <- function(results,raw_results,dataset){
     
     plot.bar_plot(results_unlabeled_pctg,plot_params,fig_path,"unlabeled_pctg.pdf")
   }
-  
-  
 }
+  
+  
+
 
 plot.celltype_complexity <- function(results,raw_results,dataset){
   
