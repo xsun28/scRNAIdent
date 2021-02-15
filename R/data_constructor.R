@@ -32,7 +32,7 @@ constructor.base <- function(data,config,if_train){
       data <- utils.sampler(data, sample_num=config$test_sample_num,types=unique(colData(data)$label))
     }
   }
-  data <- data[,!duplicated(colnames(data))]
+  data <- data[!duplicated(rownames(data)),!duplicated(colnames(data))]
 }
 
 constructor.simple_accuracy <- function(data,config, if_train){
@@ -53,7 +53,7 @@ constructor.sequencing_depth <- function(data,config,if_train){
     data <- utils.filter(data,filter_gene=FALSE) %>%
       utils.seqDepthSelector(quantile=quantile,right=if_right)
   }
-  data[,!duplicated(colnames(data))]
+  data[!duplicated(rownames(data)),!duplicated(colnames(data))]
 }
 
 constructor.batch_effects <- function(data,config,if_train){
@@ -75,7 +75,7 @@ constructor.batch_effects <- function(data,config,if_train){
       data <- utils.sampler(data, sample_num=config$test_sample_num,types=unique(colData(data)$label))
     }
   }
-  data[,!duplicated(colnames(data))]
+  data[!duplicated(rownames(data)),!duplicated(colnames(data))]
   
 }
 
@@ -94,7 +94,7 @@ constructor.celltype_structure <- function(data,config,if_train){
     }
   }
   colData(data)$label <- colData(data)[[config$level]]
-  data <- data[,!duplicated(colnames(data))]
+  data <- data[!duplicated(rownames(data)),!duplicated(colnames(data))]
 }
 
 constructor.type_architecturer <- function(config,dataset){

@@ -1,5 +1,6 @@
+source("R/methods_config.R")
 run_assign_methods <- function(method,train_data, test_data,exp_config){
-  source("R/methods_config.R")
+  # source("R/methods_config.R")
   switch(method,
          scmap_cluster = assign.scmap_cluster(train_data, test_data),
          scmap_cell = assign.scmap_cell(train_data, test_data),
