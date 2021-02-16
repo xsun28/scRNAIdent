@@ -333,7 +333,7 @@ experiments.celltype_complexity <- function(experiment){
 experiments.batch_effects <- function(experiment){
   require(gtools)
   exp_config <- experiments.parameters[[experiment]]
-  raw_data <- utils.load_datasets(experiments.data$batch_effects_no_free)
+  # raw_data <- utils.load_datasets(experiments.data$batch_effects_no_free)
   methods <- experiments.methods[[experiment]]
   ###not remove batch effects
   # experiments.data[[experiment]] <<- purrr::map(raw_data,~{str_glue("{metadata(.)$study_name}_intersected.RDS")})
@@ -341,14 +341,14 @@ experiments.batch_effects <- function(experiment){
 
   datasets_perm2 <- gtools::permutations(n=length(experiments.data$batch_effects_no_free),r=2,v=unlist(experiments.data$batch_effects_no_free),repeats.allowed = F)
 
-  combined_cluster_results <- vector('list',dim(datasets_perm2)[[2]])
-  combined_assign_results <- vector('list',dim(datasets_perm2)[[2]])
-  combined_raw_results <- vector('list',dim(datasets_perm2)[[2]])
-  intersected_datasets <- vector('list',dim(datasets_perm2)[[2]])
+  combined_cluster_results <- vector('list',dim(datasets_perm2)[[1]])
+  combined_assign_results <- vector('list',dim(datasets_perm2)[[1]])
+  combined_raw_results <- vector('list',dim(datasets_perm2)[[1]])
+  intersected_datasets <- vector('list',dim(datasets_perm2)[[1]])
   for(i in 1:dim(datasets_perm2)[1]){
     # experiments.data[[experiment]] <<- unlist(datasets_comb2[,i])
     # print(str_glue("experiment data is {experiments.data[[experiment]]}"))
-    data <- utils.load_datasets(datasets_perm2[,i])
+    data <- utils.load_datasets(datasets_perm2[i,])
     data_intersected <- list(str_glue("{metadata(data[[1]])$study_name}_{metadata(data[[2]])$study_name}_intersected.RDS"),
                              str_glue("{metadata(data[[2]])$study_name}_{metadata(data[[1]])$study_name}_intersected.RDS")
                             )
@@ -361,8 +361,8 @@ experiments.batch_effects <- function(experiment){
     print(str_glue("assign test data is {experiments.assign.data$test_dataset[[experiment]]}"))
     base_results <- experiments.base(experiment,exp_config)
     results <- base_results$analy_results%>% 
-      purrr::map(~{.$train_dataset <- str_split(datasets_perm2[1,i],"\\.")[[1]][[1]]
-      .$test_dataset <- str_split(datasets_perm2[2,i],"\\.")[[1]][[1]]
+      purrr::map(~{.$train_dataset <- str_split(datasets_perm2[i,1],"\\.")[[1]][[1]]
+      .$test_dataset <- str_split(datasets_perm2[i,2],"\\.")[[1]][[1]]
       .$batch_effects_removed <- FALSE
       return(.)}
       )
@@ -381,9 +381,9 @@ experiments.batch_effects <- function(experiment){
 
   if(exp_config$remove_batch){
     # datasets_comb2_no_be <- combn(experiments.data[[experiment]],2)
-    combined_cluster_results_no_be <- vector('list',dim(datasets_perm2)[[2]])
-    combined_assign_results_no_be <- vector('list',dim(datasets_perm2)[[2]])
-    combined_raw_results_no_be <- vector('list',dim(datasets_perm2)[[2]])
+    combined_cluster_results_no_be <- vector('list',dim(datasets_perm2)[[1]])
+    combined_assign_results_no_be <- vector('list',dim(datasets_perm2)[[1]])
+    combined_raw_results_no_be <- vector('list',dim(datasets_perm2)[[1]])
     
     utils.update_batch_effects_free_config(experiment)
     
@@ -405,8 +405,8 @@ experiments.batch_effects <- function(experiment){
       
       base_results_no_be <- experiments.base(experiment,exp_config)
       results_no_be <- base_results_no_be$analy_results%>% 
-        purrr::map(~{.$train_dataset <- str_split(datasets_perm2[1,i],"\\.")[[1]][[1]]
-        .$test_dataset <- str_split(datasets_perm2[2,i],"\\.")[[1]][[1]]
+        purrr::map(~{.$train_dataset <- str_split(datasets_perm2[i,1],"\\.")[[1]][[1]]
+        .$test_dataset <- str_split(datasets_perm2[i,2],"\\.")[[1]][[1]]
         .$batch_effects_removed <- T
         return(.)}
         )
@@ -442,20 +442,20 @@ experiments.batch_effects <- function(experiment){
 experiments.inter_diseases <- function(experiment){
   exp_config <- experiments.parameters[[experiment]]
   datasets_perm2 <- gtools::permutations(n=length(experiments.data[[experiment]]),r=2,v=unlist(experiments.data[[experiment]]),repeats.allowed = F)
-  combined_cluster_results <- vector('list',dim(datasets_perm2)[[2]])
-  combined_assign_results <- vector('list',dim(datasets_perm2)[[2]])
-  combined_raw_results <- vector('list',dim(datasets_perm2)[[2]])
+  combined_cluster_results <- vector('list',dim(datasets_perm2)[[1]])
+  combined_assign_results <- vector('list',dim(datasets_perm2)[[1]])
+  combined_raw_results <- vector('list',dim(datasets_perm2)[[1]])
   for(i in 1:dim(datasets_perm2)[[1]]){
     # experiments.data[[experiment]] <<- unlist(datasets_comb2[,i])
     print(str_glue("experiment data is {experiments.data[[experiment]]}"))
-    experiments.assign.data$train_dataset[[experiment]] <<- unlist(datasets_perm2[,i])[1]
+    experiments.assign.data$train_dataset[[experiment]] <<- unlist(datasets_perm2[i,])[1]
     print(str_glue("assign train data is {experiments.assign.data$train_dataset[[experiment]]}"))
-    experiments.assign.data$test_dataset[[experiment]] <<- unlist(datasets_perm2[,i])[2]
+    experiments.assign.data$test_dataset[[experiment]] <<- unlist(datasets_perm2[i,])[2]
     print(str_glue("assign test data is {experiments.assign.data$test_dataset[[experiment]]}"))
     base_results <- experiments.base(experiment,exp_config)
     results <- base_results$analy_results%>% 
-      purrr::map(~{.$train_dataset <- str_split(datasets_perm2[1,i],"\\.")[[1]][[1]]
-                   .$test_dataset <- str_split(datasets_perm2[2,i],"\\.")[[1]][[1]]
+      purrr::map(~{.$train_dataset <- str_split(datasets_perm2[i,1],"\\.")[[1]][[1]]
+                   .$test_dataset <- str_split(datasets_perm2[i,2],"\\.")[[1]][[1]]
                    return(.)}
                  )
     raw_results <- base_results$pred_results
