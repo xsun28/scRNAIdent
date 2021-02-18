@@ -32,8 +32,8 @@ dataset.properties <- list(
                                                cell_types=c('beta','alpha','delta',
                                                             'acinar','ductal','gamma',
                                                             'endothelial')),
-                          midbrain_human=list(sample_threshold=100,gene_name_type="SYMBOL"),
-                          midbrain_mouse=list(sample_threshold=100,gene_name_type="SYMBOL"),
+                          midbrain_human=list(sample_threshold=30,gene_name_type="SYMBOL"),
+                          midbrain_mouse=list(sample_threshold=30,gene_name_type="SYMBOL"),
                           cellbench_10x=list(sample_threshold=100,gene_name_type="ENSEMBL"),
                           cellbench_CELseq2=list(sample_threshold=100,gene_name_type="ENSEMBL"),
                           cellbench_Dropseq=list(sample_threshold=100,gene_name_type="ENSEMBL")
