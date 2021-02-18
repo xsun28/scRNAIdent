@@ -23,13 +23,19 @@ constructor.base <- function(data,config,if_train){
     data <- utils.filter(data)
     if(!purrr::is_null(config$train_sample_num) && !is.na(config$train_sample_num)){
       print(str_glue("start sampling train data: {config$train_sample_num} per cell type"))
-      data <- utils.sampler(data, sample_num=config$train_sample_num,types=unique(colData(data)$label))
+      data <- utils.sampler(data, sample_num=config$train_sample_num, sample_pctg = NULL, types=unique(colData(data)$label))
+    }else{
+      print(str_glue("start sampling train data: {config$train_sample_pctg} percentage per cell type"))
+      data <- utils.sampler(data, sample_num=NULL, sample_pctg = config$train_sample_pctg, types=unique(colData(data)$label))
     }
   }else{
     data <- utils.filter(data,filter_gene=FALSE) 
     if(!purrr::is_null(config$test_sample_num) && !is.na(config$test_sample_num)){
       print(str_glue("start sampling test data: {config$test_sample_num} per cell type"))
-      data <- utils.sampler(data, sample_num=config$test_sample_num,types=unique(colData(data)$label))
+      data <- utils.sampler(data, sample_num=config$test_sample_num, sample_pctg = NULL, types=unique(colData(data)$label))
+    }else{
+      print(str_glue("start sampling test data: {config$test_sample_pctg} percentage per cell type"))
+      data <- utils.sampler(data, sample_num=NULL, sample_pctg = config$test_sample_pctg, types=unique(colData(data)$label))
     }
   }
   data <- data[!duplicated(rownames(data)),!duplicated(colnames(data))]
@@ -66,13 +72,19 @@ constructor.batch_effects <- function(data,config,if_train){
     data <- utils.filter(data)
     if(!purrr::is_null(config$train_sample_num) && !is.na(config$train_sample_num)){
       print(str_glue("start sampling train data: {config$train_sample_num} per cell type"))
-      data <- utils.sampler(data, sample_num=config$train_sample_num,types=unique(colData(data)$label))
+      data <- utils.sampler(data, sample_num=config$train_sample_num, sample_pctg=NULL, types=unique(colData(data)$label))
+    }else{
+      print(str_glue("start sampling train data: {config$train_sample_pctg} percentage per cell type"))
+      data <- utils.sampler(data, sample_num=NULL, sample_pctg=config$train_sample_pctg, types=unique(colData(data)$label))
     }
   }else{
     data <- utils.filter(data,filter_gene=FALSE)
     if(!purrr::is_null(config$test_sample_num) && !is.na(config$test_sample_num)){
       print(str_glue("start sampling test data: {config$test_sample_num} per cell type"))
-      data <- utils.sampler(data, sample_num=config$test_sample_num,types=unique(colData(data)$label))
+      data <- utils.sampler(data, sample_num=config$test_sample_num, sample_pctg=NULL, types=unique(colData(data)$label))
+    }else{
+      print(str_glue("start sampling test data: {config$test_sample_pctg} percentage per cell type"))
+      data <- utils.sampler(data, sample_num=NULL, sample_pctg=config$test_sample_pctg, types=unique(colData(data)$label))
     }
   }
   data[!duplicated(rownames(data)),!duplicated(colnames(data))]
@@ -84,13 +96,19 @@ constructor.celltype_structure <- function(data,config,if_train){
     data <- utils.filter(data)
     if(!purrr::is_null(config$train_sample_num) && !is.na(config$train_sample_num)){
       print(str_glue("start sampling train data: {config$train_sample_num} per cell type"))
-      data <- utils.sampler(data, sample_num=config$train_sample_num,types=unique(colData(data)[[config$level]]),column = config$level)
+      data <- utils.sampler(data, sample_num=config$train_sample_num, sample_pctg = NULL, types=unique(colData(data)[[config$level]]),column = config$level)
+    }else{
+      print(str_glue("start sampling train data: {config$train_sample_pctg} percentage per cell type"))
+      data <- utils.sampler(data, sample_num=NULL, sample_pctg = config$train_sample_pctg, types=unique(colData(data)[[config$level]]),column = config$level)
     }
   }else{
     data <- utils.filter(data,filter_gene=FALSE) 
     if(!purrr::is_null(config$test_sample_num) && !is.na(config$test_sample_num)){
       print(str_glue("start sampling test data: {config$test_sample_num} per cell type"))
-      data <- utils.sampler(data, sample_num=config$test_sample_num,types=unique(colData(data)[[config$level]]),column = config$level)
+      data <- utils.sampler(data, sample_num=config$test_sample_num, sample_pctg = NULL, types=unique(colData(data)[[config$level]]),column = config$level)
+    }else{
+      print(str_glue("start sampling test data: {config$test_sample_pctg} percentage per cell type"))
+      data <- utils.sampler(data, sample_num=NULL, sample_pctg = config$test_sample_pctg, types=unique(colData(data)[[config$level]]),column = config$level)
     }
   }
   colData(data)$label <- colData(data)[[config$level]]

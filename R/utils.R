@@ -88,10 +88,16 @@ utils.filter <- function(data,filter_gene=TRUE, filter_cells=TRUE, filter_cell_t
 }
 
 ###sampling sample_num cells from each cell type
-utils.sampler <- function(data,sample_num,types,column="label"){
-  sample_idx <- purrr::map(types,~ which(colData(data)[[column]]==.)) %>% 
-    purrr::map(~sample(.,min(sample_num,length(.)),replace=FALSE)) 
-  data[,unlist(sample_idx)]
+utils.sampler <- function(data,sample_num=NULL,sample_pctg=NULL,types,column="label"){
+  stopifnot(!((purrr::is_null(sample_num)&&purrr::is_null(sample_pctg))||(!purrr::is_null(sample_num)&&!purrr::is_null(sample_pctg))))
+  if(!purrr::is_null(sample_num)){
+    sample_idx <- purrr::map(types,~ which(colData(data)[[column]]==.)) %>% 
+      purrr::map(~sample(.,min(sample_num,length(.)),replace=FALSE)) 
+  }else{
+    sample_idx <- purrr::map(types,~ which(colData(data)[[column]]==.)) %>% 
+      purrr::map(~sample(.,ceiling(length(.)*sample_pctg),replace=FALSE)) 
+  }
+  return(data[,unlist(sample_idx)])
 }
 
 ###select different sequencing depth cells, right means take the deeper sequencing data

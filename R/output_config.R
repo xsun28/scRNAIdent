@@ -1,2 +1,2 @@
-output.dataset_name <- list(simple_accuracy="midbrain_human", cell_number="GSE96583_8_Stim_Pats", sequencing_depth="GSE96583_8_Stim_Pats",
+output.dataset_name <- list(simple_accuracy="midbrain_mouse", cell_number="GSE96583_8_Stim_Pats", sequencing_depth="GSE96583_8_Stim_Pats",
                          celltype_structure="GSE96583_8_Stim_Pats",batch_effects="pancreas_xin_muraro_seger",inter_diseases="PBMC_ctrl_stim_diseases")
