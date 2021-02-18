@@ -48,6 +48,7 @@ preprocess_PBMC <- function(dataset){
                                                     colData(.)$label <- utils.convertCellTypes(colData(.)$cell.type,type_map)
                                                     counts(.) <- as(counts(.),'sparseMatrix')
                                                     return(.)})
+  # sces <- purrr::map(sces,addPerCellQC)
   colData_cols <- colnames(colData(sces[[1]]))
   sces <- utils.combine_SCEdatasets(sces,if_combined=T,colData_cols)
   metadata(sces) <- list(study='PBMC', study_name="GSE96583_batch1_3_samples")
@@ -154,21 +155,26 @@ preprocess_midbrain <- function(dataset){
   dataset_paths <- utils.get_dataset_paths(raw_data_home,raw_datasets[[dataset]])
   dataset_names <- load(dataset_paths[[1]])
   sces <- map(map(dataset_names,~eval(as.name(.))), ~{colData(.)$sampleId <- rownames(colData(.))
-                                                      colData(.)$label <- colData(.)$cell.type
+                                                      colData(.)$label <- colData(.)$celltypes
                                                       colData(.)$species <- purrr::map_chr(colData(.)$celltypes,~str_sub(.,1,1))
                                                       counts(.) <- as(counts(.),'sparseMatrix')
                                                       return(.)})
+  
+  sces <- purrr::map(sces,addPerCellQC)
   converted_genes <- utils.convertMouseGeneList(rowData(sces[[1]])$genes)
   converted_genes <- merge(rowData(sces[[1]]),converted_genes,by="genes",all.x=T)
   converted_genes$EnsembleId <- utils.convert2EnsemblIDs(converted_genes$human_gene)
   converted_genes$geneName <- converted_genes$human_gene
   new_mouse_sces <- sces[[1]][converted_genes$genes,]
   rowData(new_mouse_sces) <- converted_genes
+  rowData(new_mouse_sces)$count <- nexprs(new_mouse_sces,byrow=TRUE)
   
   rowData(sces[[2]])$human_gene <- rowData(sces[[2]])$genes
   rowData(sces[[2]])$EnsembleId <- utils.convert2EnsemblIDs(rowData(sces[[2]])$human_gene)
   rowData(sces[[2]])$geneName <- rowData(sces[[2]])$human_gene
-    
+  rowData(sces[[2]])$count <- nexprs(sces[[2]],byrow=TRUE)
+  
+
   new_dataset_path <- utils.get_dataset_paths(data_home,datasets[[dataset]])
   metadata(new_mouse_sces) <- list(study="midbrain",study_name="midbrain_mouse")
   metadata(sces[[2]]) <- list(study="midbrain",study_name="midbrain_human")
@@ -190,10 +196,12 @@ preprocess_cellbench <- function(dataset){
     sce <- eval(as.name(dataset_names[[i]]))
     colData(sce)$sampleId <- rownames(colData(sce))
     colData(sce)$label <- colData(sce)$cell_line_demuxlet
+    sce <- addPerCellQC(sce)
     counts(sce) <- as(counts(sce),'sparseMatrix')
     metadata(sce) <- list(study='cellbench', study_name=study_name,protocol=protocol)
     rowData(sce)$EnsembleId <- rownames(sce)
     rowData(sce)$geneName <- utils.convert2GeneSymbols(rownames(sce))
+    rowData(sce)$count <- nexprs(sce,byrow=TRUE)
     write_rds(sce,new_dataset_path[[i]])
   }
 }

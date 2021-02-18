@@ -1,4 +1,4 @@
-experiments.data <- list(simple_accuracy="GSE96583_8_Stim_Pats.RDS", 
+experiments.data <- list(simple_accuracy="midbrain_human.RDS", 
                                  cell_number="GSE96583_8_Stim_Pats.RDS", 
                                  sequencing_depth="GSE96583_8_Stim_Pats.RDS",
                                  celltype_structure="GSE96583_8_Stim_Pats.RDS",
@@ -12,12 +12,12 @@ experiments.data <- list(simple_accuracy="GSE96583_8_Stim_Pats.RDS",
                                  )
 
 experiments.assign.data <- list(
-  train_dataset=list(simple_accuracy="GSE96583_8_Stim_Pats.RDS", 
+  train_dataset=list(simple_accuracy="midbrain_human.RDS", 
                      cell_number="GSE96583_8_Stim_Pats.RDS", 
                      sequencing_depth="GSE96583_8_Stim_Pats.RDS",
                      celltype_structure="GSE96583_8_Stim_Pats.RDS"),
                      # inter_diseases="GSE96583_8_Ctrl_Pats.RDS"),
-  test_dataset=list(simple_accuracy="GSE96583_8_Stim_Pats.RDS", 
+  test_dataset=list(simple_accuracy="midbrain_human.RDS", 
                     cell_number="GSE96583_8_Stim_Pats.RDS", 
                     sequencing_depth="GSE96583_8_Stim_Pats.RDS",
                     celltype_structure="GSE96583_8_Stim_Pats.RDS")
@@ -43,7 +43,7 @@ experiments.methods <- list(
 experiments.parameters <- list(
   simple_accuracy=list(train_sample_num=300, test_sample_num=300, cv=TRUE, cv_fold=5,metrics=c('ARI','AMI','FMI'),
                        marker_gene_file=NULL),
-  cell_number=list(sample_num=c(100,200,400),train_sample_num=300, test_sample_num=300, train_sampling=T, test_sampling=T,
+  cell_number=list(sample_num=c(100,200,300,400),train_sample_num=300, test_sample_num=300, train_sampling=T, test_sampling=T,
                    cv=TRUE,cv_fold=5,metrics=c('ARI','AMI','FMI'), marker_gene_file=NULL),
   sequencing_depth=list(quantile=list(low=0.2,high=0.8),cv=TRUE,cv_fold=5,metrics=c('ARI','AMI','FMI'),
                         marker_gene_file=NULL),
