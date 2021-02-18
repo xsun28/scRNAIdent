@@ -99,18 +99,30 @@ plot.cell_number <- function(results,raw_results,dataset){
     dir.create(fig_path,recursive=T)
   }
   
+  cell_numbers <- experiments.parameters[[experiment]]$sample_num
+  sampling_by_pctg <- purrr::is_null(cell_numbers)||length(cell_numbers)==0
   
   results <- utils.get_methods(results)
-  all_results <- dplyr::select(dplyr::filter(results,is.na(assigned)),-c(unlabeled_pctg,assigned)) %>%
-                gather("metric","value",-c(methods,sample_num,supervised))
+  if(sampling_by_pctg){
+    all_results <- dplyr::select(dplyr::filter(results,is.na(assigned)),-c(unlabeled_pctg,assigned)) %>%
+      gather("metric","value",-c(methods,sample_pctg,supervised))
+    
+    plot_params <- list(x="methods",y="value",fill="supervised",label="label",xlabel="methods",
+                        facet_wrap=T,dodged=T,facet_var='sample_pctg',width=10,height=7,nrow=3)
+  }else{
+    all_results <- dplyr::select(dplyr::filter(results,is.na(assigned)),-c(unlabeled_pctg,assigned)) %>%
+                    gather("metric","value",-c(methods,sample_num,supervised))
+    
+    plot_params <- list(x="methods",y="value",fill="supervised",label="label",xlabel="methods",
+                        facet_wrap=T,dodged=T,facet_var='sample_num',width=10,height=7,nrow=3)
+  }
   all_results$label <- round(all_results$value,2)
   # plot_params <-
   # list(x="sample_num",y="value",group="methods",line_color="methods",point_color="methods",
   # facet_wrap=T,facet_var="metric",width=10,height=10)
   # plot.line_plot(all_results[all_results$metric=="ARI",],plot_params,result_home,figure_all_name)
   
-  plot_params <- list(x="methods",y="value",fill="supervised",label="label",xlabel="methods",
-                      facet_wrap=T,dodged=T,facet_var='sample_num',width=10,height=7,nrow=3)
+
   plot_params$ylabel <- "ARI"
   plot.bar_plot(all_results[all_results$metric=="ARI",],plot_params,fig_path,"all_ARI.pdf")
   plot_params$ylabel <- "AMI"
@@ -118,9 +130,14 @@ plot.cell_number <- function(results,raw_results,dataset){
   plot_params$ylabel <- "FMI"
   plot.bar_plot(all_results[all_results$metric=="FMI",],plot_params,fig_path,"all_FMI.pdf")
   
-  
-  results_assigned <- dplyr::select(dplyr::filter(results,assigned),-c(unlabeled_pctg,assigned)) %>%
-    gather("metric","value",-c(methods,sample_num,supervised))
+  if(sampling_by_pctg){
+    results_assigned <- dplyr::select(dplyr::filter(results,assigned),-c(unlabeled_pctg,assigned)) %>%
+      gather("metric","value",-c(methods,sample_pctg,supervised))
+  }
+  else{
+    results_assigned <- dplyr::select(dplyr::filter(results,assigned),-c(unlabeled_pctg,assigned)) %>%
+      gather("metric","value",-c(methods,sample_num,supervised))
+  }
   results_assigned$label <- round(results_assigned$value,2)
   plot_params$ylabel <- "ARI"
   plot.bar_plot(results_assigned[results_assigned$metric=="ARI",],plot_params,fig_path,"assigned_ARI.pdf")
@@ -130,8 +147,14 @@ plot.cell_number <- function(results,raw_results,dataset){
   plot.bar_plot(results_assigned[results_assigned$metric=="FMI",],plot_params,fig_path,"assigned_FMI.pdf")
   # plot.line_plot(results_assigned,plot_params,result_home,figure_assigned_name)
   
-  results_unassigned <- dplyr::select(dplyr::filter(results,!assigned),-c(unlabeled_pctg,assigned)) %>%
-    gather("metric","value",-c(methods,sample_num,supervised))
+  if(sampling_by_pctg){
+    results_unassigned <- dplyr::select(dplyr::filter(results,!assigned),-c(unlabeled_pctg,assigned)) %>%
+      gather("metric","value",-c(methods,sample_pctg,supervised))
+  }
+  else{
+    results_unassigned <- dplyr::select(dplyr::filter(results,!assigned),-c(unlabeled_pctg,assigned)) %>%
+      gather("metric","value",-c(methods,sample_num,supervised))
+  }
   results_unassigned$label <- round(results_unassigned$value,2)
   plot_params$ylabel <- "ARI"
   plot.bar_plot(results_unassigned[results_unassigned$metric=="ARI",],plot_params,fig_path,"unassigned_ARI.pdf")
@@ -144,11 +167,20 @@ plot.cell_number <- function(results,raw_results,dataset){
   
   ######
   # figure_name <- str_glue("cell_number_{dataset}_unlabeled_pctg.pdf")
-  results_unlabeled_pctg <- dplyr::filter(dplyr::select(results[results$supervised,],methods,sample_num,unlabeled_pctg),!is.na(unlabeled_pctg))
-  
-  plot_params <- list(x="sample_num",y="unlabeled_pctg",group="methods",line_color="methods",point_color="methods",
-                      facet_wrap=F,width=2*length(unique(results_unlabeled_pctg$methods)),
-                      height=2*length(unique(results_unlabeled_pctg$methods)))
+  if(sampling_by_pctg){
+    results_unlabeled_pctg <- dplyr::filter(dplyr::select(results[results$supervised,],methods,sample_pctg,unlabeled_pctg),!is.na(unlabeled_pctg))
+    
+    plot_params <- list(x="sample_pctg",y="unlabeled_pctg",group="methods",line_color="methods",point_color="methods",
+                        facet_wrap=F,width=2*length(unique(results_unlabeled_pctg$methods)),
+                        height=2*length(unique(results_unlabeled_pctg$methods)))
+  }
+  else{
+    results_unlabeled_pctg <- dplyr::filter(dplyr::select(results[results$supervised,],methods,sample_num,unlabeled_pctg),!is.na(unlabeled_pctg))
+    
+    plot_params <- list(x="sample_num",y="unlabeled_pctg",group="methods",line_color="methods",point_color="methods",
+                        facet_wrap=F,width=2*length(unique(results_unlabeled_pctg$methods)),
+                        height=2*length(unique(results_unlabeled_pctg$methods)))
+  }
   plot.line_plot(results_unlabeled_pctg,plot_params,fig_path,"unlabeled_pctg.pdf")
 }
 

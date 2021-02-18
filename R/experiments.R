@@ -204,27 +204,50 @@ experiments.simple_accuracy <- function(experiment){
 experiments.cell_number <- function(experiment){
   exp_config <- experiments.parameters[[experiment]]
   cell_numbers <- exp_config$sample_num
+  cell_pctgs <- exp_config$sample_pctg
   combined_cluster_results <- vector('list',length(cell_numbers))
   combined_assign_results <- vector('list',length(cell_numbers))
   combined_raw_results <- vector('list',length(cell_numbers))
   methods <- experiments.methods[[experiment]]
-  for(i in seq_along(cell_numbers)){
-    num <- cell_numbers[[i]]
-    print(str_glue('starting sample num:{num}'))
+  sampling_by_pctg <- purrr::is_null(cell_numbers)||length(cell_numbers)==0
+  cell_sampling_plan <- if(sampling_by_pctg) cell_pctgs else cell_numbers
+  for(i in seq_along(cell_sampling_plan)){
+    val <- cell_sampling_plan[[i]]
+    print(str_glue('starting sampling :{val}'))
     config <- exp_config
-    config$sample_num <- NULL
-    if(exp_config$train_sampling){
-      config$train_sample_num <- num
+    if(sampling_by_pctg){
+      if(exp_config$train_sampling){
+        config$train_sample_num <- val
+      }
+      if(exp_config$test_sampling){
+        config$test_sample_num <- val
+      }
     }
-    if(exp_config$test_sampling){
-      config$test_sample_num <- num
+    else{
+      if(exp_config$train_sampling){
+        config$train_sample_num <- NULL
+        config$train_sample_pctg <- val
+      }
+      if(exp_config$test_sampling){
+        config$test_sample_num <- NULL
+        config$test_sample_pctg <- val
+      }
     }
-    base_results <- experiments.base(experiment,config) 
-    results <- base_results$analy_results%>% 
-      purrr::map(~{.$sample_num<-num
-              return(.)})
-    raw_results <- base_results$pred_results
-    raw_results$sample_num <- num
+    base_results <- experiments.base(experiment,config)
+    if(sampling_by_pctg){
+      results <- base_results$analy_results%>% 
+        purrr::map(~{.$sample_pctg <- val
+        return(.)})
+      raw_results <- base_results$pred_results
+      raw_results$sample_pctg <- val
+    }
+    else{
+      results <- base_results$analy_results%>% 
+        purrr::map(~{.$sample_num <- val
+                return(.)})
+      raw_results <- base_results$pred_results
+      raw_results$sample_num <- val
+    }
     combined_assign_results[[i]] <- bind_rows(results[grepl(".*_assign_.*",names(results))])
     combined_cluster_results[[i]] <- bind_rows(results[grepl(".*cluster.*",names(results))])
     combined_raw_results[[i]] <- raw_results

@@ -1,4 +1,4 @@
-experiments.data <- list(simple_accuracy="midbrain_human.RDS", 
+experiments.data <- list(simple_accuracy="midbrain_mouse.RDS", 
                                  cell_number="GSE96583_8_Stim_Pats.RDS", 
                                  sequencing_depth="GSE96583_8_Stim_Pats.RDS",
                                  celltype_structure="GSE96583_8_Stim_Pats.RDS",
@@ -12,12 +12,12 @@ experiments.data <- list(simple_accuracy="midbrain_human.RDS",
                                  )
 
 experiments.assign.data <- list(
-  train_dataset=list(simple_accuracy="midbrain_human.RDS", 
+  train_dataset=list(simple_accuracy="midbrain_mouse.RDS", 
                      cell_number="GSE96583_8_Stim_Pats.RDS", 
                      sequencing_depth="GSE96583_8_Stim_Pats.RDS",
                      celltype_structure="GSE96583_8_Stim_Pats.RDS"),
                      # inter_diseases="GSE96583_8_Ctrl_Pats.RDS"),
-  test_dataset=list(simple_accuracy="midbrain_human.RDS", 
+  test_dataset=list(simple_accuracy="midbrain_mouse.RDS", 
                     cell_number="GSE96583_8_Stim_Pats.RDS", 
                     sequencing_depth="GSE96583_8_Stim_Pats.RDS",
                     celltype_structure="GSE96583_8_Stim_Pats.RDS")
@@ -41,17 +41,17 @@ experiments.methods <- list(
 )
 
 experiments.parameters <- list(
-  simple_accuracy=list(train_sample_num=300, test_sample_num=300, cv=TRUE, cv_fold=5,metrics=c('ARI','AMI','FMI'),
+  simple_accuracy=list(train_sample_pctg=0.1,train_sample_num=300,test_sample_pctg=0.1,test_sample_num=300, cv=TRUE, cv_fold=5,metrics=c('ARI','AMI','FMI'),
                        marker_gene_file=NULL),
-  cell_number=list(sample_num=c(100,200,300,400),train_sample_num=300, test_sample_num=300, train_sampling=T, test_sampling=T,
+  cell_number=list(sample_pctg=c(0.05,0.1,0.15,0.2),sample_num=c(100,200,300,400),train_sample_pctg=0.1,train_sample_num=300, test_sample_pctg=0.1,test_sample_num=300, train_sampling=T, test_sampling=T,
                    cv=TRUE,cv_fold=5,metrics=c('ARI','AMI','FMI'), marker_gene_file=NULL),
   sequencing_depth=list(quantile=list(low=0.2,high=0.8),cv=TRUE,cv_fold=5,metrics=c('ARI','AMI','FMI'),
                         marker_gene_file=NULL),
-  celltype_structure=list(train_sample_num=300,test_sample_num=300,cv=TRUE,cv_fold=5,metrics=c('wNMI','wRI'),
+  celltype_structure=list(train_sample_pctg=0.1,test_sample_pctg=0.1,train_sample_num=300,test_sample_num=300,cv=TRUE,cv_fold=5,metrics=c('wNMI','wRI'),
                           structure_file="PBMC_celltypes.csv",marker_gene_file=NULL),
-  batch_effects=list(train_sample_num=500,test_sample_num=500,cv=FALSE,remove_batch=TRUE,metrics=c('ARI','AMI','FMI'),
+  batch_effects=list(train_sample_pctg=0.1,test_sample_pctg=0.1,train_sample_num=500,test_sample_num=500,cv=FALSE,remove_batch=TRUE,metrics=c('ARI','AMI','FMI'),
                      marker_gene_file=NULL),
-  inter_diseases = list(train_sample_num=500,test_sample_num=500,cv=FALSE,metrics=c('ARI','AMI','FMI'),marker_gene_file=NULL),
+  inter_diseases = list(train_sample_pctg=0.1,test_sample_pctg=0.1,train_sample_num=500,test_sample_num=500,cv=FALSE,metrics=c('ARI','AMI','FMI'),marker_gene_file=NULL),
   celltype_complexity = list(),
   inter_species = list(),
   random_noise = list(),
