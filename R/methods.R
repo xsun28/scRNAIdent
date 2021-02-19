@@ -75,6 +75,7 @@ assign.scmap_cell <- function(train_data, test_data){
 assign.chetah <- function(train_data, test_data){
     require(SingleCellExperiment)
     require(CHETAH)
+    source("R/CHETAH.R")
     stopifnot(is(train_data,"SingleCellExperiment"))
     stopifnot(is(test_data,"SingleCellExperiment"))
     colData(train_data)$celltypes <- colData(train_data)$label
@@ -87,6 +88,16 @@ assign.chetah <- function(train_data, test_data){
     #and “Node1”, “Node2”, etc for the additional nodes
     unname(test_data$celltype_CHETAH)
 }
+# getAnywhere("CHETAHclassifier")
+# rlang::env_unlock(env = asNamespace('CHETAH'))
+# rlang::env_binding_unlock(env = asNamespace('CHETAH'))
+# assign('CHETAHclassifier', assign.CHETAHclassifier, envir = asNamespace('CHETAH'))
+# rlang::env_unlock(env = as.environment('package:CHETAH'))
+# rlang::env_binding_unlock(env = as.environment('package:CHETAH'))
+# assign('CHETAHclassifier', assign.CHETAHclassifier, envir = as.environment('package:CHETAH'))
+# rlang::env_binding_lock(env = asNamespace('CHETAH'))
+# rlang::env_lock(asNamespace('CHETAH'))
+
 
 
 #######assigning using garnet
@@ -95,6 +106,7 @@ assign.garnett <- function(train_data,test_data,exp_config){
   require(monocle)
   require(SingleCellExperiment)
   require(org.Hs.eg.db)
+  require(org.Mm.eg.db)
   print("start method garnett")
   stopifnot(is(test_data,"SingleCellExperiment"))
   stopifnot(is(train_data,"SingleCellExperiment"))
@@ -132,12 +144,19 @@ assign.garnett <- function(train_data,test_data,exp_config){
       print(str_glue("{marker_file_path} exists,skipping generating..."))
     }
     
-    
     cds_train <- assign.garnett.process_data(train_data, gene_name_type)
     set.seed(260)
+    if(colData(train_data)$species[[1]]=="h"){
+      db <- org.Hs.eg.db
+    }else if(colData(train_data)$species[[1]]=="m"){
+      db <- org.Mm.eg.db
+    }else{
+      stop("unkown train species")
+    }
+    
     classifier <- train_cell_classifier(cds = cds_train,
                                              marker_file = str_glue("{marker_home}/{marker_file_path}"),
-                                             db=org.Hs.eg.db,
+                                             db=db,
                                              cds_gene_id_type = gene_name_type,
                                              num_unknown = 50,
                                              marker_file_gene_id_type = gene_name_type)
@@ -149,7 +168,7 @@ assign.garnett <- function(train_data,test_data,exp_config){
   cds_test <- assign.garnett.process_data(test_data, gene_name_type)
   
   cds_test <- classify_cells(cds_test, classifier,
-                             db = org.Hs.eg.db,
+                             db = db,
                              cluster_extend = TRUE,
                              cds_gene_id_type = gene_name_type)
   unlist(list(pData(cds_test)$cell_type))
@@ -161,18 +180,18 @@ assign.garnett.process_data <- function(data, gene_name_type){
   if(gene_name_type=="SYMBOL"){
     geneData <- as.tibble(rowData(data))
     geneData$fullGeneName <- rownames(data) 
-    geneData <- dplyr::group_by(geneData,geneName) %>%
+    geneData <- dplyr::group_by(geneData,fullGeneName) %>%
       dplyr::filter(count==max(count))
     mat <- counts(data[geneData$fullGeneName])
-    rownames(mat) <- geneData$geneName
-    geneData$gene_short_name <- geneData$geneName
+    rownames(mat) <- geneData$fullGeneName
+    # geneData$gene_short_name <- geneData$geneName
     geneData <- as.data.frame(geneData)
-    rownames(geneData) <- geneData$geneName
+    rownames(geneData) <- geneData$fullGeneName
   }else if(gene_name_type=="ENSEMBL"){
     geneData <- rowData(data)
     mat <- counts(data)
     rownames(mat) <- geneData$EnsembleId
-    geneData$gene_short_name <- geneData$geneName
+    # geneData$gene_short_name <- geneData$geneName
     geneData <- as.data.frame(geneData)
     rownames(geneData) <- geneData$EnsembleId
   }else{
