@@ -230,7 +230,7 @@ utils.check_marker_genes <- function(data,marker_gene_file,generated_marker_gene
     }
     rownames(markers_mat) <- markers$Marker
     colnames(markers_mat) <- unique(markers$CellType)
-    gene_names <- if(length(rowData(data)$geneName)>0) rowData(data)$geneName else rownames(data) ##PBMC data gene name is not same as rownames
+    gene_names <- rownames(data) 
     matchidx <- match(markers[,1], gene_names)
     markers_mat <- markers_mat[!is.na(matchidx),]
   }
