@@ -146,14 +146,16 @@ assign.garnett <- function(train_data,test_data,exp_config){
     
     cds_train <- assign.garnett.process_data(train_data, gene_name_type)
     set.seed(260)
-    if(colData(train_data)$species[[1]]=="h"){
-      db <- org.Hs.eg.db
-    }else if(colData(train_data)$species[[1]]=="m"){
-      db <- org.Mm.eg.db
-    }else{
-      stop("unkown train species")
+    db <- org.Hs.eg.db
+    if("species" %in% colnames(colData(train_data))){
+      if(colData(train_data)$species[[1]]=="h"){
+        db <- org.Hs.eg.db
+      }else if(colData(train_data)$species[[1]]=="m"){
+        db <- org.Mm.eg.db
+      }else{
+        stop("unkown train species")
+      }
     }
-    
     classifier <- train_cell_classifier(cds = cds_train,
                                              marker_file = str_glue("{marker_home}/{marker_file_path}"),
                                              db=db,

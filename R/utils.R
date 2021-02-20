@@ -112,13 +112,19 @@ utils.seqDepthSelector <- function(data, quantile,right=TRUE){
 }
 
 ###label unassigned cells in the tibble results
-utils.label_unassigned <- function(assign_results){
-  cell_types <- unique(assign_results$label)
-  f <- function(x){
-    x[which(!x%in% cell_types)] <- 'unassigned'
-    x
+utils.label_unassigned <- function(test_results,assign=T){
+  cell_types <- unique(test_results$label)
+  for(col in colnames(test_results)){
+    if(col=="label") next
+    if(sum(purrr::map_lgl(test_results[[col]],is.na)) == length(test_results[[col]])) next
+    if(sum(purrr::map_lgl(test_results[[col]],purrr::is_null)) == length(test_results[[col]])) next
+    if(assign){
+      test_results[which(!test_results[[col]]%in% cell_types),col] <- "unassigned"
+    }else{
+      test_results[which(purrr::map_lgl(test_results[,col],~{!(is_numeric(.)&&(.>0)&&(!is.na(.)))})),col] <- -1L
+    }
   }
-  purrr::map(assign_results,~f(.))
+  test_results
 }
 
 ###select assigned cells by all methods from tibble results
@@ -131,8 +137,25 @@ utils.select_assigned <- function(results){
     assign_results <- dplyr::select(assign_results,-label)
     cluster_results <- dplyr::select(cluster_results,-label)
   }
+  for(col in colnames(assign_results)){
+    if(
+       purrr::is_null(assign_results[[col]]) || 
+       sum(purrr::map_lgl(assign_results[[col]],purrr::is_null))==length(assign_results[[col]]) ||
+       sum(purrr::map_lgl(assign_results[[col]],is.na))==length(assign_results[[col]])
+       )
+      assign_results <- dplyr::select(assign_results,-col)
+  }
+  for(col in colnames(cluster_results)){
+    if(
+       purrr::is_null(cluster_results[[col]]) || 
+       sum(purrr::map_lgl(cluster_results[[col]],purrr::is_null))==length(cluster_results[[col]]) ||
+       sum(purrr::map_lgl(cluster_results[[col]],is.na))==length(cluster_results[[col]])
+       )
+      cluster_results <- dplyr::select(cluster_results,-col)
+  }
+  
   labeled_idx_assign <- purrr::reduce(purrr::map(assign_results,~which(. %in% labels)),intersect)
-  labeled_idx_cluster <- purrr::reduce(purrr::map(cluster_results,~which(!is.na(.))),intersect)
+  labeled_idx_cluster <- purrr::reduce(purrr::map(cluster_results,~which(.!=-1L)),intersect)
   labeled_idx <- intersect(labeled_idx_assign, labeled_idx_cluster)
   purrr::map(results,~.[labeled_idx,])
 }
@@ -146,9 +169,26 @@ utils.select_unassigned <- function(results){
     assign_results <- dplyr::select(assign_results,-label)
     cluster_results <- dplyr::select(cluster_results,-label)
   }
-
+  
+  for(col in colnames(assign_results)){
+    if(
+      purrr::is_null(assign_results[[col]]) || 
+      sum(purrr::map_lgl(assign_results[[col]],purrr::is_null))==length(assign_results[[col]]) ||
+      sum(purrr::map_lgl(assign_results[[col]],is.na))==length(assign_results[[col]])
+    )
+      assign_results <- dplyr::select(assign_results,-col)
+  }
+  for(col in colnames(cluster_results)){
+    if(
+      purrr::is_null(cluster_results[[col]]) || 
+      sum(purrr::map_lgl(cluster_results[[col]],purrr::is_null))==length(cluster_results[[col]]) ||
+      sum(purrr::map_lgl(cluster_results[[col]],is.na))==length(cluster_results[[col]])
+    )
+      cluster_results <- dplyr::select(cluster_results,-col)
+  }
+  
   labeled_idx_assign <- purrr::reduce(purrr::map(assign_results,~which(. %in% labels)),intersect)
-  labeled_idx_cluster <- purrr::reduce(purrr::map(cluster_results,~which(!is.na(.))),intersect)
+  labeled_idx_cluster <- purrr::reduce(purrr::map(cluster_results,~which(.!=-1L)),intersect)
   labeled_idx <- intersect(labeled_idx_assign, labeled_idx_cluster)
   if(length(labeled_idx)==0){
     return(results)

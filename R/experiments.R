@@ -57,13 +57,19 @@ experiments.base.assign <- function(experiment, exp_config){
     assign_results <- experiments.run_assign(assign_methods,data,NA,exp_config)
     print("finish prediction for assign methods")
     return(list(assign_results=assign_results,train_data=data,test_data=NULL))
-  }else{###if inter-dataset 
-    train_data <- utils.load_datasets(experiments.assign.data$train_dataset[[experiment]]) %>%
-      constructor.data_constructor(config=exp_config,experiment = experiment,if_train = TRUE)
-    colData(train_data)$unique_id <- 1:dim(colData(train_data))[[1]]
-    test_data <- utils.load_datasets(experiments.assign.data$test_dataset[[experiment]]) %>%
-      constructor.data_constructor(config=exp_config,experiment = experiment,if_train = FALSE)
-    colData(test_data)$unique_id <- (dim(colData(train_data))[[1]]+1):(dim(colData(train_data))[[1]]+dim(colData(test_data))[[1]])
+  }else{###if inter-dataset or fixed train/test dataset
+    if(experiments.assign.data$train_dataset[[experiment]]==experiments.assign.data$test_dataset[[experiment]]){
+      #####fixed train/test dataset in cell number experiment
+      all_dataset <- utils.load_datasets(experiments.assign.data$train_dataset[[experiment]])
+      
+    }else{#####interdataset
+      train_data <- utils.load_datasets(experiments.assign.data$train_dataset[[experiment]]) %>%
+        constructor.data_constructor(config=exp_config,experiment = experiment,if_train = TRUE)
+      colData(train_data)$unique_id <- 1:dim(colData(train_data))[[1]]
+      test_data <- utils.load_datasets(experiments.assign.data$test_dataset[[experiment]]) %>%
+        constructor.data_constructor(config=exp_config,experiment = experiment,if_train = FALSE)
+      colData(test_data)$unique_id <- (dim(colData(train_data))[[1]]+1):(dim(colData(train_data))[[1]]+dim(colData(test_data))[[1]])
+    }
     assign_results <- experiments.run_assign(assign_methods,train_data,test_data,exp_config)
     print("finish prediction for assign methods")
     return(list(assign_results=assign_results,train_data=train_data,test_data=test_data))
@@ -174,10 +180,12 @@ experiments.base <- function(experiment, exp_config){
     }
     assign_results <- bind_cols(assign_results,dplyr::select(marker_gene_assign_results,-label))
   }
+  assign_results <- utils.label_unassigned(assign_results,T)
   cluster_results <- experiments.base.cluster(experiment,exp_config,assign_data)
   if(test_only){
     cluster_results <- cluster_results[test_samples,]
   }
+  cluster_results <- utils.label_unassigned(cluster_results,F)
   combined_results <- bind_cols(assign_results,dplyr::select(cluster_results,-label))
   if(experiment %in% c("celltype_structure")){
     current_celltype_hierarchy <<- utils.createCellTypeHierarchy(assign_data,colData(assign_data)$label)
