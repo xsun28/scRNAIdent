@@ -8,7 +8,8 @@ utils.load_datasets <- function(file_names){
   if(length(data_paths)==1){return(read_rds(data_paths))}
   sces <- list()
   for(i in seq_along(data_paths)){
-    sces[i] <- read_rds(data_paths[[i]])
+    sce <- read_rds(data_paths[[i]])
+    sces[i] <- sce[!duplicated(rownames(sce)),!duplicated(colnames(sce))]
   }
   sces
 }
