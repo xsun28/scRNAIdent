@@ -41,7 +41,7 @@ experiments.base.assign <- function(experiment, exp_config){
   require(stringr)
   require(readr)
   if(missing(exp_config)){
-    exp_config <- experiments.parameters[[experiment]]
+    stop("missing exp_config in base assign function")
   }
   print(str_glue("experiment {experiment} configuration: {exp_config}"))
   methods <- experiments.methods[[experiment]]
@@ -58,16 +58,50 @@ experiments.base.assign <- function(experiment, exp_config){
     print("finish prediction for assign methods")
     return(list(assign_results=assign_results,train_data=data,test_data=NULL))
   }else{###if inter-dataset or fixed train/test dataset
-    if(experiments.assign.data$train_dataset[[experiment]]==experiments.assign.data$test_dataset[[experiment]]){
-      #####fixed train/test dataset in cell number experiment
-      all_dataset <- utils.load_datasets(experiments.assign.data$train_dataset[[experiment]])
-      
-    }else{#####interdataset
-      train_data <- utils.load_datasets(experiments.assign.data$train_dataset[[experiment]]) %>%
-        constructor.data_constructor(config=exp_config,experiment = experiment,if_train = TRUE)
+    all_data <- utils.load_datasets(experiments.assign.data$train_dataset[[experiment]])
+    if(experiment=="cell_number"){
+      saved_train_data_path <- str_glue("{pretrained_home}/{experiment}_saved_train_data.RData")
+      if(exp_config$test_sampling && exp_config$train_saved){
+        load(saved_train_data_path)
+      }else{
+        train_data <- constructor.data_constructor(all_data, config=exp_config,experiment=experiment,if_train = TRUE)
+        colData(train_data)$unique_id <- 1:dim(colData(train_data))[[1]]
+        if(exp_config$test_sampling) save(train_data, file = saved_train_data_path)
+      }
+    }else{
+      train_data <- constructor.data_constructor(all_data, config=exp_config,experiment=experiment,if_train = TRUE)
       colData(train_data)$unique_id <- 1:dim(colData(train_data))[[1]]
-      test_data <- utils.load_datasets(experiments.assign.data$test_dataset[[experiment]]) %>%
-        constructor.data_constructor(config=exp_config,experiment = experiment,if_train = FALSE)
+    }
+    
+    if(experiment=="cell_number"){
+      saved_test_data_path <- str_glue("{pretrained_home}/{experiment}_saved_test_data.RData")
+      if(exp_config$train_sampling&&exp_config$test_saved){
+        load(saved_test_data_path)
+      }else{
+        if(experiments.assign.data$train_dataset[[experiment]]==experiments.assign.data$test_dataset[[experiment]]){
+          #####fixed train/test dataset 
+          print(str_glue('train_dataset = test_dataset'))
+          test_sample_data <- all_data[,setdiff(colnames(all_data),colnames(train_data))]
+          test_data <- constructor.data_constructor(test_sample_data, config=exp_config,experiment = experiment,if_train = FALSE)
+        }else{#####interdataset
+          print(str_glue('train_dataset != test_dataset'))
+          test_data <- utils.load_datasets(experiments.assign.data$test_dataset[[experiment]]) %>%
+            constructor.data_constructor(config=exp_config,experiment = experiment,if_train = FALSE)
+        }
+        colData(test_data)$unique_id <- (dim(colData(train_data))[[1]]+1):(dim(colData(train_data))[[1]]+dim(colData(test_data))[[1]])
+        if(exp_config$train_sampling) save(test_data, file = saved_test_data_path)
+      }
+    }else{
+      if(experiments.assign.data$train_dataset[[experiment]]==experiments.assign.data$test_dataset[[experiment]]){
+          #####fixed train/test dataset
+          print(str_glue('train_dataset = test_dataset'))
+          test_sample_data <- all_data[,setdiff(colnames(all_data),colnames(train_data))]
+          test_data <- constructor.data_constructor(test_sample_data, config=exp_config,experiment = experiment,if_train = FALSE)
+      }else{#####interdataset
+        print(str_glue('train_dataset != test_dataset'))
+        test_data <- utils.load_datasets(experiments.assign.data$test_dataset[[experiment]]) %>%
+          constructor.data_constructor(config=exp_config,experiment = experiment,if_train = FALSE)
+      }
       colData(test_data)$unique_id <- (dim(colData(train_data))[[1]]+1):(dim(colData(train_data))[[1]]+dim(colData(test_data))[[1]])
     }
     assign_results <- experiments.run_assign(assign_methods,train_data,test_data,exp_config)
@@ -223,23 +257,32 @@ experiments.cell_number <- function(experiment){
     val <- cell_sampling_plan[[i]]
     print(str_glue('starting sampling :{val}'))
     config <- exp_config
-    if(sampling_by_pctg){
-      if(exp_config$train_sampling){
+    config$train_saved <- if(i==1) F else T
+    config$test_saved <- if(i==1) F else T
+    config$trained <- F
+    if(!sampling_by_pctg){
+      if(config$train_sampling){
         config$train_sample_num <- val
       }
-      if(exp_config$test_sampling){
+      if(config$test_sampling){
         config$test_sample_num <- val
+        config$trained <- if(i==1) F else T 
       }
-    }
-    else{
-      if(exp_config$train_sampling){
+    }else{
+      if(config$train_sampling){
         config$train_sample_num <- NULL
         config$train_sample_pctg <- val
       }
-      if(exp_config$test_sampling){
+      if(config$test_sampling){
         config$test_sample_num <- NULL
         config$test_sample_pctg <- val
+        config$trained <- if(i==1) F else T 
       }
+    }
+    if(config$train_sampling&&!config$test_sampling){
+      config$fixed_test <- T
+    }else if(!exp_config$train_sampling&&exp_config$test_sampling){
+      config$fixed_train <- T
     }
     base_results <- experiments.base(experiment,config)
     if(sampling_by_pctg){

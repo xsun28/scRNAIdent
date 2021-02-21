@@ -2,12 +2,12 @@ source("R/methods_config.R")
 run_assign_methods <- function(method,train_data, test_data,exp_config){
   # source("R/methods_config.R")
   switch(method,
-         scmap_cluster = assign.scmap_cluster(train_data, test_data),
-         scmap_cell = assign.scmap_cell(train_data, test_data),
+         scmap_cluster = assign.scmap_cluster(train_data, test_data, exp_config),
+         scmap_cell = assign.scmap_cell(train_data, test_data, exp_config),
          chetah = assign.chetah(train_data, test_data),
          cellassign = assign.cellassign(train_data,exp_config),
          garnett = assign.garnett(train_data,test_data,exp_config),
-         singlecellnet = assign.singlecellnet(train_data,test_data),
+         singlecellnet = assign.singlecellnet(train_data,test_data, exp_config),
          stop("No such assigning method")
   )
   
@@ -26,47 +26,73 @@ run_cluster_methods <- function(method,data){
 
 
 ####assigning using scmap cluster
-assign.scmap_cluster <- function(train_data, test_data){
+assign.scmap_cluster <- function(train_data, test_data, exp_config){
   require(scmap)
   require(scater)
-  stopifnot(is(train_data,"SingleCellExperiment"))
-  stopifnot(is(test_data,"SingleCellExperiment"))
-  counts(train_data) <- as.matrix(counts(train_data))
+  if(experiment=="cell_number")
+    saved_trained_path <- str_glue("{pretrained_home}/{experiment}_scmap_cluster_trained.RData")
+  if(experiment=="cell_number" && exp_config$trained){
+    stopifnot(is(test_data,"SingleCellExperiment"))
+    print(str_glue("scmap_cluster already trained, load from {saved_trained_path}"))
+    load(saved_trained_path)
+  }else{
+    stopifnot(is(train_data,"SingleCellExperiment"))
+    stopifnot(is(test_data,"SingleCellExperiment"))
+    counts(train_data) <- as.matrix(counts(train_data))
+    train_data <- logNormCounts(train_data)
+    rowData(train_data)$feature_symbol <- rownames(train_data)
+    train_data <- selectFeatures(train_data,n_features=methods.config.scmap[['nfeatures']]) %>%
+      indexCluster(cluster_col = "label")
+    index_list <- list(metadata(train_data)$scmap_cluster_index)
+    if(experiment=="cell_number"){
+      print(str_glue("saving {experiment} trained scmap_cluster to {saved_trained_path}"))
+      save(index_list,file=saved_trained_path)
+    }
+  }
+  
   counts(test_data) <- as.matrix(counts(test_data))
-  train_data <- logNormCounts(train_data)
-  rowData(train_data)$feature_symbol <- rownames(train_data)
-  train_data <- selectFeatures(train_data,n_features=methods.config.scmap[['nfeatures']]) %>%
-    indexCluster(cluster_col = "label")
   test_data <- logNormCounts(test_data)
   rowData(test_data)$feature_symbol <- rownames(test_data)
-  results <- scmapCluster(projection=test_data, index_list=list(metadata(train_data)$scmap_cluster_index))
-  results$combined_labs
+  results <- scmapCluster(projection=test_data, index_list=index_list)
+  return(results$combined_labs)
 }
 
 ####assigning using scmap cell
-assign.scmap_cell <- function(train_data, test_data){
+assign.scmap_cell <- function(train_data, test_data, exp_config){
   require(scmap)
   require(scater)
-  stopifnot(is(train_data,"SingleCellExperiment"))
-  stopifnot(is(test_data,"SingleCellExperiment"))
-  counts(train_data) <- as.matrix(counts(train_data))
+  if(experiment=="cell_number")
+    saved_trained_path <- str_glue("{pretrained_home}/{experiment}_scmap_cell_trained.RData")
+  if(experiment=="cell_number" && exp_config$trained){
+    stopifnot(is(test_data,"SingleCellExperiment"))
+    print(str_glue("scmap_cell already trained, load from {saved_trained_path}"))
+    load(saved_trained_path)
+  }else{
+    stopifnot(is(train_data,"SingleCellExperiment"))
+    stopifnot(is(test_data,"SingleCellExperiment"))
+    counts(train_data) <- as.matrix(counts(train_data))
+    train_data <- logNormCounts(train_data)
+    rowData(train_data)$feature_symbol <- rownames(train_data)
+    train_data <- selectFeatures(train_data,n_features=methods.config.scmap[['nfeatures']]) %>%
+      indexCell()
+    index_list <- list(metadata(train_data)$scmap_cell_index)
+    train_labels <- list(as.character(colData(train_data)$label))
+    if(experiment=="cell_number"){
+      print(str_glue("saving {experiment} trained scmap_cell to {saved_trained_path}"))
+      save(index_list,train_labels,file=saved_trained_path)
+    }
+  }
+    
   counts(test_data) <- as.matrix(counts(test_data))
-  train_data <- logNormCounts(train_data)
-  rowData(train_data)$feature_symbol <- rownames(train_data)
   if(purrr::is_null(methods.config.scmap[['seed']]))
     set.seed(1)
   else
     set.seed(methods.config.scmap[['seed']])
-  train_data <- selectFeatures(train_data,n_features=methods.config.scmap[['nfeatures']]) %>%
-    indexCell()
   test_data <- logNormCounts(test_data)
   rowData(test_data)$feature_symbol <- rownames(test_data)
-  cell_results <- scmapCell(projection=test_data, index_list = list(metadata(train_data)$scmap_cell_index))
+  cell_results <- scmapCell(projection=test_data, index_list = index_list)
   clusters_results <- scmapCell2Cluster(
-    cell_results, 
-    list(
-      as.character(colData(train_data)$label)
-    ),threshold = methods.config.scmap[['threshold']]
+    cell_results,train_labels,threshold = methods.config.scmap[['threshold']]
   )
   clusters_results$combined_labs
 }
@@ -108,6 +134,15 @@ assign.garnett <- function(train_data,test_data,exp_config){
   require(org.Hs.eg.db)
   require(org.Mm.eg.db)
   print("start method garnett")
+  if(experiment=="cell_number"){
+    saved_trained_path <- str_glue("{pretrained_home}/{experiment}_garnett_trained.RData")
+    if(exp_config$trained){
+      stopifnot(is(test_data,"SingleCellExperiment"))
+      print(str_glue("garnett already trained, load from {saved_trained_path}"))
+      load(saved_trained_path)
+    }
+  }
+  
   stopifnot(is(test_data,"SingleCellExperiment"))
   stopifnot(is(train_data,"SingleCellExperiment"))
   m_config <- methods.config.garnett
@@ -144,7 +179,6 @@ assign.garnett <- function(train_data,test_data,exp_config){
       print(str_glue("{marker_file_path} exists,skipping generating..."))
     }
     
-    cds_train <- assign.garnett.process_data(train_data, gene_name_type)
     set.seed(260)
     db <- org.Hs.eg.db
     if("species" %in% colnames(colData(train_data))){
@@ -156,15 +190,23 @@ assign.garnett <- function(train_data,test_data,exp_config){
         stop("unkown train species")
       }
     }
-    classifier <- train_cell_classifier(cds = cds_train,
-                                             marker_file = str_glue("{marker_home}/{marker_file_path}"),
-                                             db=db,
-                                             cds_gene_id_type = gene_name_type,
-                                             num_unknown = 50,
-                                             marker_file_gene_id_type = gene_name_type)
-    write_rds(classifier,str_glue("{pretrained_classifier_home}/pretrained_{study_name}_{gene_name_type}_classifier.rds"))
+    
+    if(!(experiment=="cell_number" && exp_config$trained)){
+      cds_train <- assign.garnett.process_data(train_data, gene_name_type)
+      classifier <- train_cell_classifier(cds = cds_train,
+                                          marker_file = str_glue("{marker_home}/{marker_file_path}"),
+                                          db=db,
+                                          cds_gene_id_type = gene_name_type,
+                                          num_unknown = 50,
+                                          marker_file_gene_id_type = gene_name_type)
+      write_rds(classifier,str_glue("{pretrained_home}/pretrained_{study_name}_{gene_name_type}_classifier.rds"))
+      if((experiment=="cell_number" && !exp_config$trained)){
+        print(str_glue("saving {experiment} trained garnett classifier to {saved_trained_path}"))
+        save(classifier,file=saved_trained_path)
+      }
+    }
   }else{
-    classifier_path <- str_glue("{pretrained_classifier_home}/{pretrained_classifier_name}")
+    classifier_path <- str_glue("{pretrained_home}/{pretrained_classifier_name}")
     classifier <- readRDS(classifier_path)
   }
   cds_test <- assign.garnett.process_data(test_data, gene_name_type)
@@ -284,10 +326,9 @@ assign.cellassign <- function(data,exp_config){
 }
 
 ######assigning using singlecellnet
-assign.singlecellnet <- function(train_data, test_data){
+assign.singlecellnet <- function(train_data, test_data, exp_config){
   require(singleCellNet)
-  stopifnot(is(train_data,"SingleCellExperiment"))
-  stopifnot(is(test_data,"SingleCellExperiment"))
+
   #' extract sampTab and expDat sce object into regular S3 objects
   #' @param sce_object
   #' @param exp_type
@@ -313,35 +354,63 @@ assign.singlecellnet <- function(train_data, test_data){
     
     return(list(sampTab = sampTab, expDat = expDat))
   }
-
+  if(experiment=="cell_number")
+    saved_trained_path <- str_glue("{pretrained_home}/{experiment}_singlecellnet_trained.RData")
+  if(experiment=="cell_number" && exp_config$trained){
+    stopifnot(is(test_data,"SingleCellExperiment"))
+    print(str_glue("singlecellnet already trained, load from {saved_trained_path}"))
+    load(saved_trained_path)
+  }else{
+    stopifnot(is(train_data,"SingleCellExperiment"))
+    stopifnot(is(test_data,"SingleCellExperiment"))
+    m_config <- methods.config.singlecellnet 
+    set.seed(100) #can be any random seed number
+    train_scefile <- extractSCE(train_data, exp_type = "counts") 
+    train_metadata <- train_scefile$sampTab
+    train_expdata <- train_scefile$expDat
+    if(!m_config$cross_species){
+      commonGenes<-intersect(rownames(train_expdata), rownames(test_expdata))
+      train_expdata <- train_expdata[commonGenes, ]
+      test_expdata <- test_expdata[commonGenes, ]
+      ncells <- if(purrr::is_null(m_config$ncells)) 100 else m_config$ncells
+      nTopGenes <- if(purrr::is_null(m_config$nTopGenes)) 10 else m_config$nTopGenes
+      nRand <- if(purrr::is_null(m_config$nRand)) 70 else m_config$nRand
+      nTrees <- if(purrr::is_null(m_config$nTrees)) 1000 else m_config$nTrees
+      nTopGenePairs <- if(purrr::is_null(m_config$nTopGenePairs)) 25 else m_config$nTopGenePairs
+      
+      class_info<-scn_train(stTrain = train_metadata, expTrain = train_expdata, nTopGenes = nTopGenes, nRand = nRand, nTrees = nTrees, nTopGenePairs = nTopGenePairs, 
+                            dLevel = "label", colName_samp = "sample_name")
+      if(experiment=="cell_number"){
+        print(str_glue("saving {experiment} trained singlecellnet to {saved_trained_path}"))
+        save(class_info,file = saved_trained_path)
+      }
+    }
+  }
+  
   m_config <- methods.config.singlecellnet 
   set.seed(100) #can be any random seed number
-  train_scefile <- extractSCE(train_data, exp_type = "counts") 
-  train_metadata <- train_scefile$sampTab
-  train_expdata <- train_scefile$expDat
   test_scefile <- extractSCE(test_data, exp_type = "counts") 
   test_metadata <- test_scefile$sampTab
   test_expdata <- test_scefile$expDat
   
   if(m_config$cross_species){
+    train_scefile <- extractSCE(train_data, exp_type = "counts") 
+    train_metadata <- train_scefile$sampTab
+    train_expdata <- train_scefile$expDat
     common_gene_file <- str_glue("{data_home}{m_config$common_gene_file}")
     oTab <- utils_loadObject(fname = "../data/human_mouse_genes_Jul_24_2018.rda")
     aa <- csRenameOrth(expQuery = test_expdata, expTrain = train_expdata, orthTable = oTab)
     test_expdata <- aa[['expQuery']]
     train_expdata <- aa[['expTrain']]
-  }else{
-    commonGenes<-intersect(rownames(train_expdata), rownames(test_expdata))
-    train_expdata <- train_expdata[commonGenes, ]
-    test_expdata <- test_expdata[commonGenes, ]
+    ncells <- if(purrr::is_null(m_config$ncells)) 100 else m_config$ncells
+    nTopGenes <- if(purrr::is_null(m_config$nTopGenes)) 10 else m_config$nTopGenes
+    nRand <- if(purrr::is_null(m_config$nRand)) 70 else m_config$nRand
+    nTrees <- if(purrr::is_null(m_config$nTrees)) 1000 else m_config$nTrees
+    nTopGenePairs <- if(purrr::is_null(m_config$nTopGenePairs)) 25 else m_config$nTopGenePairs
+    
+    class_info<-scn_train(stTrain = train_metadata, expTrain = train_expdata, nTopGenes = nTopGenes, nRand = nRand, nTrees = nTrees, nTopGenePairs = nTopGenePairs, 
+                          dLevel = "label", colName_samp = "sample_name")
   }
-  ncells <- if(purrr::is_null(m_config$ncells)) 100 else m_config$ncells
-  nTopGenes <- if(purrr::is_null(m_config$nTopGenes)) 10 else m_config$nTopGenes
-  nRand <- if(purrr::is_null(m_config$nRand)) 70 else m_config$nRand
-  nTrees <- if(purrr::is_null(m_config$nTrees)) 1000 else m_config$nTrees
-  nTopGenePairs <- if(purrr::is_null(m_config$nTopGenePairs)) 25 else m_config$nTopGenePairs
-  
-  class_info<-scn_train(stTrain = train_metadata, expTrain = train_expdata, nTopGenes = nTopGenes, nRand = nRand, nTrees = nTrees, nTopGenePairs = nTopGenePairs, 
-                        dLevel = "label", colName_samp = "sample_name")
   #predict
   pred_results <- scn_predict(cnProc=class_info[['cnProc']], expDat=test_expdata, nrand = 0)
   pred_labels <- assign_cate(classRes = pred_results, sampTab = test_metadata, cThresh = 0.5)

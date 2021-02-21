@@ -43,8 +43,9 @@ experiments.methods <- list(
 experiments.parameters <- list(
   simple_accuracy=list(train_sample_pctg=0.1,train_sample_num=300,test_sample_pctg=0.1,test_sample_num=300, cv=TRUE, cv_fold=5,metrics=c('ARI','AMI','FMI'),
                        marker_gene_file=NULL),
-  cell_number=list(sample_pctg=c(0.05,0.1,0.15,0.2),sample_num=c(100,200,300,400),train_sample_pctg=0.1,train_sample_num=400, test_sample_pctg=0.1,test_sample_num=300, train_sampling=F, test_sampling=T,
-                   cv=TRUE,cv_fold=5,metrics=c('ARI','AMI','FMI'), marker_gene_file=NULL),
+  cell_number=list(sample_pctg=c(0.05,0.1,0.15,0.2),sample_num=c(100,200,300,400),train_sample_pctg=0.1,train_sample_num=400, test_sample_pctg=0.1,test_sample_num=300,
+                   train_sampling=F, test_sampling=T, cv=F,cv_fold=5,metrics=c('ARI','AMI','FMI'), 
+                   marker_gene_file=NULL,trained=F),
   sequencing_depth=list(quantile=list(low=0.2,high=0.8),cv=TRUE,cv_fold=5,metrics=c('ARI','AMI','FMI'),
                         marker_gene_file=NULL),
   celltype_structure=list(train_sample_pctg=0.1,test_sample_pctg=0.1,train_sample_num=300,test_sample_num=300,cv=TRUE,cv_fold=5,metrics=c('wNMI','wRI'),
