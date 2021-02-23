@@ -51,7 +51,7 @@ experiments.parameters <- list(
   celltype_structure=list(train_sample_pctg=0.1,test_sample_pctg=0.1,train_sample_num=300,test_sample_num=300,cv=TRUE,cv_fold=5,metrics=c('wNMI','wRI'),
                           structure_file="PBMC_celltypes.csv",marker_gene_file=NULL),
   batch_effects=list(train_sample_pctg=0.1,test_sample_pctg=0.1,train_sample_num=500,test_sample_num=500,cv=FALSE,remove_batch=TRUE,metrics=c('ARI','AMI','FMI'),
-                     marker_gene_file=NULL),
+                     marker_gene_file=NULL,fixed_train=T,fixed_test=T),
   inter_diseases = list(train_sample_pctg=0.1,test_sample_pctg=0.1,train_sample_num=500,test_sample_num=500,cv=FALSE,metrics=c('ARI','AMI','FMI'),marker_gene_file=NULL),
   celltype_complexity = list(),
   inter_species = list(),
