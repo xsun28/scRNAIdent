@@ -49,9 +49,6 @@ analysis.assign.unlabeled_pctg <- function(labels,pred){
   return(sum(unlist(purrr::map(pred, ~{!. %in% unique_labels})))/length(pred))
 }
 
-
-
-  
 #######calculate wNMI
 analysis.cluster.wNMI <- function(labels,preds){
   require(Wind)
