@@ -254,6 +254,7 @@ experiments.simple_accuracy <- function(experiment){
   pred_results <- base_results$pred_results
   output.sink(experiment,pred_results,report_results)
   plot.plot(experiment,report_results,pred_results)
+  utils.clean_marker_files()
   report_results
 }
 
@@ -324,6 +325,7 @@ experiments.cell_number <- function(experiment){
   final_results <- bind_rows(combined_assign_results,combined_cluster_results)
   output.sink(experiment,combined_raw_results,final_results)
   plot.plot(experiment,final_results,combined_raw_results)
+  utils.clean_marker_files()
   final_results
 }
 
@@ -360,6 +362,7 @@ experiments.sequencing_depth <- function(experiment){
   final_results <- bind_rows(combined_assign_results,combined_cluster_results)
   output.sink(experiment,combined_raw_results,final_results)
   plot.plot(experiment,final_results,combined_raw_results)
+  utils.clean_marker_files()
   final_results
 }
 
@@ -410,6 +413,7 @@ experiments.celltype_structure <- function(experiment){
   final_results <- bind_rows(combined_assign_results,combined_cluster_results)
   output.sink(experiment,combined_raw_results,final_results)
   plot.plot(experiment,final_results,combined_raw_results)
+  utils.clean_marker_files()
   final_results
 }
 
@@ -428,7 +432,7 @@ experiments.batch_effects <- function(experiment){
   # experiments.data[[experiment]] <<- purrr::map(raw_data,~{str_glue("{metadata(.)$study_name}_intersected.RDS")})
   # print(str_glue("after global experiments.data {experiment} is {experiments.data[[experiment]]}"))
 
-  datasets_perm2 <- gtools::permutations(n=length(experiments.data$batch_effects_no_free),r=2,v=unlist(experiments.data$batch_effects_no_free),repeats.allowed = F)
+  datasets_perm2 <- gtools::permutations(n=length(experiments.data$batch_effects),r=2,v=unlist(experiments.data$batch_effects),repeats.allowed = F)
 
   combined_cluster_results <- vector('list',dim(datasets_perm2)[[1]])
   combined_assign_results <- vector('list',dim(datasets_perm2)[[1]])
@@ -440,6 +444,10 @@ experiments.batch_effects <- function(experiment){
     # print(str_glue("experiment data is {experiments.data[[experiment]]}"))
     experiments.parameters[[experiment]]$train_sample_index <<- NULL
     experiments.parameters[[experiment]]$test_sample_index <<- NULL
+    experiments.parameters[[experiment]]$train_sample_num <<- experiments.parameters.batch_effects[[datasets_perm2[i,1]]]$train_sample_num
+    experiments.parameters[[experiment]]$train_sample_pctg <<- experiments.parameters.batch_effects[[datasets_perm2[i,1]]]$train_sample_pctg
+    experiments.parameters[[experiment]]$test_sample_num <<- experiments.parameters.batch_effects[[datasets_perm2[i,2]]]$test_sample_num
+    experiments.parameters[[experiment]]$test_sample_pctg <<- experiments.parameters.batch_effects[[datasets_perm2[i,2]]]$test_sample_pctg
     
     data <- utils.load_datasets(datasets_perm2[i,])
     data_intersected <- list(str_glue("{metadata(data[[1]])$study_name}_{metadata(data[[2]])$study_name}_intersected.RDS"),
@@ -452,6 +460,7 @@ experiments.batch_effects <- function(experiment){
     print(str_glue("assign train data is {experiments.assign.data$train_dataset[[experiment]]}"))
     experiments.assign.data$test_dataset[[experiment]] <<- data_intersected[[2]]
     print(str_glue("assign test data is {experiments.assign.data$test_dataset[[experiment]]}"))
+    exp_config <- experiments.parameters[[experiment]]
     base_results <- experiments.base(experiment,exp_config)
     results <- base_results$analy_results%>% 
       purrr::map(~{.$train_dataset <- str_split(datasets_perm2[i,1],"\\.")[[1]][[1]]
@@ -467,11 +476,12 @@ experiments.batch_effects <- function(experiment){
     combined_raw_results[[i]] <- raw_results
     sample_index[[i]]$train_sample_index <- experiments.parameters[[experiment]]$train_sample_index
     sample_index[[i]]$teset_sample_index <- experiments.parameters[[experiment]]$test_sample_index
+    utils.clean_marker_files()
   }
   combined_assign_results <- bind_rows(combined_assign_results)
   combined_cluster_results <- bind_rows(combined_cluster_results)
   combined_raw_results <- bind_rows(combined_raw_results)
-    
+  
   ###remove batch effects from dataset and save
 
   if(exp_config$remove_batch){
@@ -498,7 +508,7 @@ experiments.batch_effects <- function(experiment){
       experiments.assign.data$test_dataset[[experiment]] <<- data_no_be[[2]]
       print(str_glue("assign test data no batch is {experiments.assign.data$test_dataset[[experiment]]}"))
       
-      
+      exp_config <- experiments.parameters[[experiment]]
       base_results_no_be <- experiments.base(experiment,exp_config)
       results_no_be <- base_results_no_be$analy_results%>% 
         purrr::map(~{.$train_dataset <- str_split(datasets_perm2[i,1],"\\.")[[1]][[1]]
@@ -512,6 +522,7 @@ experiments.batch_effects <- function(experiment){
       combined_assign_results_no_be[[i]] <- bind_rows(results_no_be[grepl(".*_assign_.*",names(results_no_be))])
       combined_cluster_results_no_be[[i]] <- bind_rows(results_no_be[grepl(".*cluster.*",names(results_no_be))])
       combined_raw_results_no_be[[i]] <- raw_results_no_be
+      utils.clean_marker_files()
     }
     
     combined_assign_results_no_be <- bind_rows(combined_assign_results_no_be)
@@ -531,6 +542,7 @@ experiments.batch_effects <- function(experiment){
   }
   output.sink(experiment,total_raw_results,final_results)
   plot.plot(experiment,final_results,total_raw_results)
+  utils.clean_marker_files()
   final_results
 }
 
@@ -548,6 +560,7 @@ experiments.inter_diseases <- function(experiment){
     print(str_glue("assign train data is {experiments.assign.data$train_dataset[[experiment]]}"))
     experiments.assign.data$test_dataset[[experiment]] <<- unlist(datasets_perm2[i,])[2]
     print(str_glue("assign test data is {experiments.assign.data$test_dataset[[experiment]]}"))
+    exp_config <- experiments.parameters[[experiment]]
     base_results <- experiments.base(experiment,exp_config)
     results <- base_results$analy_results%>% 
       purrr::map(~{.$train_dataset <- str_split(datasets_perm2[i,1],"\\.")[[1]][[1]]
@@ -560,6 +573,7 @@ experiments.inter_diseases <- function(experiment){
     combined_assign_results[[i]] <- bind_rows(results[grepl(".*_assign_.*",names(results))])
     combined_cluster_results[[i]] <- bind_rows(results[grepl(".*cluster.*",names(results))])
     combined_raw_results[[i]] <- raw_results
+    utils.clean_marker_files()
   }
   combined_assign_results <- bind_rows(combined_assign_results)
   combined_cluster_results <- bind_rows(combined_cluster_results)
@@ -567,6 +581,7 @@ experiments.inter_diseases <- function(experiment){
   final_results <- bind_rows(combined_assign_results,combined_cluster_results)
   output.sink(experiment,combined_raw_results,final_results)
   plot.plot(experiment,final_results,combined_raw_results)
+  utils.clean_marker_files()
   final_results
 }
 ############
