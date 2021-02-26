@@ -389,3 +389,7 @@ utils.assign_test_cluster_label_from_training <- function(train_dataset_label,tr
 #   }
 # }
 
+utils.clean_marker_files <- function(){
+  marker_files <- c(dir(path=marker_home,  pattern=".RDS",full.names = T),dir(path=marker_home,  pattern="Garnett*",full.names = T))
+  file.remove(marker_files)
+}

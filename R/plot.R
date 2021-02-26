@@ -3,10 +3,10 @@ plot.plot <- function(experiment,results,raw_results){
   dataset <- output.dataset_name[[experiment]]
   
   if(purrr::is_null(results)){
-    results <- read_rds(str_glue("{result_home}/{experiment}_{dataset}_results.rds"))
+    results <- read_rds(str_glue("{result_home}/{experiment}/{dataset}/results.rds"))
   }
   if(purrr::is_null(raw_results)){
-    raw_results <- read_rds(str_glue("{result_home}/{experiment}_{dataset}_raw_results.rds"))
+    raw_results <- read_rds(str_glue("{result_home}/{experiment}/{dataset}/raw_results.rds"))
   }
   switch(experiment,
     simple_accuracy = plot.simple_accuracy(results,raw_results,dataset),
