@@ -328,7 +328,8 @@ assign.cellassign <- function(data,exp_config){
 ######assigning using singlecellnet
 assign.singlecellnet <- function(train_data, test_data, exp_config){
   require(singleCellNet)
-
+  stopifnot(is(train_data,"SingleCellExperiment"))
+  stopifnot(is(test_data,"SingleCellExperiment"))
   #' extract sampTab and expDat sce object into regular S3 objects
   #' @param sce_object
   #' @param exp_type
@@ -354,69 +355,40 @@ assign.singlecellnet <- function(train_data, test_data, exp_config){
     
     return(list(sampTab = sampTab, expDat = expDat))
   }
-  if(experiment=="cell_number")
-    saved_trained_path <- str_glue("{pretrained_home}/{experiment}_singlecellnet_trained.RData")
-  if(experiment=="cell_number" && exp_config$trained){
-    stopifnot(is(test_data,"SingleCellExperiment"))
-    print(str_glue("singlecellnet already trained, load from {saved_trained_path}"))
-    load(saved_trained_path)
-  }else{
-    stopifnot(is(train_data,"SingleCellExperiment"))
-    stopifnot(is(test_data,"SingleCellExperiment"))
-    m_config <- methods.config.singlecellnet 
-    set.seed(100) #can be any random seed number
-    train_scefile <- extractSCE(train_data, exp_type = "counts") 
-    train_metadata <- train_scefile$sampTab
-    train_expdata <- train_scefile$expDat
-    if(!m_config$cross_species){
-      commonGenes<-intersect(rownames(train_expdata), rownames(test_expdata))
-      train_expdata <- train_expdata[commonGenes, ]
-      test_expdata <- test_expdata[commonGenes, ]
-      ncells <- if(purrr::is_null(m_config$ncells)) 100 else m_config$ncells
-      nTopGenes <- if(purrr::is_null(m_config$nTopGenes)) 10 else m_config$nTopGenes
-      nRand <- if(purrr::is_null(m_config$nRand)) 70 else m_config$nRand
-      nTrees <- if(purrr::is_null(m_config$nTrees)) 1000 else m_config$nTrees
-      nTopGenePairs <- if(purrr::is_null(m_config$nTopGenePairs)) 25 else m_config$nTopGenePairs
-      
-      class_info<-scn_train(stTrain = train_metadata, expTrain = train_expdata, nTopGenes = nTopGenes, nRand = nRand, nTrees = nTrees, nTopGenePairs = nTopGenePairs, 
-                            dLevel = "label", colName_samp = "sample_name")
-      if(experiment=="cell_number"){
-        print(str_glue("saving {experiment} trained singlecellnet to {saved_trained_path}"))
-        save(class_info,file = saved_trained_path)
-      }
-    }
-  }
   
   m_config <- methods.config.singlecellnet 
   set.seed(100) #can be any random seed number
+  train_scefile <- extractSCE(train_data, exp_type = "counts") 
+  train_metadata <- train_scefile$sampTab
+  train_expdata <- train_scefile$expDat
   test_scefile <- extractSCE(test_data, exp_type = "counts") 
   test_metadata <- test_scefile$sampTab
   test_expdata <- test_scefile$expDat
   
   if(m_config$cross_species){
-    train_scefile <- extractSCE(train_data, exp_type = "counts") 
-    train_metadata <- train_scefile$sampTab
-    train_expdata <- train_scefile$expDat
     common_gene_file <- str_glue("{data_home}{m_config$common_gene_file}")
     oTab <- utils_loadObject(fname = "../data/human_mouse_genes_Jul_24_2018.rda")
     aa <- csRenameOrth(expQuery = test_expdata, expTrain = train_expdata, orthTable = oTab)
     test_expdata <- aa[['expQuery']]
     train_expdata <- aa[['expTrain']]
-    ncells <- if(purrr::is_null(m_config$ncells)) 100 else m_config$ncells
-    nTopGenes <- if(purrr::is_null(m_config$nTopGenes)) 10 else m_config$nTopGenes
-    nRand <- if(purrr::is_null(m_config$nRand)) 70 else m_config$nRand
-    nTrees <- if(purrr::is_null(m_config$nTrees)) 1000 else m_config$nTrees
-    nTopGenePairs <- if(purrr::is_null(m_config$nTopGenePairs)) 25 else m_config$nTopGenePairs
-    
-    class_info<-scn_train(stTrain = train_metadata, expTrain = train_expdata, nTopGenes = nTopGenes, nRand = nRand, nTrees = nTrees, nTopGenePairs = nTopGenePairs, 
-                          dLevel = "label", colName_samp = "sample_name")
+  }else{
+    commonGenes<-intersect(rownames(train_expdata), rownames(test_expdata))
+    train_expdata <- train_expdata[commonGenes, ]
+    test_expdata <- test_expdata[commonGenes, ]
   }
+  ncells <- if(purrr::is_null(m_config$ncells)) 100 else m_config$ncells
+  nTopGenes <- if(purrr::is_null(m_config$nTopGenes)) 10 else m_config$nTopGenes
+  nRand <- if(purrr::is_null(m_config$nRand)) 70 else m_config$nRand
+  nTrees <- if(purrr::is_null(m_config$nTrees)) 1000 else m_config$nTrees
+  nTopGenePairs <- if(purrr::is_null(m_config$nTopGenePairs)) 25 else m_config$nTopGenePairs
+  
+  class_info<-scn_train(stTrain = train_metadata, expTrain = train_expdata, nTopGenes = nTopGenes, nRand = nRand, nTrees = nTrees, nTopGenePairs = nTopGenePairs, 
+                        dLevel = "label", colName_samp = "sample_name")
   #predict
   pred_results <- scn_predict(cnProc=class_info[['cnProc']], expDat=test_expdata, nrand = 0)
   pred_labels <- assign_cate(classRes = pred_results, sampTab = test_metadata, cThresh = 0.5)
   pred_labels$category
 }
-
 
 
 ### clustering using Seurat
