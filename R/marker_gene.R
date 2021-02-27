@@ -107,6 +107,7 @@ markergene.seurat <- function(data,file_name){
   colnames(marker_gene_mat) <- unique(Labels)
   for(type in colnames(Markers)){
     type_marker_genes <- Markers[,type]
+    type_marker_genes <- type_marker_genes[!is.na(type_marker_genes)]
     marker_gene_mat[,type][type_marker_genes] <- 1
   }
   write_rds(marker_gene_mat,str_glue("{file_name}.RDS"))
