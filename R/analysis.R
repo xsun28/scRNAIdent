@@ -61,7 +61,13 @@ analysis.cluster.wRI <- function(labels,preds){
   wRI(labels,preds,current_celltype_weights$W0,current_celltype_weights$W1)[[1]]
 }
 
-analysis.pivot_table <- function(data,row,col,func="n()"){
+analysis.pivot_table <- function(data,row,col1,col2=NULL,func="n()"){
   library(pivottabler)
-  qhpvt(data, row, col, func)
+  pt <- PivotTable$new()
+  pt$addData(data)
+  pt$addColumnDataGroups(col1)
+  if(!is.null(col2)) pt$addColumnDataGroups(col2, expandExistingTotals=TRUE) 
+  pt$addRowDataGroups(row)
+  pt$defineCalculation(calculationName="TotalCounts", summariseExpression=func)
+  pt$renderPivot()
 }
