@@ -60,3 +60,8 @@ analysis.cluster.wRI <- function(labels,preds){
   require(Wind)
   wRI(labels,preds,current_celltype_weights$W0,current_celltype_weights$W1)[[1]]
 }
+
+analysis.pivot_table <- function(data,row,col,func="n()"){
+  library(pivottabler)
+  qhpvt(data, row, col, func)
+}
