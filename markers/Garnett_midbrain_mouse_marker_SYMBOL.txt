@@ -1,0 +1,50 @@
+>mPeric
+expressed: Kcnj8, Abcc9, Rgs5, Cd248, Col3a1, Igf2, Vtn, Ednra, Pdgfrb, Cspg4, Mmp9, Myl9, Lamc3, Naalad2, Heyl, Bgn, Foxs1, Chp2, Adap2, Zic1
+>mEndo
+expressed: Eltd1, AU021092, Ctla2a, Pecam1, Cldn5, Kdr, Slc38a5, Cd93, Gimap6, Icam2, Slco1c1, Flt1, Cd34, Cdh5, Egfl7, Anxa3, Robo4, Slc38a3, Slc40a1, Grap
+>mMgl
+expressed: Tyrobp, C1qb, Trem2, Fcer1g, Bcl2a1b, C1qc, Csf1r, Cd53, Cd86, Lyz2, Ms4a6d, Ccl3, Rac2, Ly86, Fcrls, Cx3cr1, Emr1, Gpr183, Evi2a-evi2b, Aif1
+>mNProg
+expressed: Pbk, Nusap1, Ccnb1, Cenpf, Birc5, Ube2c, 2810417H13Rik, Prc1, Cks2, Top2a, Msx1, Ncapg, Spc25, Hmgb2, Cdk1, Cdca8, Sgol1, Cenpe, Mki67, Cdc20
+>mRgl3
+expressed: Cd36, 1700009P17Rik, Capsl, Akap14, Scrg1, Ccdc146, Dcn, Armc3, Wdr16, Pifo, Gm10664, Gdpd2, Dynlrb2, Cp, P4ha3, Hepacam, Slc39a12, Ifitm3, Fam183b, Kif6
+>mRgl1
+expressed: Ednrb, Vcam1, Fgfr3, Phgdh, Ttyh1, Fabp7, Fgfbp3, Shisa3, Slc1a3, Hes5, Ccdc37, Wnt7a, Pdlim3, Aldh1l1, Wls, Spon1, Id3, Hmga2, Ppap2b, Fzd2
+>mRgl2
+expressed: Scrg1, Ednrb, Vcam1, Fgfbp3, Slc1a3, Aldh1l1, Ppap2b, Timp4, Bcan, Mmd2, Acsbg1, Aldoc, Mgst1, Cd9, Slc6a11, Tnc, Timp3, Acot1, Slc4a4, Hopx
+>mNbML4
+expressed: 9130206I24Rik, D930028M14Rik, C1ql1, Galnt14, Grb14, Megf11, Bmp7, Meis2, Sorcs1, Myrip, Islr2, Dach2, Fsip1, Slc45a1, Pdcd2l, C1ql2, Sncg, Nrn1, Pitx2
+>mNbML3
+expressed: 9130206I24Rik, D930028M14Rik, C1ql1, Islr2, Ldb2, Gm16551, Calb2, Cntn5, Atxn7l2, B230216N24Rik, Zfp599, Chadl, Lyrm9, Atcay, Gulp1, Cdh13, Rnf152, Sema6b, Tac1, Cacna2d3
+>mNbL2
+expressed: Islr2, Onecut3, Onecut2, Runx1t1, Ssbp3, Sox11, Tcf7l2, Lbh, Srrm2, Ina, Ebf3, Sox4, Zfp462, Smarcc2, Nnat, Cmip, Lphn1, Map1b, Brsk1, Mink1
+>mNbL1
+expressed: Mmd2, D930028M14Rik, Islr2, Sncg, Nrn1, Gm16551, Onecut3, Onecut2, Tcf7l2, Lhx9, Shox2, Lhx2, Crabp1, Mab21l2, Calb1, Gsto1, Crabp2, Emc9, Fam84a, Snhg11
+>mNbML1
+expressed: 9130206I24Rik, D930028M14Rik, C1ql1, Galnt14, Islr2, Gm16551, Ebf3, Sox4, Cartpt, Nkx6-2, Postn, Foxd2, Syt4, Pmfbp1, Grin3a, Tuba1a, Foxa1, Pcdh11x, Ndn, Slc7a11
+>mNbML5
+expressed: Gata3, 1500016L03Rik, Gad2, Celf5, Tenm2, Celf4, Nrxn3, Malat1, Ntm, Lhx5, Prmt2, Mapk10, Rab3c, Nell1, Tal1, Six3, Nrcam, Ncam1, Elavl3, H3f3b
+>mNbM
+expressed: Sox11, Sox4, Igfbpl1, Neurod1, Lmx1a, Nr4a2, St18, Dmrta2, Tagln3, Rnd3, Acpl2, Miat, Neurog2, Pdzrn3, Nhlh2, Ebf2, Cald1, Bcl11a, A930011O12Rik, Slc1a2
+>mNbML2
+expressed: Sox11, 1500016L03Rik, Malat1, Lhx5, Six3, Elavl3, H3f3b, Tagln3, Lhx1, Hist3h2ba, Gpc2, Cd24a, H3f3a, Emx2, BC005764, Ftl1, Prdx2, Phf21b, Rbfox2, Ank3
+>mDA1
+expressed: Slc6a3, Th, Chrna6, Chrnb3, Slc18a2, En1, Lrrtm2, Ptpru, Ddc, Ajap1, AW551984, Snca, Zcchc12, Tmsb15b2, Scg2, Pitx3, Ret, Klhl1, Kcnip4, Zfp449
+>mDA2
+expressed: Slc6a3, Th, Chrna6, Chrnb3, Slc18a2, En1, Ptpru, Ajap1, Snca, Pitx3, Kcnip4, Aldh1a1, Tmem255a, Syt17, Vgf, Col25a1, Homer2, Msantd1, Cadps2, Bnc2
+>mDA0
+expressed: Syt4, Foxa1, Malat1, Lmx1a, Th, Slc18a2, En1, Ddc, Ajap1, Ret, Tmem255a, Cck, Pbx1, Dlk1, Gm5868, Camk2n1, Gria2, Zfhx3, Slc10a4, Stmn1
+>mNbDA
+expressed: Ebf3, Tuba1a, Foxa1, Malat1, H3f3b, Lmx1a, Nr4a2, Ebf2, En1, Ddc, Snca, Pitx3, Klhl1, Pbx1, Cbln1, Chgb, Gm2694, Lrrn3, Schip1, Ddx5
+>mSert
+expressed: Gata3, Slc18a2, Scg2, Slc10a4, Tph2, Gchfr, Slc6a4, Fev, Cryba2, Slc22a3, Cited1, Calcr, Hs6st2, Cntnap3, Dnajc12, Pcsk5, Fam184a, Spock3, Adra1b, Gch1
+>mGaba1b
+expressed: Snhg11, Gata3, 1500016L03Rik, Gad2, Nrxn3, Gad1, Slc32a1, Pnoc, Gpm6a, Tubb2a, Pcdh17, Gria1, Fxyd6, Zwint, Stmn2, Grm5, Meg3, Napb, Pcp4, Ndrg4
+>mGaba1a
+expressed: Snhg11, Nell1, Gad1, Pnoc, Gpm6a, Tubb2a, Zwint, Stmn2, Sst, Acot7, Eif4a2, Dtd1, Zcchc18, Calm2, Fabp3, Snap25, Wrb, Ndufa4, Nap1l5, Mgst3
+>mOMTN
+expressed: Sncg, Isl1, Ecel1, Phox2b, Pvalb, Slc18a3, Slc5a7, Lhx4, Pacrg, Slit3, S100a10, Plcb1, Nefl, Nefm, Mxra7, Pcbp3, Sema3d, Pcdh9, Esrrg, Rprm
+>mRN
+expressed: C1ql2, Sncg, Tuba1a, Mgst3, Nefl, Esrrg, D130009I18Rik, Pou4f1, Fam19a1, Sh3yl1, Epha4, Clec1a, Gap43, Mast4, Dpysl3, Mb21d2, Mllt11, Robo2, 4930506M07Rik, Atad3a
+>mGaba2
+expressed: Grm5, Sncb, Vsnl1, Tmem91, Syn2, Car10, Arhgdig, Camk2n2, Cntn1, Hpca, Prkce, Bend6, Slc6a7, Cadm2, 6330403A02Rik, Mapt, Brinp3, Caly, 2010107G23Rik, Vstm2a
