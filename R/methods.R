@@ -190,14 +190,14 @@ assign.garnett <- function(train_data,test_data,exp_config){
         stop("unkown train species")
       }
     }
-    
+    num_unknown <- if(purrr::is_null(m_config[[study_name]]$num_unkown)) 50 else m_config[[study_name]]$num_unkown
     if(!(experiment=="cell_number" && exp_config$trained)){
       cds_train <- assign.garnett.process_data(train_data, gene_name_type)
       classifier <- train_cell_classifier(cds = cds_train,
                                           marker_file = str_glue("{marker_home}/{marker_file_path}"),
                                           db=db,
                                           cds_gene_id_type = gene_name_type,
-                                          num_unknown = 50,
+                                          num_unknown = num_unknown,
                                           marker_file_gene_id_type = gene_name_type)
       write_rds(classifier,str_glue("{pretrained_home}/pretrained_{study_name}_{gene_name_type}_classifier.rds"))
       if((experiment=="cell_number" && !exp_config$trained)){
