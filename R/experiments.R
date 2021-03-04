@@ -17,6 +17,7 @@ source("R/output.R")
 source("R/preprocess_data.R")
 source("R/plot.R")
 library(SingleCellExperiment)
+library(R.methodsS3)
 ##Wrapper
 runExperiments <- function(experiment=c("simple_accuracy","cell_number", "sequencing_depth","celltype_structure",
                                         "batch_effects","inter_diseases","celltype_complexity","inter_species",
@@ -228,7 +229,8 @@ experiments.base <- function(experiment, exp_config){
     if(test_only){
       marker_gene_assign_results <- marker_gene_assign_results[test_samples,]
     }
-    assign_results <- bind_cols(assign_results,dplyr::select(marker_gene_assign_results,-label))
+    if("label" %in% colnames(marker_gene_assign_results))
+      assign_results <- bind_cols(assign_results,dplyr::select(marker_gene_assign_results,-label))
   }
   assign_results <- utils.label_unassigned(assign_results,T)
   cluster_results <- experiments.base.cluster(experiment,exp_config,assign_data)
@@ -236,7 +238,8 @@ experiments.base <- function(experiment, exp_config){
     cluster_results <- cluster_results[test_samples,]
   }
   cluster_results <- utils.label_unassigned(cluster_results,F)
-  combined_results <- bind_cols(assign_results,dplyr::select(cluster_results,-label))
+  if("label" %in% colnames(cluster_results))
+    combined_results <- bind_cols(assign_results,dplyr::select(cluster_results,-label))
   if(experiment %in% c("celltype_structure")){
     current_celltype_hierarchy <<- utils.createCellTypeHierarchy(assign_data,colData(assign_data)$label)
     current_celltype_weights <<- utils.createCellTypeWeights(assign_data,colData(assign_data)$label)

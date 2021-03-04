@@ -256,7 +256,7 @@ assign.garnett.process_data <- function(data, gene_name_type){
 }
 
 assign.garnett.generate_marker_file <- function(markers_mat,marker_file_path,gene_name_type){
-
+  if(length(markers_mat)==0) throw("markers_mat failed to generate in Garnett")
   if(gene_name_type == "SYMBOL"){
     gene_names <- rownames(markers_mat) %>%
                     purrr::map_chr(~{names <- str_split(.,"\\t")[[1]]
@@ -310,6 +310,7 @@ assign.cellassign <- function(data,exp_config){
   marker_gene_method <- m_config$marker_gene_method
   check_results <- utils.check_marker_genes(data,marker_gene_file, generated_marker_gene_file,marker_gene_method) 
   markers_mat <- check_results$markers_mat
+  if(length(markers_mat)==0) throw("markers_mat failed to generate in cellassign")
   matchidx <- check_results$matchidx
   counts(data) <- as.matrix(counts(data))
   data$celltypes <- colData(data)$label
