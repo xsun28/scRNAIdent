@@ -252,14 +252,14 @@ utils.get_methods <- function(data){
 utils.check_marker_genes <- function(data,marker_gene_file,generated_marker_gene_file,marker_gene_method){
   
   if(purrr::is_null(marker_gene_file)){
-    if(!file.exists(str_glue("{marker_home}/{generated_marker_gene_file}.RDS"))){
-      print(str_glue("Generating {marker_home}/{generated_marker_gene_file}.RDS"))
-      markers_mat <- markergene.generate_marker_genes(marker_gene_method,data,str_glue("{marker_home}/{generated_marker_gene_file}"))
-    }
-    else{
-      print(str_glue("Loading {marker_home}/{generated_marker_gene_file}.RDS"))
-      markers_mat <- read_rds(str_glue("{marker_home}/{generated_marker_gene_file}.RDS"))
-    }
+    # if(!file.exists(str_glue("{marker_home}/{generated_marker_gene_file}.RDS"))){
+    print(str_glue("Generating {marker_home}/{generated_marker_gene_file}.RDS"))
+    markers_mat <- markergene.generate_marker_genes(marker_gene_method,data,str_glue("{marker_home}/{generated_marker_gene_file}"))
+    # }
+    # else{
+    #   print(str_glue("Loading {marker_home}/{generated_marker_gene_file}.RDS"))
+    #   markers_mat <- read_rds(str_glue("{marker_home}/{generated_marker_gene_file}.RDS"))
+    # }
     matchidx <- match(rownames(markers_mat), rownames(data))
     markers_mat <- markers_mat[!is.na(matchidx),]
   }else{

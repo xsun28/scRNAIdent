@@ -157,7 +157,8 @@ assign.garnett <- function(train_data,test_data,exp_config){
     }else{
       marker_file_path <- m_config[[study_name]]$marker_file_path
     }
-    if(purrr::is_null(marker_file_path)||!file.exists(str_glue("{marker_home}/{marker_file_path}"))){
+    # if(purrr::is_null(marker_file_path)||!file.exists(str_glue("{marker_home}/{marker_file_path}"))){
+    if(purrr::is_null(marker_file_path)){
       print("Garnett marker file not exist, generating marker file...")
       if(purrr::is_null(marker_file_path))
         marker_file_path <- str_glue("Garnett_{study_name}_marker_{gene_name_type}.txt")
@@ -171,10 +172,10 @@ assign.garnett <- function(train_data,test_data,exp_config){
       check_results <- utils.check_marker_genes(train_data,marker_gene_file, generated_marker_gene_file,marker_gene_method) 
       markers_mat <- check_results$markers_mat
       matchidx <- check_results$matchidx
-      if(!file.exists(str_glue("{marker_home}/{marker_file_path}"))){
-        print(str_glue("{marker_file_path} not exist, generating...."))
-        assign.garnett.generate_marker_file(markers_mat,marker_file_path,gene_name_type)
-      }
+      # if(!file.exists(str_glue("{marker_home}/{marker_file_path}"))){
+      print(str_glue("{marker_file_path} generating...."))
+      assign.garnett.generate_marker_file(markers_mat,marker_file_path,gene_name_type)
+      # }
     }else{
       print(str_glue("{marker_file_path} exists,skipping generating..."))
     }
