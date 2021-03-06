@@ -161,13 +161,13 @@ utils.assigned_index <- function(results){
 ###select assigned cells by all methods from tibble results
 
 utils.select_assigned <- function(results){
-  labeld_idx <- utils.assigned_index(results)
+  labeled_idx <- utils.assigned_index(results)
   purrr::map(results,~.[labeled_idx,])
 }
 
 ###select unassigned cells by all methods from tibble results
 utils.select_unassigned <- function(results){
-  labeld_idx <- utils.assigned_index(results)
+  labeled_idx <- utils.assigned_index(results)
   if(length(labeled_idx)==0){
     return(results)
   }
