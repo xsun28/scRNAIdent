@@ -128,9 +128,7 @@ utils.label_unassigned <- function(test_results,assign=T){
   test_results
 }
 
-###select assigned cells by all methods from tibble results
-
-utils.select_assigned <- function(results){
+utils.assigned_index <- function(results){
   assign_results <- results$assign_results
   cluster_results <- results$cluster_results
   labels <- unique(assign_results$label)
@@ -138,39 +136,6 @@ utils.select_assigned <- function(results){
     assign_results <- dplyr::select(assign_results,-label)
     cluster_results <- dplyr::select(cluster_results,-label)
   }
-  for(col in colnames(assign_results)){
-    if(
-       purrr::is_null(assign_results[[col]]) || 
-       sum(purrr::map_lgl(assign_results[[col]],purrr::is_null))==length(assign_results[[col]]) ||
-       sum(purrr::map_lgl(assign_results[[col]],is.na))==length(assign_results[[col]])
-       )
-      assign_results <- dplyr::select(assign_results,-col)
-  }
-  for(col in colnames(cluster_results)){
-    if(
-       purrr::is_null(cluster_results[[col]]) || 
-       sum(purrr::map_lgl(cluster_results[[col]],purrr::is_null))==length(cluster_results[[col]]) ||
-       sum(purrr::map_lgl(cluster_results[[col]],is.na))==length(cluster_results[[col]])
-       )
-      cluster_results <- dplyr::select(cluster_results,-col)
-  }
-  
-  labeled_idx_assign <- purrr::reduce(purrr::map(assign_results,~which(. %in% labels)),intersect)
-  labeled_idx_cluster <- purrr::reduce(purrr::map(cluster_results,~which(.!=-1L)),intersect)
-  labeled_idx <- intersect(labeled_idx_assign, labeled_idx_cluster)
-  purrr::map(results,~.[labeled_idx,])
-}
-
-###select unassigned cells by all methods from tibble results
-utils.select_unassigned <- function(results){
-  assign_results <- results$assign_results
-  cluster_results <- results$cluster_results
-  labels <- unique(assign_results$label)
-  if("label" %in% names(assign_results)){
-    assign_results <- dplyr::select(assign_results,-label)
-    cluster_results <- dplyr::select(cluster_results,-label)
-  }
-  
   for(col in colnames(assign_results)){
     if(
       purrr::is_null(assign_results[[col]]) || 
@@ -191,6 +156,18 @@ utils.select_unassigned <- function(results){
   labeled_idx_assign <- purrr::reduce(purrr::map(assign_results,~which(. %in% labels)),intersect)
   labeled_idx_cluster <- purrr::reduce(purrr::map(cluster_results,~which(.!=-1L)),intersect)
   labeled_idx <- intersect(labeled_idx_assign, labeled_idx_cluster)
+  labeled_idx
+}
+###select assigned cells by all methods from tibble results
+
+utils.select_assigned <- function(results){
+  labeld_idx <- utils.assigned_index(results)
+  purrr::map(results,~.[labeled_idx,])
+}
+
+###select unassigned cells by all methods from tibble results
+utils.select_unassigned <- function(results){
+  labeld_idx <- utils.assigned_index(results)
   if(length(labeled_idx)==0){
     return(results)
   }
@@ -308,6 +285,7 @@ utils.try_catch_method_error <- function(code, silent=FALSE){
   tryCatch(code, error=function(c) {
     msg <- conditionMessage(c)
     if (!silent) warning(c)
+    print(str_glue("error occured {msg}"))
     invisible(structure(msg, class = "try-error"))
   })
 }
