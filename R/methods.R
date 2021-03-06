@@ -157,8 +157,7 @@ assign.garnett <- function(train_data,test_data,exp_config){
     }else{
       marker_file_path <- m_config[[study_name]]$marker_file_path
     }
-    # if(purrr::is_null(marker_file_path)||!file.exists(str_glue("{marker_home}/{marker_file_path}"))){
-    if(purrr::is_null(marker_file_path)){
+    if(purrr::is_null(marker_file_path)||!file.exists(str_glue("{marker_home}/{marker_file_path}"))){
       print("Garnett marker file not exist, generating marker file...")
       if(purrr::is_null(marker_file_path))
         marker_file_path <- str_glue("Garnett_{study_name}_marker_{gene_name_type}.txt")
@@ -216,6 +215,7 @@ assign.garnett <- function(train_data,test_data,exp_config){
                              db = db,
                              cluster_extend = TRUE,
                              cds_gene_id_type = gene_name_type)
+  utils.clean_marker_files()
   unlist(list(pData(cds_test)$cell_type))
 }
 
@@ -324,6 +324,7 @@ assign.cellassign <- function(data,exp_config){
                     learning_rate = m_config$learning_rate, 
                     shrinkage = m_config$shrinkage,
                     verbose = FALSE)
+  utils.clean_marker_files()
   fit$cell_type
 }
 
