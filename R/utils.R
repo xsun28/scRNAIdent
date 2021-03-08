@@ -371,3 +371,12 @@ utils.clean_marker_files <- function(){
   marker_files <- c(dir(path=marker_home,  pattern=".RDS",full.names = T),dir(path=marker_home,  pattern="Garnett*",full.names = T))
   file.remove(marker_files)
 }
+
+utils.get_logger <- function(level="DEBUG", file){
+  require(log4r)
+  if(!dir.exists(log_home)) dir.create(log_home)
+  log_file <- str_glue("{log_home}/{file}")
+  if(file.exists(log_file)) file.remove(log_file)
+  file_logger <- logger(level, appenders = file_appender(log_file))
+  file_logger
+}
