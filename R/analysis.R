@@ -46,6 +46,7 @@ analysis.cluster.FMI <- function(true,pred){
 #####calculate the percentage of unlabeled cells for assign methods
 analysis.assign.unlabeled_pctg <- function(labels,pred){
   unique_labels <- unique(labels)
+  if(is.null(pred)==length(pred)||is.na(pred)==length(pred)) return(NA)
   return(sum(unlist(purrr::map(pred, ~{!. %in% unique_labels})))/length(pred))
 }
 

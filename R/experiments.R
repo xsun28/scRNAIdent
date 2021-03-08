@@ -18,6 +18,7 @@ source("R/preprocess_data.R")
 source("R/plot.R")
 library(SingleCellExperiment)
 library(R.methodsS3)
+logger <- utils.get_logger("DEBUG",log_file)
 ##Wrapper
 runExperiments <- function(experiment=c("simple_accuracy","cell_number", "sequencing_depth","celltype_structure",
                                         "batch_effects","inter_diseases","celltype_complexity","inter_species",
@@ -245,6 +246,7 @@ experiments.base <- function(experiment, exp_config){
     current_celltype_weights <<- utils.createCellTypeWeights(assign_data,colData(assign_data)$label)
   }
   report_results <- experiments.base.analyze(assign_results,cluster_results,exp_config)
+  debug(logger, str_glue("results methods: {rownames(report_results$all_assign_results)}"))
   list(pred_results=combined_results,analy_results=report_results)
 }
 
