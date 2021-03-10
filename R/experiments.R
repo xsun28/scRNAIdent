@@ -55,7 +55,9 @@ experiments.base.assign <- function(experiment, exp_config){
   if(if_cv){###if intra-dataset using cross-validation
     data <- utils.load_datasets(experiments.assign.data$train_dataset[[experiment]]) %>%
       constructor.data_constructor(config=exp_config,experiment = experiment,if_train = TRUE)
-    colData(data)$unique_id <- 1:dim(colData(data))[[1]]
+    # colData(data)$unique_id <- 1:dim(colData(data))[[1]]
+    colData(data)$barcode <- colnames(data)
+    colnames(data) <- 1:length(colnames(data)) ###make the sample id unique
     assign_results <- experiments.run_assign(assign_methods,data,NA,exp_config)
     print("finish prediction for assign methods")
     return(list(assign_results=assign_results,train_data=data,test_data=NULL))
@@ -76,8 +78,9 @@ experiments.base.assign <- function(experiment, exp_config){
       print("train sample is not fixed")
       train_data <- constructor.data_constructor(all_train_data, config=exp_config,experiment=experiment,if_train = TRUE)
     }
-    colData(train_data)$unique_id <- 1:dim(colData(train_data))[[1]]
-    
+    # colData(train_data)$unique_id <- 1:dim(colData(train_data))[[1]]
+    colData(train_data)$barcode <- colnames(train_data)
+    colnames(train_data) <- 1:length(colnames(train_data))
     if(!purrr::is_null(exp_config$fixed_test)&&exp_config$fixed_test){
       print("test sample is fixed")
       if(experiments.assign.data$train_dataset[[experiment]]==experiments.assign.data$test_dataset[[experiment]]){
@@ -121,7 +124,10 @@ experiments.base.assign <- function(experiment, exp_config){
           constructor.data_constructor(config=exp_config,experiment = experiment,if_train = FALSE)
       }
     }
-    colData(test_data)$unique_id <- (dim(colData(train_data))[[1]]+1):(dim(colData(train_data))[[1]]+dim(colData(test_data))[[1]])    
+    # colData(test_data)$unique_id <- (dim(colData(train_data))[[1]]+1):(dim(colData(train_data))[[1]]+dim(colData(test_data))[[1]])
+    colData(test_data)$barcode <- colnames(test_data)
+    colnames(test_data) <- (dim(colData(train_data))[[1]]+1):(dim(colData(train_data))[[1]]+dim(colData(test_data))[[1]])    
+    
     assign_results <- experiments.run_assign(assign_methods,train_data,test_data,exp_config)
     print("finish prediction for assign methods")
     return(list(assign_results=assign_results,train_data=train_data,test_data=test_data))
@@ -222,7 +228,7 @@ experiments.base <- function(experiment, exp_config){
   assign_data <- assign_data_results$train_data
   test_only <- !purrr::is_null(assign_data_results$test_data)
   if(test_only){
-    test_samples <- colData(assign_data_results$test_data)$unique_id
+    test_samples <- colnames(assign_data_results$test_data)
     assign_data <- utils.append_sce(assign_data,assign_data_results$test_data)
   }
   if(length(methods$marker_gene_assign)>=1){
@@ -553,6 +559,7 @@ experiments.batch_effects <- function(experiment){
 
 ############
 experiments.inter_diseases <- function(experiment){
+  require(gtools)
   exp_config <- experiments.parameters[[experiment]]
   datasets_perm2 <- gtools::permutations(n=length(experiments.data[[experiment]]),r=2,v=unlist(experiments.data[[experiment]]),repeats.allowed = F)
   combined_cluster_results <- vector('list',dim(datasets_perm2)[[1]])
@@ -560,6 +567,11 @@ experiments.inter_diseases <- function(experiment){
   combined_raw_results <- vector('list',dim(datasets_perm2)[[1]])
   for(i in 1:dim(datasets_perm2)[[1]]){
     # experiments.data[[experiment]] <<- unlist(datasets_comb2[,i])
+    experiments.parameters[[experiment]]$train_sample_num <<- experiments.parameters.batch_effects[[datasets_perm2[i,1]]]$train_sample_num
+    experiments.parameters[[experiment]]$train_sample_pctg <<- experiments.parameters.batch_effects[[datasets_perm2[i,1]]]$train_sample_pctg
+    experiments.parameters[[experiment]]$test_sample_num <<- experiments.parameters.batch_effects[[datasets_perm2[i,2]]]$test_sample_num
+    experiments.parameters[[experiment]]$test_sample_pctg <<- experiments.parameters.batch_effects[[datasets_perm2[i,2]]]$test_sample_pctg
+    
     print(str_glue("experiment data is {experiments.data[[experiment]]}"))
     experiments.assign.data$train_dataset[[experiment]] <<- unlist(datasets_perm2[i,])[1]
     print(str_glue("assign train data is {experiments.assign.data$train_dataset[[experiment]]}"))
@@ -613,7 +625,8 @@ experiments.run_assign <- function(methods, train_data, test_data=NA, exp_config
     results <- data.frame(matrix(nrow=dim(colData(test_data))[[1]],ncol=length(methods)))
     colnames(results) <- methods
     results <- mutate(results,label=as.character(colData(test_data)$label))
-    rownames(results) <- colData(test_data)$unique_id
+    # rownames(results) <- colData(test_data)$unique_id
+    rownames(results) <- colnames(test_data)
     for(m in methods){
       print(str_glue('start assign method {m}'))
       m_result <- utils.try_catch_method_error(run_assign_methods(m,train_data,test_data,exp_config))
@@ -636,7 +649,8 @@ experiments.run_marker_gene_assign <- function(methods,data,exp_config){
   results <- data.frame(matrix(nrow=dim(colData(data))[[1]],ncol=length(methods)))
   colnames(results) <- methods
   results <- mutate(results,label=as.character(colData(data)$label))
-  rownames(results) <- colData(data)$unique_id
+  # rownames(results) <- colData(data)$unique_id
+  rownames(results) <- colnames(data)
   for(m in methods){
     print(str_glue('start marker gene assign method {m}'))
     m_result <- utils.try_catch_method_error(run_assign_methods(m,data,NULL,exp_config))
@@ -658,7 +672,9 @@ experiments.run_cluster <- function(methods,data,exp_config){
   results <- data.frame(matrix(nrow=dim(colData(data))[[1]],ncol=length(methods)))
   colnames(results) <- methods
   results <- mutate(results,label=as.character(colData(data)$label))
-  rownames(results) <- colData(data)$unique_id
+  # rownames(results) <- colData(data)$unique_id
+  rownames(results) <- colnames(data)
+  
   for(m in methods){
     print(str_glue('start cluster method {m}'))
     m_result <- utils.try_catch_method_error(run_cluster_methods(m,data))
@@ -684,7 +700,7 @@ experiments.run_cv <- function(methods, data,exp_config){
   combined_results <- data.frame(matrix(nrow=dim(colData(data))[[1]],ncol=length(methods)))
   colnames(combined_results) <- methods
   combined_results <- mutate(combined_results,label=as.character(colData(data)$label))
-  rownames(combined_results) <- colData(data)$unique_id
+  rownames(combined_results) <- colnames(data)
   for(i in seq_along(folds)){
     train_data <- data[,folds[[i]]]
     test_data <- data[,-folds[[i]]]
