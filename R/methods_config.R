@@ -35,13 +35,13 @@ methods.config.garnett <- list(PBMC_AllCells_withLabels=list(marker_file_path=st
                                                     pretrained_classifier=NULL,marker_gene_method='seurat',num_unknown=50),
                                
                                midbrain_human=list(marker_file_path=str_glue("Garnett_midbrain_human_marker_{dataset.properties$midbrain_human$gene_name_type}.txt"),
-                                                   pretrained_classifier=NULL,marker_gene_method='seurat',num_unknown=30),
+                                                   pretrained_classifier=NULL,marker_gene_method='seurat',num_unknown=30,min_observations=3),
                                
                                midbrain_mouse=list(marker_file_path=str_glue("Garnett_midbrain_mouse_marker_{dataset.properties$midbrain_mouse$gene_name_type}.txt"),
-                                                   pretrained_classifier=NULL,marker_gene_method='seurat',num_unknown=15),
+                                                   pretrained_classifier=NULL,marker_gene_method='seurat',num_unknown=30,min_observations=3),
                                
                                cellbench_10x=list(marker_file_path=str_glue("Garnett_cellbench_10x_marker_{dataset.properties$cellbench_10x$gene_name_type}.txt"),
-                                                  pretrained_classifier=NULL,marker_gene_method='seurat',num_unknown=15),
+                                                  pretrained_classifier=NULL,marker_gene_method='seurat',num_unknown=30,min_observations=3),
                                
                                cellbench_CELseq2=list(marker_file_path=str_glue("Garnett_cellbench_CELseq2_marker_{dataset.properties$cellbench_CELseq2$gene_name_type}.txt"),
                                                       pretrained_classifier=NULL,marker_gene_method='seurat',num_unknown=15),
