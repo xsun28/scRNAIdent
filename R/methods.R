@@ -417,7 +417,18 @@ cluster.tscan <- function(data) {
   stopifnot(is(data,"SingleCellExperiment"))
   cnts <- counts(data)
   m_config <- methods.config.tscan
-  procdata <- preprocess(as.matrix(cnts),cvcutoff=m_config[['cvcutoff']])
+  minexpr_value = m_config[['minexpr_value']]
+  minexpr_percent = m_config[['minexpr_percent']] 
+  cvcutoff=m_config[['cvcutoff']]
+  procdata <- preprocess(as.matrix(cnts),minexpr_value = minexpr_value, minexpr_percent =minexpr_percent, cvcutoff=cvcutoff)
+  while(dim(procdata)[1]<=0){
+    print(str_glue({"minexpr_value={minexpr_value},minexpr_percent = {minexpr_percent},cvcutoff = {cvcutoff}
+      preprocess data in tscan results in 0 dim data, adjusting paramters... "}))
+    minexpr_value = minexpr_value/2.0
+    minexpr_percent = minexpr_percent/2.0
+    cvcutoff = cvcutoff/2.0
+    procdata <- preprocess(as.matrix(cnts),minexpr_value = minexpr_value, minexpr_percent =minexpr_percent, cvcutoff=cvcutoff)
+  }
   if(!purrr::is_null(m_config[['k']]) )
     lpsmclust <- exprmclust(procdata, clusternum=m_config[['k']])
   else
@@ -471,9 +482,26 @@ cluster.liger <- function(data){
   thresh <- if(purrr::is_null(m_config$thresh)) 5e-5 else m_config$thresh
   lambda <- if(purrr::is_null(m_config$lambda)) 5 else m_config$lambda
   resolution <- if(purrr::is_null(m_config$resolution)) 1.0 else m_config$resolution
-  liger_data <- optimizeALS(liger_data, k=k.suggest, thresh = thresh, lambda=lambda,nrep = 3)
+
+  ret <- tryCatch(optimizeALS(liger_data, k=k.suggest, thresh = thresh, lambda=lambda,nrep = 3), error=function(c) {
+    msg <- conditionMessage(c)
+    print(str_glue("error occured {msg}"))
+    structure(msg, class = "try-error")
+  })
+  while(inherits(ret,"try-error")){
+    print(str_glue("in liger:{ret}"))
+    k.suggest = k.suggest -5
+    print(str_glue("new k: {k.suggest}"))
+    ret <- tryCatch(optimizeALS(liger_data, k=k.suggest, thresh = thresh, lambda=lambda,nrep = 3), error=function(c) {
+      msg <- conditionMessage(c)
+      print(str_glue("error occured {msg}"))
+      structure(msg, class = "try-error")
+    })
+  }
+  liger_data <- ret
   liger_data <- quantileAlignSNF(liger_data,resolution = resolution) #SNF clustering and quantile alignment
-  as.integer(unname(liger_data@clusters))
+  str_names <- as.character.Array(1:dim(data)[2])
+  as.integer(unname(liger_data@clusters[str_names]))
 }
 
 
