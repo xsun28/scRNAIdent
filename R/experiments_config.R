@@ -2,7 +2,7 @@ experiment <- "sequencing_depth"
 
 experiments.data <- list(simple_accuracy="GSE96583_batch1_3_samples.RDS", 
                                  cell_number="midbrain_mouse.RDS", 
-                                 sequencing_depth="midbrain_human.RDS",
+                                 sequencing_depth="midbrain_mouse.RDS",
                                  celltype_structure="GSE96583_8_Stim_Pats.RDS",
                                  # batch_effects=list(muraro="Muraro_pancreas_clean.RDS",seger="Segerstolpe_pancreas_clean.RDS",xin="Xin_pancreas_clean.RDS"),
                                  batch_effects_no_free=list("PBMC_AllCells_withLabels.RDS","GSE96583_8_Ctrl_Pats.RDS"),
@@ -17,12 +17,12 @@ experiments.data <- list(simple_accuracy="GSE96583_batch1_3_samples.RDS",
 experiments.assign.data <- list(
   train_dataset=list(simple_accuracy="GSE96583_batch1_3_samples.RDS", 
                      cell_number="midbrain_mouse.RDS", 
-                     sequencing_depth="midbrain_human.RDS",
+                     sequencing_depth="midbrain_mouse.RDS",
                      celltype_structure="GSE96583_8_Stim_Pats.RDS"),
                      # inter_diseases="GSE96583_8_Ctrl_Pats.RDS"),
   test_dataset=list(simple_accuracy="GSE96583_batch1_3_samples.RDS", 
                     cell_number="midbrain_mouse.RDS", 
-                    sequencing_depth="midbrain_human.RDS",
+                    sequencing_depth="midbrain_mouse.RDS",
                     celltype_structure="GSE96583_8_Stim_Pats.RDS")
                     # inter_diseases="GSE96583_8_Stim_Pats.RDS")
   )
