@@ -93,3 +93,9 @@ analysis.dataset.entropy <- function(data){
   entropy
 }
 
+analysis.dataset.sequencing_depth <- function(data){
+  require(scater)
+  stopifnot(is(data,"SingleCellExperiment"))
+  seq_dep_stats <- as.list(summary(calculateAverage(data)))
+  c(median=stats$Median,IQR=(seq_dep_stats$`3rd Qu.`-seq_dep_stats$`1st Qu.`))
+}
