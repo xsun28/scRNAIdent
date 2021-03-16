@@ -72,3 +72,24 @@ analysis.pivot_table <- function(data,row,col1,col2=NULL,func="n()"){
   pt$defineCalculation(calculationName="TotalCounts", summariseExpression=func)
   pt$renderPivot()
 }
+
+analysis.dataset.complexity <- function(data){
+  stopifnot(is(data,"SingleCellExperiment"))
+  stopifnot("label" %in% colnames(colData(data)))
+  agg_sce <- aggregateAcrossCells(data,ids = data$label)
+  agg_count <- assay(agg_sce,"counts")
+  corr <- cor(agg_count)
+  diag(corr) <- 0
+  cor <- apply(corr,1,max)
+  complexity <- mean(cor)
+  complexity
+}
+
+analysis.dataset.entropy <- function(data){
+  stopifnot(is(data,"SingleCellExperiment"))
+  stopifnot("label" %in% colnames(colData(data)))
+  entropy <- sum((dplyr::group_by(as.data.frame(colData(data)),label)%>%dplyr::summarize(prob=n()/length(colData(data)$label)))[['prob']]%>%
+            map_dbl(~{-log(.)*.}))
+  entropy
+}
+
