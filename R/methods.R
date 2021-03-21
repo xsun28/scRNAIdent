@@ -395,6 +395,12 @@ assign.singlecellnet <- function(train_data, test_data, exp_config){
   pred_labels$category
 }
 
+#### assigning using singleR
+assign.singleR <- function(train_data, test_data, exp_config=NULL){
+  
+}
+
+
 
 ### clustering using Seurat
 cluster.seurat <- function(data) {
