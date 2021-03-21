@@ -96,6 +96,53 @@ analysis.dataset.entropy <- function(data){
 analysis.dataset.sequencing_depth <- function(data){
   require(scater)
   stopifnot(is(data,"SingleCellExperiment"))
-  seq_dep_stats <- as.list(summary(calculateAverage(data)))
+  seq_dep_stats <- as.list(summary(perCellQCMetrics(data)$sum/dim(data)[1]))
   c(median=seq_dep_stats$Median,IQR=(seq_dep_stats$`3rd Qu.`-seq_dep_stats$`1st Qu.`))
 }
+
+analysis.dataset.cell_types <- function(data,threshold=0){
+  require(scater)
+  stopifnot(is(data,"SingleCellExperiment"))
+  dim(dplyr::group_by(as.data.frame(colData(data)),label)%>%dplyr::summarize(num=n())%>%dplyr::filter(num>=threshold))[1]
+}
+
+analysis.dataset.sparsity <- function(data){
+  require(scater)
+  stopifnot(is(data,"SingleCellExperiment"))
+  mean(1-nexprs(data)/nrow(data))#pctg of undetected genes per cell
+}
+
+analysis.dataset.sample_num <- function(data){
+  stopifnot(is(data,"SingleCellExperiment"))
+  length(unique(colnames(data)))
+}
+
+analysis.dataset.gene_num <- function(data){
+  stopifnot(is(data,"SingleCellExperiment"))
+  length(unique(rownames(data)))
+}
+
+analysis.dataset.properties <- function(data){
+  stopifnot(is(data,"SingleCellExperiment"))
+  complexity <- analysis.dataset.complexity(data)
+  entropy <- analysis.dataset.entropy(data)
+  sequencing_depth <- analysis.dataset.sequencing_depth(data)
+  cell_types <- analysis.dataset.cell_types(data)
+  sparsity <- analysis.dataset.sparsity(data)
+  sample_num <- analysis.dataset.sample_num(data)
+  gene_num <- analysis.dataset.gene_num(data)
+  list(name=metadata(data)$study_name,complexity=complexity,entropy=entropy,seq_depth_med=sequencing_depth[['median']],
+      seq_depth_IQR=sequencing_depth[['IQR']],cell_types=cell_types,sparsity=sparsity,sample_num=sample_num,
+      gene_num=gene_num)
+}
+
+analysis.dataset.properties_table <- function(datasets_names){
+  prop_table <- vector("list",length(dataset_names))
+  for(i in seq_along(dataset_names)){
+    dataset_ <- utils.load_datasets(dataset_names[[i]])
+    dataset_prop <- analysis.dataset.properties(dataset_)
+    prop_table[[i]] <- dataset_prop
+  }
+  bind_rows(prop_table)
+}
+

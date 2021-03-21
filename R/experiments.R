@@ -228,9 +228,21 @@ experiments.base <- function(experiment, exp_config){
   assign_data <- assign_data_results$train_data
   test_only <- !purrr::is_null(assign_data_results$test_data)
   if(test_only){
+    train_data_props <- analysis.dataset.properties(assign_data)
+    train_data_props$dataset_usage <- "train"
+    output.dataset.properties_table(train_data_props,prefix="train")
+    
     test_samples <- colnames(assign_data_results$test_data)
+    test_data_props <- analysis.dataset.properties(assign_data_results$test_data)
+    test_data_props$dataset_usage <- "test"
+    output.dataset.properties_table(test_data_props,prefix="test")
     assign_data <- utils.append_sce(assign_data,assign_data_results$test_data)
+  }else{
+    data_props <- analysis.dataset.properties(assign_data)
+    data_props$dataset_usage <- "all"
+    output.dataset.properties_table(data_props,prefix="all")
   }
+  
   if(length(methods$marker_gene_assign)>=1){
     marker_gene_assign_results <- experiments.base.marker_gene_assign(experiment,exp_config,assign_data)
     if(test_only){
@@ -240,9 +252,12 @@ experiments.base <- function(experiment, exp_config){
       assign_results <- bind_cols(assign_results,dplyr::select(marker_gene_assign_results,-label))
   }
   assign_results <- utils.label_unassigned(assign_results,T)
+  if(test_only){
+    if(!experiment %in% c("batch_effects")) assign_data <- assign_data[test_samples,] 
+  }
   cluster_results <- experiments.base.cluster(experiment,exp_config,assign_data)
   if(test_only){
-    cluster_results <- cluster_results[test_samples,]
+    if(experiment %in% c("batch_effects")) cluster_results <- cluster_results[test_samples,]
   }
   cluster_results <- utils.label_unassigned(cluster_results,F)
   if("label" %in% colnames(cluster_results))
@@ -534,6 +549,8 @@ experiments.batch_effects <- function(experiment){
       combined_cluster_results_no_be[[i]] <- bind_rows(results_no_be[grepl(".*cluster.*",names(results_no_be))])
       combined_raw_results_no_be[[i]] <- raw_results_no_be
       utils.clean_marker_files()
+      utils.remove_files(unlist(intersected_datasets[[i]]))
+      utils.remove_files(unlist(data_no_be))
     }
     
     combined_assign_results_no_be <- bind_rows(combined_assign_results_no_be)

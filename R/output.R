@@ -66,3 +66,13 @@ output.write_results <- function(experiment,dataset,raw_results,results){
   write_rds(results,str_glue('{result_home}{experiment}/{dataset}/results.rds'))
   write_csv(rownames_to_column(bind_rows(results),'method'),str_glue('{result_home}{experiment}/{dataset}/results.csv'))
 }
+
+output.dataset.properties_table <- function(t, file_name=NULL,prefix=""){
+  dataset <- output.dataset_name[[experiment]]
+  if(is_null(file_name)){
+    write_rds(t,str_glue('{result_home}{experiment}/{dataset}/{prefix}dataset_properties.rds'))
+  }
+  else{
+    write_rds(t,str_glue('{data_home}/{file_name}_dataset_properties.rds'))
+  }
+}

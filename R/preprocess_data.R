@@ -51,6 +51,7 @@ preprocess_PBMC <- function(dataset){
   # sces <- purrr::map(sces,addPerCellQC)
   colData_cols <- colnames(colData(sces[[1]]))
   sces <- utils.combine_SCEdatasets(sces,if_combined=T,colData_cols)
+  sces <- sces[,-quickPerCellQC(sces)$discard]
   metadata(sces) <- list(study='PBMC', study_name="GSE96583_batch1_3_samples")
   rowData(sces)$geneName <- rownames(sces)
   rowData(sces)$EnsembleId <- utils.convert2EnsemblIDs(rownames(sces))
@@ -67,6 +68,7 @@ preprocess_PBMC <- function(dataset){
                                                    return(.)})
   colData_cols <- colnames(colData(sces[[1]]))
   sces <- utils.combine_SCEdatasets(sces,if_combined=T,colData_cols)
+  sces <- sces[,-quickPerCellQC(sces)$discard]
   metadata(sces) <- list(study='PBMC', study_name="GSE96583_8_Stim_Pats")
   rowData(sces)$geneName <- rownames(sces)
   rowData(sces)$EnsembleId <- utils.convert2EnsemblIDs(rownames(sces))
@@ -83,6 +85,7 @@ preprocess_PBMC <- function(dataset){
                                                    return(.)})
   colData_cols <- colnames(colData(sces[[1]]))
   sces <- utils.combine_SCEdatasets(sces,if_combined=T,colData_cols)
+  sces <- sces[,-quickPerCellQC(sces)$discard]
   metadata(sces) <- list(study='PBMC', study_name="GSE96583_8_Ctrl_Pats")
   rowData(sces)$geneName <- rownames(sces)
   rowData(sces)$EnsembleId <- utils.convert2EnsemblIDs(rownames(sces))
@@ -166,9 +169,11 @@ preprocess_midbrain <- function(dataset){
   converted_genes$EnsembleId <- utils.convert2EnsemblIDs(converted_genes$human_gene)
   converted_genes$geneName <- converted_genes$human_gene
   new_mouse_sces <- sces[[1]][converted_genes$genes,]
+  new_mouse_sces <- new_mouse_sces[,-quickPerCellQC(new_mouse_sces)$discard]
   rowData(new_mouse_sces) <- converted_genes
   rowData(new_mouse_sces)$count <- nexprs(new_mouse_sces,byrow=TRUE)
   
+  sces[[2]] <- sces[[2]][,-quickPerCellQC(sces[[2]])$discard]
   rowData(sces[[2]])$human_gene <- rowData(sces[[2]])$genes
   rowData(sces[[2]])$EnsembleId <- utils.convert2EnsemblIDs(rowData(sces[[2]])$human_gene)
   rowData(sces[[2]])$geneName <- rowData(sces[[2]])$human_gene
@@ -197,6 +202,7 @@ preprocess_cellbench <- function(dataset){
     colData(sce)$sampleId <- rownames(colData(sce))
     colData(sce)$label <- colData(sce)$cell_line_demuxlet
     sce <- addPerCellQC(sce)
+    sce <- sce[,-quickPerCellQC(sce)$discard]
     counts(sce) <- as(counts(sce),'sparseMatrix')
     metadata(sce) <- list(study='cellbench', study_name=study_name,protocol=protocol)
     rowData(sce)$EnsembleId <- rownames(sce)
