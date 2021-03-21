@@ -50,6 +50,7 @@ utils.convert_to_SingleCellExperiment <- function(data_matrix,genes,cellIds,cold
   rownames(data_matrix) <- genes
   sce <- SingleCellExperiment(list(counts=data_matrix),colData=coldata,metadata=meta)
   sce <- addPerCellQC(sce)
+  sce <- sce[,-quickPerCellQC(sce)$discard]
   rowData(sce) <- tibble(count=nexprs(sce,byrow=TRUE),geneName=genes)
   sce
 }
@@ -379,4 +380,9 @@ utils.get_logger <- function(level="DEBUG", file){
   if(file.exists(log_file)) file.remove(log_file)
   file_logger <- logger(level, appenders = file_appender(log_file))
   file_logger
+}
+
+utils.remove_files <- function(file_names){
+  paths <- utils.get_dataset_paths(data_home,file_names)
+  file.remove(paths)
 }

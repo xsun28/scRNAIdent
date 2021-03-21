@@ -1,13 +1,15 @@
 raw_datasets <- list(PBMC=c("PBMC_AllCells_withLabels.RData","GSE96583_batch1_3_samples.RData","GSE96583_8_Stim_Pats.RData","GSE96583_8_Ctrl_Pats.RData"),
-                     pancreas=c("Muraro_pancreas.RData","Segerstolpe_pancreas.RData","Xin_pancreas.RData"),
+                     # pancreas=c("Muraro_pancreas.RData","Segerstolpe_pancreas.RData","Xin_pancreas.RData"),
+                     pancreas=c("Muraro_pancreas.RData","Segerstolpe_pancreas.RData"),
                      ADASD="AD_autism_data.RData",
                      midbrain="midbrain.RData",
                      cellbench="cellbench.RData")
 
 datasets <- list(PBMC=list("PBMC_AllCells_withLabels.RDS","GSE96583_batch1_3_samples.RDS","GSE96583_8_Stim_Pats.RDS","GSE96583_8_Ctrl_Pats.RDS"),
                  pancreas=list(muraro="Muraro_pancreas_clean.RDS",
-                               seger="Segerstolpe_pancreas_clean.RDS",
-                               xin="Xin_pancreas_clean.RDS"),
+                               seger="Segerstolpe_pancreas_clean.RDS"
+                               #xin="Xin_pancreas_clean.RDS"
+                               ),
                  ADASD=list(AD="ADASD_AD.RDS",autism="ADASD_autism.RDS"),
                  midbrain=list(human="midbrain_human.RDS",mouse="midbrain_mouse.RDS"),
                  cellbench=list(tenx="cellbench_10x.RDS",CELseq2="cellbench_CELseq2.RDS",Dropseq="cellbench_Dropseq.RDS")
