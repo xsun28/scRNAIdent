@@ -228,19 +228,22 @@ experiments.base <- function(experiment, exp_config){
   assign_data <- assign_data_results$train_data
   test_only <- !purrr::is_null(assign_data_results$test_data)
   if(test_only){
+    prop_tbl_path <- str_glue('{result_home}{experiment}/{output.dataset_name[[experiment]]}/{metadata(assign_data_results$train_data)$study_name}_{metadata(assign_data_results$test_data)$study_name}')
     train_data_props <- analysis.dataset.properties(assign_data)
-    train_data_props$dataset_usage <- "train"
-    output.dataset.properties_table(train_data_props,prefix="train")
+    # train_data_props$dataset_usage <- "train"
+    output.dataset.properties_table(train_data_props,prop_tbl_path,prefix="train")
     
     test_samples <- colnames(assign_data_results$test_data)
     test_data_props <- analysis.dataset.properties(assign_data_results$test_data)
-    test_data_props$dataset_usage <- "test"
-    output.dataset.properties_table(test_data_props,prefix="test")
+    # test_data_props$dataset_usage <- "test"
+
+    output.dataset.properties_table(test_data_props,prop_tbl_path,prefix="test")
     assign_data <- utils.append_sce(assign_data,assign_data_results$test_data)
   }else{
+    prop_tbl_path <- str_glue('{result_home}{experiment}/{output.dataset_name[[experiment]]}')
     data_props <- analysis.dataset.properties(assign_data)
     data_props$dataset_usage <- "all"
-    output.dataset.properties_table(data_props,prefix="all")
+    output.dataset.properties_table(data_props,prop_tbl_path,prefix="all")
   }
   
   if(length(methods$marker_gene_assign)>=1){
@@ -253,7 +256,7 @@ experiments.base <- function(experiment, exp_config){
   }
   assign_results <- utils.label_unassigned(assign_results,T)
   if(test_only){
-    if(!experiment %in% c("batch_effects")) assign_data <- assign_data[test_samples,] 
+    if(!experiment %in% c("batch_effects")) assign_data <- assign_data[,test_samples] 
   }
   cluster_results <- experiments.base.cluster(experiment,exp_config,assign_data)
   if(test_only){
@@ -278,7 +281,7 @@ experiments.simple_accuracy <- function(experiment){
   base_results <- experiments.base(experiment,exp_config)
   report_results <- base_results$analy_results
   pred_results <- base_results$pred_results
-  output.sink(experiment,pred_results,report_results)
+  output.sink(experiment,pred_results,report_results,exp_config)
   plot.plot(experiment,report_results,pred_results)
   utils.clean_marker_files()
   report_results
@@ -349,7 +352,7 @@ experiments.cell_number <- function(experiment){
   combined_cluster_results <- bind_rows(combined_cluster_results)
   combined_raw_results <- bind_rows(combined_raw_results)
   final_results <- bind_rows(combined_assign_results,combined_cluster_results)
-  output.sink(experiment,combined_raw_results,final_results)
+  output.sink(experiment,combined_raw_results,final_results,exp_config)
   plot.plot(experiment,final_results,combined_raw_results)
   utils.clean_marker_files()
   final_results
@@ -386,7 +389,7 @@ experiments.sequencing_depth <- function(experiment){
                                         bind_rows(deep_results[grepl(".*_cluster_.*",names(deep_results))]))
   combined_raw_results <- bind_rows(shallow_raw_results,deep_raw_results)
   final_results <- bind_rows(combined_assign_results,combined_cluster_results)
-  output.sink(experiment,combined_raw_results,final_results)
+  output.sink(experiment,combined_raw_results,final_results,exp_config)
   plot.plot(experiment,final_results,combined_raw_results)
   utils.clean_marker_files()
   final_results
@@ -437,7 +440,7 @@ experiments.celltype_structure <- function(experiment){
   combined_cluster_results <- bind_rows(combined_cluster_results)
   combined_raw_results <- bind_rows(combined_raw_results)
   final_results <- bind_rows(combined_assign_results,combined_cluster_results)
-  output.sink(experiment,combined_raw_results,final_results)
+  output.sink(experiment,combined_raw_results,final_results,exp_config)
   plot.plot(experiment,final_results,combined_raw_results)
   utils.clean_marker_files()
   final_results
@@ -568,7 +571,7 @@ experiments.batch_effects <- function(experiment){
     final_results <- bind_rows(combined_assign_results,combined_cluster_results)
     total_raw_results <- combined_raw_results
   }
-  output.sink(experiment,total_raw_results,final_results)
+  output.sink(experiment,total_raw_results,final_results,exp_config)
   plot.plot(experiment,final_results,total_raw_results)
   utils.clean_marker_files()
   final_results
@@ -613,7 +616,7 @@ experiments.inter_diseases <- function(experiment){
   combined_cluster_results <- bind_rows(combined_cluster_results)
   combined_raw_results <- bind_rows(combined_raw_results)
   final_results <- bind_rows(combined_assign_results,combined_cluster_results)
-  output.sink(experiment,combined_raw_results,final_results)
+  output.sink(experiment,combined_raw_results,final_results,exp_config)
   plot.plot(experiment,final_results,combined_raw_results)
   utils.clean_marker_files()
   final_results
