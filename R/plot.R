@@ -436,7 +436,7 @@ plot.inter_diseases <- function(results,raw_results,dataset){
     if(!dir.exists(fig_path)){
       dir.create(fig_path,recursive=T)
     }
-    print(str_glue("Generating figures for batch effect pairs {fig_path}"))
+    print(str_glue("Generating figures for inter diseases pairs {fig_path}"))
     
     # figure_all_name <- str_glue("inter_diseases_{dataset}_all")
     # figure_assigned_name <- str_glue("cell_number_{dataset}_assigned")

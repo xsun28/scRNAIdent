@@ -8,6 +8,7 @@ run_assign_methods <- function(method,train_data, test_data,exp_config){
          cellassign = assign.cellassign(train_data,exp_config),
          garnett = assign.garnett(train_data,test_data,exp_config),
          singlecellnet = assign.singlecellnet(train_data,test_data, exp_config),
+         singleR = assign.singleR(train_data,test_data, exp_config),
          stop("No such assigning method")
   )
   
@@ -397,7 +398,14 @@ assign.singlecellnet <- function(train_data, test_data, exp_config){
 
 #### assigning using singleR
 assign.singleR <- function(train_data, test_data, exp_config=NULL){
-  
+  require(SingleR)
+  m_config <- methods.config.singleR 
+  stopifnot(is(train_data,"SingleCellExperiment"))
+  stopifnot(is(test_data,"SingleCellExperiment"))
+  train_data <- logNormCounts(train_data) 
+  test_data <- logNormCounts(test_data) 
+  preds <- SingleR(test=test_data, ref=train_data, labels=train_data$label, de.method="wilcox")
+  preds$labels
 }
 
 

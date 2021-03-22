@@ -136,7 +136,7 @@ analysis.dataset.properties <- function(data){
       gene_num=gene_num)
 }
 
-analysis.dataset.properties_table <- function(datasets_names){
+analysis.dataset.properties_table <- function(dataset_names){
   prop_table <- vector("list",length(dataset_names))
   for(i in seq_along(dataset_names)){
     dataset_ <- utils.load_datasets(dataset_names[[i]])
@@ -146,3 +146,11 @@ analysis.dataset.properties_table <- function(datasets_names){
   bind_rows(prop_table)
 }
 
+analysis.dataset.batch_effects <- function(data1,data2){
+  stopifnot(is(data1,"SingleCellExperiment"))
+  stopifnot(is(data1,"SingleCellExperiment"))
+  cell_types1 <- unique(colData(data1)$label)
+  cell_types2 <- unique(colData(data2)$label)
+  common_types <- intersect(cell_types1,cell_types2)
+  
+}
