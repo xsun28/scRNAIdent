@@ -293,19 +293,16 @@ experiments.base <- function(experiment, exp_config){
                                                      return(.)
                                                     }) 
     }
-    combined_results <- purrr::map(combined_results,~{.[["train_dataset"]]=train_data_props[["dataset"]]
-                                                      .[["test_dataset"]]=test_data_props[["dataset"]]
-                                                      return(.)
-                                                      })
+    combined_results[["train_dataset"]] <- train_data_props[["dataset"]]
+    combined_results[["test_dataset"]] <- test_data_props[["dataset"]]
+
   }else{
     for(prop in names(data_props)){
       report_results <- purrr::map(report_results,~{.[[prop]]=data_props[[prop]]
                                   return(.)
                                   })
     }
-    combined_results <- purrr::map(combined_results,~{.[["dataset"]]=data_props[["dataset"]]
-                                                    return(.)
-                                                    })
+    combined_results[["dataset"]] <- data_props[["dataset"]] 
   }
   debug(logger, str_glue("results methods: {rownames(report_results$all_assign_results)}"))
   list(pred_results=combined_results,analy_results=report_results)
