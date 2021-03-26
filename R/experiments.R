@@ -16,6 +16,7 @@ source("R/analysis.R")
 source("R/output.R")
 source("R/preprocess_data.R")
 source("R/plot.R")
+source("R/summary.R")
 library(SingleCellExperiment)
 library(R.methodsS3)
 logger <- utils.get_logger("DEBUG",log_file)
@@ -127,7 +128,9 @@ experiments.base.assign <- function(experiment, exp_config){
     # colData(test_data)$unique_id <- (dim(colData(train_data))[[1]]+1):(dim(colData(train_data))[[1]]+dim(colData(test_data))[[1]])
     colData(test_data)$barcode <- colnames(test_data)
     colnames(test_data) <- (dim(colData(train_data))[[1]]+1):(dim(colData(train_data))[[1]]+dim(colData(test_data))[[1]])    
-    
+    intersected_gene_train_test <- utils.intersect_on_genes(train_data,test_data)
+    train_data <- intersected_gene_train_test$data1
+    test_data <- intersected_gene_train_test$data2
     assign_results <- experiments.run_assign(assign_methods,train_data,test_data,exp_config)
     print("finish prediction for assign methods")
     return(list(assign_results=assign_results,train_data=train_data,test_data=test_data))
@@ -179,11 +182,14 @@ experiments.base.analyze <- function(assign_results,cluster_results,exp_config){
   cluster_methods <- colnames(cluster_results)[colnames(cluster_results)!="label"]
   assign_methods <- colnames(assign_results)[colnames(assign_results)!="label"]
   unlabeled_pctg_results <- analysis.run(assign_results,assign_methods,c("unlabeled_pctg"))
+  cluster_num <- analysis.run(assign_results,assign_methods,c("cluster_num"))
+  pred_type_max_pctg <- analysis.run(assign_results,assign_methods,c("pred_type_max_pctg"))
   results <- list(assign_results=assign_results,cluster_results=cluster_results)
   cluster_analysis_results <- analysis.run(results$cluster_results,cluster_methods,exp_config$metrics)
   cluster_analysis_results$supervised <- F
   assign_analysis_results <- analysis.run(results$assign_results,assign_methods,exp_config$metrics) %>%
-    dplyr::bind_cols(unlabeled_pctg_results)
+    dplyr::bind_cols(unlabeled_pctg_results) %>% dplyr::bind_cols(cluster_num) %>% 
+    dplyr::bind_cols(pred_type_max_pctg)
   assign_analysis_results$supervised <- T
   
   ####
@@ -228,22 +234,23 @@ experiments.base <- function(experiment, exp_config){
   assign_data <- assign_data_results$train_data
   test_only <- !purrr::is_null(assign_data_results$test_data)
   if(test_only){
-    prop_tbl_path <- str_glue('{result_home}{experiment}/{output.dataset_name[[experiment]]}/{metadata(assign_data_results$train_data)$study_name}_{metadata(assign_data_results$test_data)$study_name}')
+    if(experiment %in% c("batch_effects")) batch_effects_quant = analysis.dataset.batch_effects(assign_data_results$train_data,
+                                                                                                assign_data_results$test_data)
+    # prop_tbl_path <- str_glue('{result_home}{experiment}/{output.dataset_name[[experiment]]}/{metadata(assign_data_results$train_data)$study_name}_{metadata(assign_data_results$test_data)$study_name}')
     train_data_props <- analysis.dataset.properties(assign_data)
-    # train_data_props$dataset_usage <- "train"
-    output.dataset.properties_table(train_data_props,prop_tbl_path,prefix="train")
+    # output.dataset.properties_table(train_data_props,prop_tbl_path,prefix="train")
     
     test_samples <- colnames(assign_data_results$test_data)
     test_data_props <- analysis.dataset.properties(assign_data_results$test_data)
+
     # test_data_props$dataset_usage <- "test"
 
-    output.dataset.properties_table(test_data_props,prop_tbl_path,prefix="test")
+    # output.dataset.properties_table(test_data_props,prop_tbl_path,prefix="test")
     assign_data <- utils.append_sce(assign_data,assign_data_results$test_data)
   }else{
-    prop_tbl_path <- str_glue('{result_home}{experiment}/{output.dataset_name[[experiment]]}')
+    # prop_tbl_path <- str_glue('{result_home}{experiment}/{output.dataset_name[[experiment]]}')
     data_props <- analysis.dataset.properties(assign_data)
-    data_props$dataset_usage <- "all"
-    output.dataset.properties_table(data_props,prop_tbl_path,prefix="all")
+    # output.dataset.properties_table(data_props,prop_tbl_path,prefix="all")
   }
   
   if(length(methods$marker_gene_assign)>=1){
@@ -270,6 +277,36 @@ experiments.base <- function(experiment, exp_config){
     current_celltype_weights <<- utils.createCellTypeWeights(assign_data,colData(assign_data)$label)
   }
   report_results <- experiments.base.analyze(assign_results,cluster_results,exp_config)
+  if(test_only){
+    for(prop in names(train_data_props)){
+      report_results <- purrr::map(report_results,~{.[[str_glue("train_{prop}")]]=train_data_props[[prop]]
+                                  return(.)
+                                  })
+    }
+    for(prop in names(test_data_props)){
+      report_results <- purrr::map(report_results,~{.[[str_glue("test_{prop}")]]=test_data_props[[prop]]
+                                  return(.)
+                                  })
+    }
+    if(experiment %in% c("batch_effects")){
+      report_results <- purrr::map(report_results,~{.$batch_effects_amount=batch_effects_quant
+                                                     return(.)
+                                                    }) 
+    }
+    combined_results <- purrr::map(combined_results,~{.[["train_dataset"]]=train_data_props[["dataset"]]
+                                                      .[["test_dataset"]]=test_data_props[["dataset"]]
+                                                      return(.)
+                                                      })
+  }else{
+    for(prop in names(data_props)){
+      report_results <- purrr::map(report_results,~{.[[prop]]=data_props[[prop]]
+                                  return(.)
+                                  })
+    }
+    combined_results <- purrr::map(combined_results,~{.[["dataset"]]=data_props[["dataset"]]
+                                                    return(.)
+                                                    })
+  }
   debug(logger, str_glue("results methods: {rownames(report_results$all_assign_results)}"))
   list(pred_results=combined_results,analy_results=report_results)
 }
@@ -333,13 +370,15 @@ experiments.cell_number <- function(experiment){
     base_results <- experiments.base(experiment,config)
     if(sampling_by_pctg){
       results <- base_results$analy_results%>% 
-        purrr::map(~{.$sample_pctg <- val
-        return(.)})
+        purrr::map(~{
+         .$sample_pctg <- val
+         return(.)})
       raw_results <- base_results$pred_results
       raw_results$sample_pctg <- val
     }else{
       results <- base_results$analy_results%>% 
-        purrr::map(~{.$sample_num <- val
+        purrr::map(~{
+                .$sample_num <- val
                 return(.)})
       raw_results <- base_results$pred_results
       raw_results$sample_num <- val
@@ -367,7 +406,8 @@ experiments.sequencing_depth <- function(experiment){
   shallow_config$right <- FALSE
   shallow_results_base <- experiments.base(experiment,shallow_config)
   shallow_results <- shallow_results_base$analy_results %>%
-    purrr::map(~{.$quantile<-shallow_quant 
+    purrr::map(~{
+            .$quantile<-shallow_quant 
             return(.)})
   shallow_raw_results <- shallow_results_base$pred_results
   shallow_raw_results$quantile <- shallow_quant
@@ -378,8 +418,9 @@ experiments.sequencing_depth <- function(experiment){
   deep_config$right <- TRUE
   deep_results_base <- experiments.base(experiment,deep_config)
   deep_results <- deep_results_base$analy_results %>%
-    purrr::map(~{.$quantile<-deep_quant 
-    return(.)})
+    purrr::map(~{
+      .$quantile<-deep_quant 
+      return(.)})
   deep_raw_results <- deep_results_base$pred_results
   deep_raw_results$quantile <- deep_quant
   
@@ -426,10 +467,16 @@ experiments.celltype_structure <- function(experiment){
     config$level <- level
     config$sample_num <- (length(levels)-i+1)*exp_config$sample_num
     base_results <- experiments.base(experiment,config) 
-    
-    results <- base_results$analy_results%>% 
-      purrr::map(~{.$level<-level
-      return(.)})
+    if(assign_test_dataset!=assign_train_dataset){
+      results <- base_results$analy_results%>% 
+        purrr::map(~{
+        .$level<-level
+        return(.)})
+    }else{
+      results <- base_results$analy_results%>% 
+        purrr::map(~{.$level<-level
+        return(.)})
+    }
     raw_results <- base_results$pred_results
     raw_results$level <- level
     combined_assign_results[[i]] <- bind_rows(results[grepl(".*_assign_.*",names(results))])
@@ -492,14 +539,13 @@ experiments.batch_effects <- function(experiment){
     exp_config <- experiments.parameters[[experiment]]
     base_results <- experiments.base(experiment,exp_config)
     results <- base_results$analy_results%>% 
-      purrr::map(~{.$train_dataset <- str_split(datasets_perm2[i,1],"\\.")[[1]][[1]]
-      .$test_dataset <- str_split(datasets_perm2[i,2],"\\.")[[1]][[1]]
-      .$batch_effects_removed <- FALSE
-      return(.)}
-      )
+      purrr::map(~{.$batch_effects_removed <- FALSE
+                  return(.)}
+                 )
     raw_results <- base_results$pred_results
-    raw_results$train_dataset <- experiments.assign.data$train_dataset[[experiment]]
-    raw_results$test_dataset <- experiments.assign.data$test_dataset[[experiment]]
+    # raw_results$train_dataset <- experiments.assign.data$train_dataset[[experiment]]
+    # raw_results$test_dataset <- experiments.assign.data$test_dataset[[experiment]]
+    raw_results$batch_effects <- T
     combined_assign_results[[i]] <- bind_rows(results[grepl(".*_assign_.*",names(results))])
     combined_cluster_results[[i]] <- bind_rows(results[grepl(".*cluster.*",names(results))])
     combined_raw_results[[i]] <- raw_results
@@ -540,14 +586,19 @@ experiments.batch_effects <- function(experiment){
       exp_config <- experiments.parameters[[experiment]]
       base_results_no_be <- experiments.base(experiment,exp_config)
       results_no_be <- base_results_no_be$analy_results%>% 
-        purrr::map(~{.$train_dataset <- str_split(datasets_perm2[i,1],"\\.")[[1]][[1]]
-        .$test_dataset <- str_split(datasets_perm2[i,2],"\\.")[[1]][[1]]
-        .$batch_effects_removed <- T
-        return(.)}
-        )
+        purrr::map(~{.$batch_effects_removed <- T
+                    return(.)}
+                  )
+      # results_no_be <- base_results_no_be$analy_results%>% 
+      #   purrr::map(~{.$train_dataset <- str_split(datasets_perm2[i,1],"\\.")[[1]][[1]]
+      #   .$test_dataset <- str_split(datasets_perm2[i,2],"\\.")[[1]][[1]]
+      #   .$batch_effects_removed <- T
+      #   return(.)}
+      #   )
       raw_results_no_be <- base_results_no_be$pred_results
       raw_results_no_be$train_dataset <- experiments.assign.data$train_dataset[[experiment]]
       raw_results_no_be$test_dataset <- experiments.assign.data$test_dataset[[experiment]]
+      raw_results_no_be$batch_effects <- F
       combined_assign_results_no_be[[i]] <- bind_rows(results_no_be[grepl(".*_assign_.*",names(results_no_be))])
       combined_cluster_results_no_be[[i]] <- bind_rows(results_no_be[grepl(".*cluster.*",names(results_no_be))])
       combined_raw_results_no_be[[i]] <- raw_results_no_be
@@ -599,14 +650,15 @@ experiments.inter_diseases <- function(experiment){
     print(str_glue("assign test data is {experiments.assign.data$test_dataset[[experiment]]}"))
     exp_config <- experiments.parameters[[experiment]]
     base_results <- experiments.base(experiment,exp_config)
-    results <- base_results$analy_results%>% 
-      purrr::map(~{.$train_dataset <- str_split(datasets_perm2[i,1],"\\.")[[1]][[1]]
-                   .$test_dataset <- str_split(datasets_perm2[i,2],"\\.")[[1]][[1]]
-                   return(.)}
-                 )
+    results <- base_results$analy_results
+    # results <- base_results$analy_results%>% 
+    #   purrr::map(~{.$train_dataset <- str_split(datasets_perm2[i,1],"\\.")[[1]][[1]]
+    #                .$test_dataset <- str_split(datasets_perm2[i,2],"\\.")[[1]][[1]]
+    #                return(.)}
+    #              )
     raw_results <- base_results$pred_results
-    raw_results$train_dataset <- experiments.assign.data$train_dataset[[experiment]]
-    raw_results$test_dataset <- experiments.assign.data$test_dataset[[experiment]]
+    # raw_results$train_dataset <- experiments.assign.data$train_dataset[[experiment]]
+    # raw_results$test_dataset <- experiments.assign.data$test_dataset[[experiment]]
     combined_assign_results[[i]] <- bind_rows(results[grepl(".*_assign_.*",names(results))])
     combined_cluster_results[[i]] <- bind_rows(results[grepl(".*cluster.*",names(results))])
     combined_raw_results[[i]] <- raw_results

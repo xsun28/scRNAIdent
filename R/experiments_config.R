@@ -1,13 +1,13 @@
 experiment <- "inter_diseases"
 
-experiments.data <- list(simple_accuracy="GSE96583_batch1_3_samples.RDS", 
+experiments.data <- list(simple_accuracy="PBMC_AllCells_withLabels.RDS", 
                                  cell_number="midbrain_mouse.RDS", 
                                  sequencing_depth="midbrain_mouse.RDS",
                                  celltype_structure="GSE96583_8_Stim_Pats.RDS",
                                  batch_effects=list(muraro="Muraro_pancreas_clean.RDS",seger="Segerstolpe_pancreas_clean.RDS",xin="Xin_pancreas_clean.RDS"),
                                  # batch_effects=list("PBMC_AllCells_withLabels.RDS","GSE96583_8_Ctrl_Pats.RDS"),
-                                 inter_diseases = list("GSE96583_8_Ctrl_Pats.RDS","GSE96583_8_Stim_Pats.RDS","GSE96583_batch1_3_samples.RDS"),
-                                 # inter_diseases = list("ADASD_AD.RDS","ADASD_autism.RDS"),
+                                 # inter_diseases = list("GSE96583_8_Ctrl_Pats.RDS","GSE96583_8_Stim_Pats.RDS","GSE96583_batch1_3_samples.RDS"),
+                                 inter_diseases = list("ADASD_AD.RDS","ADASD_autism.RDS"),
                                  celltype_complexity = list(),
                                  inter_species = list(),
                                  random_noise = list(),
@@ -15,12 +15,12 @@ experiments.data <- list(simple_accuracy="GSE96583_batch1_3_samples.RDS",
                                  )
 
 experiments.assign.data <- list(
-  train_dataset=list(simple_accuracy="GSE96583_batch1_3_samples.RDS", 
+  train_dataset=list(simple_accuracy="PBMC_AllCells_withLabels.RDS", 
                      cell_number="midbrain_mouse.RDS", 
                      sequencing_depth="midbrain_mouse.RDS",
                      celltype_structure="GSE96583_8_Stim_Pats.RDS"),
                      # inter_diseases="GSE96583_8_Ctrl_Pats.RDS"),
-  test_dataset=list(simple_accuracy="GSE96583_batch1_3_samples.RDS", 
+  test_dataset=list(simple_accuracy="PBMC_AllCells_withLabels.RDS", 
                     cell_number="midbrain_mouse.RDS", 
                     sequencing_depth="midbrain_mouse.RDS",
                     celltype_structure="GSE96583_8_Stim_Pats.RDS")
@@ -28,7 +28,7 @@ experiments.assign.data <- list(
   )
   
 ##for batch effects removed, scmap and singlecellnet doesn't work
-experiments.methods.base_config <- list(cluster=c('seurat','tscan','sc3','liger'),assign=c('scmap_cluster','scmap_cell','chetah','singlecellnet','garnett'),marker_gene_assign=c("cellassign"))
+experiments.methods.base_config <- list(cluster=c('seurat','tscan','sc3','liger'),assign=c('scmap_cluster','scmap_cell','chetah','singlecellnet','garnett','singleR'),marker_gene_assign=c("cellassign"))
 experiments.methods <- list(
   simple_accuracy=experiments.methods.base_config, 
   cell_number=experiments.methods.base_config,

@@ -7,7 +7,9 @@ analysis.run <- function(results,methods,metrics){
                                 FMI="analysis.cluster.FMI",
                                 wNMI="analysis.cluster.wNMI",
                                 wRI="analysis.cluster.wRI",
-                                unlabeled_pctg="analysis.assign.unlabeled_pctg")
+                                unlabeled_pctg="analysis.assign.unlabeled_pctg",
+                                cluster_num="analysis.cluster_num",
+                                pred_type_max_pctg="analysis.max_type_pctg")
   
   analysis_results <- as.data.frame(matrix(nrow = length(methods), ncol = length(metrics)))
   rownames(analysis_results) <- methods
@@ -43,6 +45,17 @@ analysis.cluster.FMI <- function(true,pred){
   FM_index(true,pred)[[1]]
 }
 
+####num of cluster generated in the pred
+analysis.cluster_num <- function(labels,pred){
+  if(is.null(pred)==length(pred)||is.na(pred)==length(pred)) return(NA)
+  length(unique(pred))
+}
+
+####
+analysis.max_type_pctg <- function(labels,pred){
+  if(is.null(pred)==length(pred)||is.na(pred)==length(pred)) return(NA)
+  max(unlist(table(pred)/length(pred)))
+}
 #####calculate the percentage of unlabeled cells for assign methods
 analysis.assign.unlabeled_pctg <- function(labels,pred){
   unique_labels <- unique(labels)
@@ -106,6 +119,13 @@ analysis.dataset.cell_types <- function(data,threshold=0){
   dim(dplyr::group_by(as.data.frame(colData(data)),label)%>%dplyr::summarize(num=n())%>%dplyr::filter(num>=threshold))[1]
 }
 
+analysis.dataset.cell_type_max_pctg <- function(data){
+  stopifnot(is(data,"SingleCellExperiment"))
+  stopifnot("label" %in% colnames(colData(data)))
+  pctg <- max((dplyr::group_by(as.data.frame(colData(data)),label)%>%dplyr::summarize(prob=n()/length(colData(data)$label)))["prob"])
+  pctg
+}
+
 analysis.dataset.sparsity <- function(data){
   require(scater)
   stopifnot(is(data,"SingleCellExperiment"))
@@ -128,11 +148,12 @@ analysis.dataset.properties <- function(data){
   entropy <- analysis.dataset.entropy(data)
   sequencing_depth <- analysis.dataset.sequencing_depth(data)
   cell_types <- analysis.dataset.cell_types(data)
+  cell_type_max_pctg <- analysis.dataset.cell_type_max_pctg(data)
   sparsity <- analysis.dataset.sparsity(data)
   sample_num <- analysis.dataset.sample_num(data)
   gene_num <- analysis.dataset.gene_num(data)
-  list(name=metadata(data)$study_name,complexity=complexity,entropy=entropy,seq_depth_med=sequencing_depth[['median']],
-      seq_depth_IQR=sequencing_depth[['IQR']],cell_types=cell_types,sparsity=sparsity,sample_num=sample_num,
+  list(dataset=metadata(data)$study_name,complexity=complexity,entropy=entropy,seq_depth_med=sequencing_depth[['median']],
+      seq_depth_IQR=sequencing_depth[['IQR']],cell_types=cell_types,cell_type_max_pctg=cell_type_max_pctg,sparsity=sparsity,sample_num=sample_num,
       gene_num=gene_num)
 }
 
@@ -146,11 +167,25 @@ analysis.dataset.properties_table <- function(dataset_names){
   bind_rows(prop_table)
 }
 
-analysis.dataset.batch_effects <- function(data1,data2){
-  stopifnot(is(data1,"SingleCellExperiment"))
-  stopifnot(is(data1,"SingleCellExperiment"))
-  cell_types1 <- unique(colData(data1)$label)
-  cell_types2 <- unique(colData(data2)$label)
-  common_types <- intersect(cell_types1,cell_types2)
-  
+
+analysis.dataset.batch_effects <- function(dataset1,dataset2){
+  stopifnot(is(dataset1,"SingleCellExperiment"))
+  stopifnot(is(dataset2,"SingleCellExperiment"))
+
+  batch_name <- intersect(dataset1$label,dataset2$label)
+  sce_data1 <- computeLibraryFactors(dataset1)
+  assay(sce_data1,"normed") <- normalizeCounts(sce_data1,log = FALSE)
+  sce_data2 <- computeLibraryFactors(dataset2)
+  assay(sce_data2,"normed") <- normalizeCounts(sce_data2,log = FALSE)
+  batch_name <- intersect(sce_data1$label,sce_data2$label)
+  genename <- intersect(rownames(sce_data1),rownames(sce_data2))
+  data1 <- sce_data1[genename,]
+  data2 <- sce_data2[genename,]
+  batch_distance <- vector(mode='numeric',length=length(batch_name))
+  for(i in seq_along(batch_name)){
+    batch_distance[i] <- utils.manhattan_dist(apply(assay(data1[,colData(data1)$label==batch_name[i]],"normed"),1,median),
+                                          apply(assay(data2[,colData(data2)$label==batch_name[i]],"normed"),1,median))       
+  }
+  mean(batch_distance)
 }
+

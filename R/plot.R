@@ -82,14 +82,19 @@ plot.simple_accuracy <- function(results,raw_results,dataset){
                       fill="methods",dodged=F,facet_wrap=F,width=6,height=4)
   plot.bar_plot(results_unlabeled_pctg,plot_params,fig_path,"unlabeled_pctg.pdf")
   
- #####sankey plot
-  # figure_name <- str_glue("simple_accuracy_{dataset}_sankey.pdf")
-  # methods <- colnames(dplyr::select(raw_results,-label))
-  # raw_results1 <- gather(raw_results,"methods","pred",-label) %>%
-  #                   group_by(methods,label,pred) %>%
-  #                     summarize(freq=n()) %>%
-  #                       filter(freq>0)
-  # plot.sankey_plot(raw_results1,"label","pred",result_home,figure_name)                   
+ ####sankey plot
+ # figure_name <- str_glue("simple_accuracy_{dataset}_sankey.pdf")
+ methods <- colnames(dplyr::select(raw_results,-label))
+
+ raw_results1 <- gather(raw_results,"methods","pred",-label) %>%
+                   group_by(methods,label,pred) %>%
+                     summarize(freq=n()) %>%
+                       filter(freq>0)
+ 
+ sankey_plot_params <- list(y="freq", axis1="label",axis2="pred",fill="label",label="label",xlabel="methods",
+                            scale_x_discrete_limits="c(\"label\",\"value\")",facet_var="methods",facet_wrap=T,width=10,height=7,nrow=1)
+ 
+ plot.sankey_plot(raw_results1,sankey_plot_params,fig_path,"sankey.pdf")
 }
 
 plot.cell_number <- function(results,raw_results,dataset){
@@ -182,6 +187,25 @@ plot.cell_number <- function(results,raw_results,dataset){
                         height=2*length(unique(results_unlabeled_pctg$methods)))
   }
   plot.line_plot(results_unlabeled_pctg,plot_params,fig_path,"unlabeled_pctg.pdf")
+  
+  ###sankey_plot
+  sample_plan <- if(sampling_by_pctg) "sample_pctg" else "sample_num"
+  uniq_sample_plan <- unique(raw_results[[sample_plan]])
+  for(plan in uniq_sample_plan){
+    raw_results1 <- raw_results[raw_results[[sample_plan]]==plan,]
+    methods <- colnames(dplyr::select(raw_results1,-c(label,sample_plan)))
+    
+    raw_results1 <- gather(raw_results1,"methods","pred",-c(label,sample_plan)) %>%
+      group_by(methods,label,pred) %>%
+      summarize(freq=n()) %>%
+      filter(freq>0)
+    
+    sankey_plot_params <- list(y="freq", axis1="label",axis2="pred",fill="label",label="label",xlabel="methods",
+                               scale_x_discrete_limits="c(\"label\",\"value\")",facet_var="methods",facet_wrap=T,width=10,height=7,nrow=1)
+    
+    plot.sankey_plot(raw_results1,sankey_plot_params,fig_path,str_glue("sankey_{sample_plan}_{plan}.pdf"))
+  }
+  
 }
 
 
@@ -318,33 +342,23 @@ plot.sequencing_depth <- function(results,raw_results,dataset){
   #   height = 2*length(unique(results_unlabeled_pctg$methods)),
   #   units = "in"
   # )
-  #####
-  # figure_name <- str_glue("sequencing_depth_{dataset}_sankey.pdf")
-  # n_methods <- length(colnames(dplyr::select(raw_results,-c(label,quantile))))
-  # raw_results1 <- gather(raw_results,"methods","pred",-c(label,quantile)) %>%
-  #   group_by(methods,label,pred,quantile) %>%
-  #   summarize(freq=n()) %>%
-  #   filter(freq>0)
-  # raw_results1$quantile <- factor(raw_results1$quantile)
-  # ggplot(as.data.frame(raw_results1),
-  #        aes(y="freq",axis1 = label, axis2 = pred)) +
-  #   geom_alluvium(aes(fill = label), width = 1/12) +
-  #   geom_stratum(width = 1/12, fill = "black", color = "grey") +
-  #   geom_label(stat = "stratum", aes(label = after_stat(stratum))) +
-  #   scale_x_discrete(limits = c("label", "value"), expand = c(.05, .05)) +
-  #   scale_fill_brewer(type = "qual", palette = "Set1") +
-  #   facet_grid(quantile ~ methods,labeller = label_both)+
-  #   theme(strip.text = element_text(size=n_methods*3),legend.title = element_text(color = "blue", size = n_methods*3),
-  #         legend.text = element_text(size=n_methods*3))
-  # ggsave(
-  #   figure_name,
-  #   plot = last_plot(),
-  #   device = 'pdf',
-  #   path = result_home,
-  #   width = n_methods*8,
-  #   height = n_methods*4,
-  #   units = "in"
-  # )
+####sankey plot
+  
+  uniq_quantile <- unique(raw_results[["quantile"]])
+  for(quantile in uniq_quantile){
+    raw_results1 <- raw_results[raw_results$quantile==quantile,]
+    methods <- colnames(dplyr::select(raw_results1,-c("label","quantile")))
+    
+    raw_results1 <- gather(raw_results1,"methods","pred",-c(label,"quantile")) %>%
+      group_by(methods,label,pred) %>%
+      summarize(freq=n()) %>%
+      filter(freq>0)
+    
+    sankey_plot_params <- list(y="freq", axis1="label",axis2="pred",fill="label",label="label",xlabel="methods",
+                               scale_x_discrete_limits="c(\"label\",\"value\")",facet_var="methods",facet_wrap=T,width=10,height=7,nrow=1)
+    
+    plot.sankey_plot(raw_results1,sankey_plot_params,fig_path,str_glue("sankey_quantile_{quantile}.pdf"))
+  }
 }
 
 plot.batch_effects <- function(results,raw_results,dataset){
@@ -423,6 +437,28 @@ plot.batch_effects <- function(results,raw_results,dataset){
     #   units = "in"
     # )
   }
+  for(grouped_raw_results in dplyr::group_split(raw_results,train_dataset,test_dataset)){
+    ###sankey plot
+    train_dataset <- unique(grouped_raw_results$train_dataset)
+    test_dataset <- unique(grouped_raw_results$test_dataset)
+    batch_effects_vals <-  unique(grouped_raw_results$batch_effects)
+    for(unique_val in batch_effects_vals){
+      fig_path <- str_glue("{result_home}{experiment}/{dataset}/{train_dataset}_{test_dataset}/")
+      
+      grouped_raw_results1 <- grouped_raw_results[grouped_raw_results$batch_effects==unique_val,]
+      methods <- colnames(dplyr::select(grouped_raw_results1,-c("label","batch_effects","train_dataset","test_dataset")))
+      
+      grouped_raw_results1 <- gather(grouped_raw_results1,"methods","pred",-c(label,"batch_effects","train_dataset","test_dataset")) %>%
+        group_by(methods,label,pred) %>%
+        summarize(freq=n()) %>%
+        filter(freq>0)
+      
+      sankey_plot_params <- list(y="freq", axis1="label",axis2="pred",fill="label",label="label",xlabel="methods",
+                                 scale_x_discrete_limits="c(\"label\",\"value\")",facet_var="methods",facet_wrap=T,width=10,height=7,nrow=1)
+      
+      plot.sankey_plot(grouped_raw_results1,sankey_plot_params,fig_path,str_glue("sankey_batch_effects_{unique_val}.pdf"))
+    }
+  }
 }
   
 plot.inter_diseases <- function(results,raw_results,dataset){
@@ -499,6 +535,26 @@ plot.inter_diseases <- function(results,raw_results,dataset){
     
     plot.bar_plot(results_unlabeled_pctg,plot_params,fig_path,"unlabeled_pctg.pdf")
   }
+  
+  for(grouped_raw_results in dplyr::group_split(raw_results,train_dataset,test_dataset)){
+    ###sankey plot
+    train_dataset <- unique(grouped_raw_results$train_dataset)
+    test_dataset <- unique(grouped_raw_results$test_dataset)
+    fig_path <- str_glue("{result_home}{experiment}/{dataset}/{train_dataset}_{test_dataset}/")
+    
+    methods <- colnames(dplyr::select(grouped_raw_results,-c("label","train_dataset","test_dataset")))
+    
+    grouped_raw_results1 <- gather(grouped_raw_results,"methods","pred",-c(label,"train_dataset","test_dataset")) %>%
+      group_by(methods,label,pred) %>%
+      summarize(freq=n()) %>%
+      filter(freq>0)
+    
+    sankey_plot_params <- list(y="freq", axis1="label",axis2="pred",fill="label",label="label",xlabel="methods",
+                               scale_x_discrete_limits="c(\"label\",\"value\")",facet_var="methods",facet_wrap=T,width=10,height=7,nrow=1)
+    
+    plot.sankey_plot(grouped_raw_results1,sankey_plot_params,fig_path,str_glue("sankey.pdf"))
+  }
+  
 }
   
   
@@ -569,19 +625,31 @@ plot.bar_plot <- function(results,params,fig_path,fig_name){
 }
 
 
-plot.sankey_plot <- function(raw_results,label,pred,fig_path,fig_name){
+plot.sankey_plot <- function(raw_results,plot_params,fig_path,fig_name){
   require(ggalluvial)
+  library(RColorBrewer)
+  colors <- colorRampPalette(brewer.pal(8, "Set2"))(40)
   n_methods <- length(unique(raw_results$methods))
-  ggplot(as.data.frame(raw_results),
-         aes_string(y="freq",axis1 = label, axis2 = pred)) +
-    geom_alluvium(aes_string(fill = label), width = 1/12) +
-    geom_stratum(width = 1/12, fill = "black", color = "grey") +
-    geom_label(stat = "stratum", aes(label = after_stat(stratum))) +
-    scale_x_discrete(limits = c("label", "value"), expand = c(.05, .05)) +
-    scale_fill_brewer(type = "qual", palette = "Set1") +
-    facet_wrap(~ methods,nrow=n_methods%/%2) +
-    theme(strip.text = element_text(size=3*n_methods),legend.title = element_text(color = "blue", size = 3*n_methods),
-        legend.text = element_text(size=3*n_methods))
+  plot_str <- str_glue("ggplot(as.data.frame(raw_results),aes(y={plot_params$y},axis1={plot_params$axis1},axis2 = {plot_params$axis2})) +
+                       geom_alluvium(aes(fill = {plot_params$fill}), width = 1/12) +
+                       geom_stratum(width = 1/12, fill = \"black\", color = \"grey\") +
+                       geom_label(stat = \"stratum\", aes(label = after_stat(stratum))) +
+                       scale_x_discrete(limits = {plot_params$scale_x_discrete_limits}, expand = c(.05, .05)) +
+                       scale_fill_manual(values = colors)")
+  if(!is_null(plot_params$facet_wrap)&&plot_params$facet_wrap){
+    plot_str <- str_glue("{plot_str} + 
+                          facet_wrap(~ {plot_params$facet_var},nrow={n_methods%/%2},labeller = label_both)")
+  }
+  
+  if(!is_null(plot_params$facet_grid)&&plot_params$facet_grid){
+    plot_str <- str_glue("{plot_str} + 
+                          facet_grid({plot_params$facet_grid_x} ~ {plot_params$facet_grid_y},labeller = label_both)")
+  }
+  
+  plot_str <- str_glue("{plot_str} + 
+                        theme(strip.text = element_text(size={3*n_methods}),legend.title = element_text(color = \"blue\", size = 3*{n_methods}),
+                        legend.text = element_text(size={3*n_methods}))")
+  eval(parse(text = plot_str))
   ggsave(
     fig_name,
     plot = last_plot(),
@@ -648,3 +716,4 @@ plot.heatmap_plot <- function(results,params,fig_path,fig_name){
     units = "in"
   )
 }
+
