@@ -14,6 +14,12 @@ utils.load_datasets <- function(file_names){
   sces
 }
 
+utils.intersect_on_genes <- function(data1, data2){
+  stopifnot(is(data1,"SingleCellExperiment"))
+  stopifnot(is(data2,"SingleCellExperiment"))
+  common_genes <- intersect(rownames(data1),rownames(data2))
+  list(data1=data1[common_genes,],data2=data2[common_genes,])
+}
 
 ###combine multiple singlecellexperiment into one
 utils.combine_SCEdatasets <- function(sces,if_combined=TRUE,colDatas_cols=NULL){
@@ -385,4 +391,11 @@ utils.get_logger <- function(level="DEBUG", file){
 utils.remove_files <- function(file_names){
   paths <- utils.get_dataset_paths(data_home,file_names)
   file.remove(paths)
+}
+
+
+utils.manhattan_dist <- function(a,b){
+  dist <- abs(a-b)
+  dist <- sum(dist)
+  return(dist)
 }
