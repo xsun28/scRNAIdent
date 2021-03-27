@@ -1,4 +1,4 @@
-experiment <- "batch_effects"
+experiment <- "inter_diseases"
 
 experiments.data <- list(simple_accuracy="PBMC_AllCells_withLabels.RDS", 
                                  cell_number="midbrain_mouse.RDS", 
