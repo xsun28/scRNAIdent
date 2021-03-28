@@ -1,0 +1,10 @@
+>alpha
+expressed: GCG, GC, TTR, TM4SF4, CHGB
+>endothelial
+expressed: SPARC, FLT1, THBS1, COL4A1, KDR, SERPINE1, HTRA1, COL4A2, PLVAP
+>delta
+expressed: SST, RBP4
+>acinar
+expressed: REG3A, ALDOB, ALB, GSTA2, BCAT1, SPINK1, PLA2G1B, CPA2, REG1A, GSTA1, CTRB2, REG1B, PRSS3P2, CPA1, PNLIP, CTRB1, PNLIPRP2, PRSS1, CPB1, CEL
+>beta
+expressed: IAPP, INS

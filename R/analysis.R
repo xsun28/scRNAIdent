@@ -183,8 +183,8 @@ analysis.dataset.batch_effects <- function(dataset1,dataset2){
   data2 <- sce_data2[genename,]
   batch_distance <- vector(mode='numeric',length=length(batch_name))
   for(i in seq_along(batch_name)){
-    batch_distance[i] <- utils.manhattan_dist(apply(assay(data1[,colData(data1)$label==batch_name[i]],"normed"),1,median),
-                                          apply(assay(data2[,colData(data2)$label==batch_name[i]],"normed"),1,median))       
+    batch_distance[i] <- utils.manhattan_dist(apply(as.data.frame(assay(data1[,colData(data1)$label==batch_name[i]],"normed")),1,median),
+                                          apply(as.data.frame(assay(data2[,colData(data2)$label==batch_name[i]],"normed")),1,median))       
   }
   mean(batch_distance)
 }
