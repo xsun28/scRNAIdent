@@ -84,9 +84,9 @@ plot.simple_accuracy <- function(results,raw_results,dataset){
   
  ####sankey plot
  # figure_name <- str_glue("simple_accuracy_{dataset}_sankey.pdf")
- methods <- colnames(dplyr::select(raw_results,-label))
+ methods <- colnames(dplyr::select(raw_results,-c(label,dataset)))
 
- raw_results1 <- gather(raw_results,"methods","pred",-label) %>%
+ raw_results1 <- gather(raw_results,"methods","pred",-c(label,dataset)) %>%
                    group_by(methods,label,pred) %>%
                      summarize(freq=n()) %>%
                        filter(freq>0)
@@ -109,13 +109,13 @@ plot.cell_number <- function(results,raw_results,dataset){
   
   results <- utils.get_methods(results)
   if(sampling_by_pctg){
-    all_results <- dplyr::select(dplyr::filter(results,is.na(assigned)),-c(unlabeled_pctg,assigned)) %>%
+    all_results <- dplyr::select(dplyr::filter(results,is.na(assigned)),c(ARI,AMI,FMI,methods,sample_pctg,supervised)) %>%
       gather("metric","value",-c(methods,sample_pctg,supervised))
     
     plot_params <- list(x="methods",y="value",fill="supervised",label="label",xlabel="methods",
                         facet_wrap=T,dodged=T,facet_var='sample_pctg',width=10,height=7,nrow=3)
   }else{
-    all_results <- dplyr::select(dplyr::filter(results,is.na(assigned)),-c(unlabeled_pctg,assigned)) %>%
+    all_results <- dplyr::select(dplyr::filter(results,is.na(assigned)),c(ARI,AMI,FMI,methods,sample_pctg,supervised)) %>%
                     gather("metric","value",-c(methods,sample_num,supervised))
     
     plot_params <- list(x="methods",y="value",fill="supervised",label="label",xlabel="methods",
@@ -136,11 +136,11 @@ plot.cell_number <- function(results,raw_results,dataset){
   plot.bar_plot(all_results[all_results$metric=="FMI",],plot_params,fig_path,"all_FMI.pdf")
   
   if(sampling_by_pctg){
-    results_assigned <- dplyr::select(dplyr::filter(results,assigned),-c(unlabeled_pctg,assigned)) %>%
+    results_assigned <- dplyr::select(dplyr::filter(results,assigned),c(ARI,AMI,FMI,methods,sample_pctg,supervised)) %>%
       gather("metric","value",-c(methods,sample_pctg,supervised))
   }
   else{
-    results_assigned <- dplyr::select(dplyr::filter(results,assigned),-c(unlabeled_pctg,assigned)) %>%
+    results_assigned <- dplyr::select(dplyr::filter(results,assigned),c(ARI,AMI,FMI,methods,sample_pctg,supervised)) %>%
       gather("metric","value",-c(methods,sample_num,supervised))
   }
   results_assigned$label <- round(results_assigned$value,2)
@@ -153,11 +153,11 @@ plot.cell_number <- function(results,raw_results,dataset){
   # plot.line_plot(results_assigned,plot_params,result_home,figure_assigned_name)
   
   if(sampling_by_pctg){
-    results_unassigned <- dplyr::select(dplyr::filter(results,!assigned),-c(unlabeled_pctg,assigned)) %>%
+    results_unassigned <- dplyr::select(dplyr::filter(results,!assigned),c(ARI,AMI,FMI,methods,sample_pctg,supervised)) %>%
       gather("metric","value",-c(methods,sample_pctg,supervised))
   }
   else{
-    results_unassigned <- dplyr::select(dplyr::filter(results,!assigned),-c(unlabeled_pctg,assigned)) %>%
+    results_unassigned <- dplyr::select(dplyr::filter(results,!assigned),c(ARI,AMI,FMI,methods,sample_pctg,supervised)) %>%
       gather("metric","value",-c(methods,sample_num,supervised))
   }
   results_unassigned$label <- round(results_unassigned$value,2)
@@ -195,7 +195,7 @@ plot.cell_number <- function(results,raw_results,dataset){
     raw_results1 <- raw_results[raw_results[[sample_plan]]==plan,]
     methods <- colnames(dplyr::select(raw_results1,-c(label,sample_plan)))
     
-    raw_results1 <- gather(raw_results1,"methods","pred",-c(label,sample_plan)) %>%
+    raw_results1 <- gather(raw_results1,"methods","pred",-c(label,sample_plan,train_dataset,test_dataset)) %>%
       group_by(methods,label,pred) %>%
       summarize(freq=n()) %>%
       filter(freq>0)
@@ -287,7 +287,7 @@ plot.sequencing_depth <- function(results,raw_results,dataset){
   # figure_unassigned_name <- str_glue("sequencing_depth_{dataset}_unassigned")
   
   
-  all_results <- dplyr::select(dplyr::filter(results,is.na(assigned)),-c(unlabeled_pctg,assigned)) %>%
+  all_results <- dplyr::select(dplyr::filter(results,is.na(assigned)),c(ARI,AMI,FMI,methods,quantile,supervised)) %>%
     gather("metric","value",-c(methods,quantile,supervised))
   all_results$label <- round(all_results$value,2)
   plot_params <- list(x="methods",y="value",fill="supervised",label="label",xlabel="methods",
@@ -301,7 +301,7 @@ plot.sequencing_depth <- function(results,raw_results,dataset){
   
   # plot.heatmap_plot(all_results,"quantile","methods",result_home,figure_all_name)
   
-  results_assigned <- dplyr::select(dplyr::filter(results,assigned),-c(unlabeled_pctg,assigned)) %>%
+  results_assigned <- dplyr::select(dplyr::filter(results,assigned),c(ARI,AMI,FMI,methods,quantile,supervised)) %>%
     gather("metric","value",-c(methods,quantile,supervised))
   results_assigned$label <- round(results_assigned$value,2)
   plot_params$ylabel <- "ARI"
@@ -312,7 +312,7 @@ plot.sequencing_depth <- function(results,raw_results,dataset){
   plot.bar_plot(results_assigned[results_assigned$metric=="FMI",],plot_params,fig_path,"assigned_FMI.pdf")
   
   
-  results_unassigned <- dplyr::select(dplyr::filter(results,!assigned),-c(unlabeled_pctg,assigned)) %>%
+  results_unassigned <- dplyr::select(dplyr::filter(results,!assigned),c(ARI,AMI,FMI,methods,quantile,supervised)) %>%
     gather("metric","value",-c(methods,quantile,supervised))
   results_unassigned$label <- round(results_unassigned$value,2)
   plot_params$ylabel <- "ARI"
@@ -349,7 +349,7 @@ plot.sequencing_depth <- function(results,raw_results,dataset){
     raw_results1 <- raw_results[raw_results$quantile==quantile,]
     methods <- colnames(dplyr::select(raw_results1,-c("label","quantile")))
     
-    raw_results1 <- gather(raw_results1,"methods","pred",-c(label,"quantile")) %>%
+    raw_results1 <- gather(raw_results1,"methods","pred",-c(label,"quantile",dataset)) %>%
       group_by(methods,label,pred) %>%
       summarize(freq=n()) %>%
       filter(freq>0)

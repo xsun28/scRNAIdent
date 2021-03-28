@@ -437,7 +437,10 @@ cluster.tscan <- function(data) {
   minexpr_percent = m_config[['minexpr_percent']] 
   cvcutoff=m_config[['cvcutoff']]
   procdata <- preprocess(as.matrix(cnts),minexpr_value = minexpr_value, minexpr_percent =minexpr_percent, cvcutoff=cvcutoff)
+  i = 0;
   while(dim(procdata)[1]<=0){
+    if(i > 10) return(NULL)
+    i = i + 1
     print(str_glue({"minexpr_value={minexpr_value},minexpr_percent = {minexpr_percent},cvcutoff = {cvcutoff}
       preprocess data in tscan results in 0 dim data, adjusting paramters... "}))
     minexpr_value = minexpr_value/2.0
@@ -504,7 +507,9 @@ cluster.liger <- function(data){
     print(str_glue("error occured {msg}"))
     structure(msg, class = "try-error")
   })
-  while(inherits(ret,"try-error")){
+  while(inherits(ret,"try-error")){ ###most try 10 iterations
+    if(i > 10) return(NULL)
+    i = i+1
     print(str_glue("in liger:{ret}"))
     k.suggest = k.suggest -5
     print(str_glue("new k: {k.suggest}"))
