@@ -239,7 +239,10 @@ utils.check_marker_genes <- function(data,marker_gene_file,generated_marker_gene
     # if(!file.exists(str_glue("{marker_home}/{generated_marker_gene_file}.RDS"))){
     print(str_glue("Generating {marker_home}/{generated_marker_gene_file}.RDS"))
     markers_mat <- markergene.generate_marker_genes(marker_gene_method,data,str_glue("{marker_home}/{generated_marker_gene_file}"))
+    i <- 0;
     while(is.na(rownames(markers_mat))){
+      if(i >= 10) break;
+      i = i+1
       print(str_glue("in seurat generating marker gene, markers mat is zero length, adjusting logfc_threshold
             from {markergene.config.seurat$logfc_threshold} to {markergene.config.seurat$logfc_threshold/2}"))
       markergene.config.seurat$logfc_threshold <<- markergene.config.seurat$logfc_threshold/2
