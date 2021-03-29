@@ -593,15 +593,18 @@ experiments.batch_effects <- function(experiment){
       #   return(.)}
       #   )
       raw_results_no_be <- base_results_no_be$pred_results
-      raw_results_no_be$train_dataset <- experiments.assign.data$train_dataset[[experiment]]
-      raw_results_no_be$test_dataset <- experiments.assign.data$test_dataset[[experiment]]
+      # raw_results_no_be$train_dataset <- experiments.assign.data$train_dataset[[experiment]]
+      # raw_results_no_be$test_dataset <- experiments.assign.data$test_dataset[[experiment]]
       raw_results_no_be$batch_effects <- F
       combined_assign_results_no_be[[i]] <- bind_rows(results_no_be[grepl(".*_assign_.*",names(results_no_be))])
       combined_cluster_results_no_be[[i]] <- bind_rows(results_no_be[grepl(".*cluster.*",names(results_no_be))])
       combined_raw_results_no_be[[i]] <- raw_results_no_be
       utils.clean_marker_files()
-      utils.remove_files(unlist(intersected_datasets[[i]]))
       utils.remove_files(unlist(data_no_be))
+    }
+    
+    for(i in 1:dim(datasets_perm2)[1]){
+      utils.remove_files(unlist(intersected_datasets[[i]]))
     }
     
     combined_assign_results_no_be <- bind_rows(combined_assign_results_no_be)
