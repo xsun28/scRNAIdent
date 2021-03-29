@@ -603,9 +603,8 @@ experiments.batch_effects <- function(experiment){
       utils.remove_files(unlist(data_no_be))
     }
     
-    for(i in 1:dim(datasets_perm2)[1]){
-      utils.remove_files(unlist(intersected_datasets[[i]]))
-    }
+    utils.remove_files(unlist(intersected_datasets[[i]]))
+   
     
     combined_assign_results_no_be <- bind_rows(combined_assign_results_no_be)
     combined_cluster_results_no_be <- bind_rows(combined_cluster_results_no_be)

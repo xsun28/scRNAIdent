@@ -30,13 +30,39 @@ summarize_experiments <- function(experiment){
 }
 
 
-summary.cell_number <- function(results,dataset){
+summary.cell_number <- function(){
+  experiment <- "cell_number"
+  # exp_config <- experiments.parameters[[experiment]]
+  exp_results <- summary.collect_experiment_results(experiment)
+  # exp_dataset_props <-summary.read_exp_dataset_properties(experiment, exp_config)
+  metric_results <- melt(exp_results,id.vars = c("train_dataset","test_dataset","assigned","methods",'cell_number'),measure.vars=c("ARI")) %>%
+    dcast(train_dataset+test_dataset+assigned+batch_effects_removed ~ methods)
   
+  dataset_prop <- bind_rows(group_by(exp_results,train_dataset,test_dataset,batch_effects_removed,.keep=T) %>% group_map(~{.[1,append(inter_dataset_properties_list,c("batch_effects_removed","batch_effects_amount"))]},.keep=T))
+  other_results <- dplyr::filter(exp_results,is.na(assigned),supervised==TRUE) %>% 
+    melt(id.vars = c("train_dataset","test_dataset","methods","batch_effects_removed"),measure.vars=c("unlabeled_pctg","cluster_num","pred_type_max_pctg"),variable.name="metrics") %>%
+    dcast(train_dataset+test_dataset+metrics+batch_effects_removed ~ methods)
+  combined_prop_metric_results <- left_join(metric_results,dataset_prop,by=c("train_dataset","test_dataset","batch_effects_removed"))
+  combined_prop_other_results <- left_join(other_results,dataset_prop,by=c("train_dataset","test_dataset","batch_effects_removed"))
+  summary.output_excel(experiment,combined_prop_metric_results,combined_prop_other_results)
   
 }
 
-summary.sequencing_depth <- function(results,dataset){
+summary.sequencing_depth <- function(){
+  experiment <- "sequencing_depth"
+  # exp_config <- experiments.parameters[[experiment]]
+  exp_results <- summary.collect_experiment_results(experiment)
+  # exp_dataset_props <-summary.read_exp_dataset_properties(experiment, exp_config)
+  metric_results <- melt(exp_results,id.vars = c("train_dataset","test_dataset","assigned","methods",'quantile'),measure.vars=c("ARI")) %>%
+    dcast(train_dataset+test_dataset+assigned+quantile ~ methods)
   
+  dataset_prop <- bind_rows(group_by(exp_results,train_dataset,test_dataset,quantile,.keep=T) %>% group_map(~{.[1,append(inter_dataset_properties_list,"quantile")]},.keep=T))
+  other_results <- dplyr::filter(exp_results,is.na(assigned),supervised==TRUE) %>% 
+    melt(id.vars = c("train_dataset","test_dataset","methods","quantile"),measure.vars=c("unlabeled_pctg","cluster_num","pred_type_max_pctg"),variable.name="metrics") %>%
+    dcast(train_dataset+test_dataset+metrics+quantile ~ methods)
+  combined_prop_metric_results <- left_join(metric_results,dataset_prop,by=c("train_dataset","test_dataset","quantile"))
+  combined_prop_other_results <- left_join(other_results,dataset_prop,by=c("train_dataset","test_dataset","quantile"))
+  summary.output_excel(experiment,combined_prop_metric_results,combined_prop_other_results)
   
 }
 
@@ -78,10 +104,24 @@ summary.inter_diseases <- function(){
   summary.output_excel(experiment,combined_prop_metric_results,combined_prop_other_results)
 }
 
-summary.batch_effects <- function(results,dataset){
+summary.batch_effects <- function(){
   
+  experiment <- "batch_effects"
+  # exp_config <- experiments.parameters[[experiment]]
+  exp_results <- summary.collect_experiment_results(experiment)
+  # exp_dataset_props <-summary.read_exp_dataset_properties(experiment, exp_config)
+  metric_results <- melt(exp_results,id.vars = c("train_dataset","test_dataset","assigned","methods",'batch_effects_removed'),measure.vars=c("ARI")) %>%
+    dcast(train_dataset+test_dataset+assigned+batch_effects_removed ~ methods)
   
+  dataset_prop <- bind_rows(group_by(exp_results,train_dataset,test_dataset,batch_effects_removed,.keep=T) %>% group_map(~{.[1,append(inter_dataset_properties_list,c("batch_effects_removed","batch_effects_amount"))]},.keep=T))
+  other_results <- dplyr::filter(exp_results,is.na(assigned),supervised==TRUE) %>% 
+    melt(id.vars = c("train_dataset","test_dataset","methods","batch_effects_removed"),measure.vars=c("unlabeled_pctg","cluster_num","pred_type_max_pctg"),variable.name="metrics") %>%
+    dcast(train_dataset+test_dataset+metrics+batch_effects_removed ~ methods)
+  combined_prop_metric_results <- left_join(metric_results,dataset_prop,by=c("train_dataset","test_dataset","batch_effects_removed"))
+  combined_prop_other_results <- left_join(other_results,dataset_prop,by=c("train_dataset","test_dataset","batch_effects_removed"))
+  summary.output_excel(experiment,combined_prop_metric_results,combined_prop_other_results)
 }
+
 
 
 
