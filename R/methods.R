@@ -507,6 +507,7 @@ cluster.liger <- function(data){
     print(str_glue("error occured {msg}"))
     structure(msg, class = "try-error")
   })
+  i = 0
   while(inherits(ret,"try-error")){ ###most try 10 iterations
     if(i > 10) return(NULL)
     i = i+1

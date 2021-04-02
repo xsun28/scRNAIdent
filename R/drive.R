@@ -3,16 +3,16 @@ driver.drive <- function(experiment=c("simple_accuracy","cell_number", "sequenci
                                         "batch_effects","inter_diseases","celltype_complexity","inter_species",
                                         "random_noise","inter_protocol")){
   switch(experiment,
-         simple_accuracy = driver.simple_accuracy(experiment),
-         cell_number = driver.cell_number(experiment),
-         sequencing_depth = driver.sequencing_depth(experiment),
-         celltype_structure = driver.celltype_structure(experiment),
-         batch_effects = driver.batch_effects(experiment),
-         inter_diseases = driver.inter_diseases(experiment),
-         celltype_complexity = driver.celltype_complexity(experiment),
-         inter_species = driver.inter_species(experiment),
-         random_noise = driver.random_noise(experiment),
-         inter_protocol = driver.inter_protocol(experiment),
+         simple_accuracy = driver.simple_accuracy(),
+         cell_number = driver.cell_number(),
+         sequencing_depth = driver.sequencing_depth(),
+         celltype_structure = driver.celltype_structure(),
+         batch_effects = driver.batch_effects(),
+         inter_diseases = driver.inter_diseases(),
+         celltype_complexity = driver.celltype_complexity(),
+         inter_species = driver.inter_species(),
+         random_noise = driver.random_noise(),
+         inter_protocol = driver.inter_protocol(),
          stop("Unkown experiments")
   )
 }
@@ -21,8 +21,6 @@ driver.base <- function(experiment,datasets,ouput_paths){ ###for intra-dataset c
 
 
   for(i in seq_along(datasets)){
-    rm(list=ls())
-    gc(T)
     source("R/experiments.R")
     experiment  <<- experiment
     experiments.data[[experiment]] <<- datasets[[i]]
@@ -83,8 +81,6 @@ driver.batch_effects <- function(){
   output_paths <- list("pancreas","PBMC")
   datasets <- list(list(muraro="Muraro_pancreas_clean.RDS",seger="Segerstolpe_pancreas_clean.RDS"),list("PBMC_AllCells_withLabels.RDS","GSE96583_8_Ctrl_Pats.RDS"))
   for(i in seq_along(datasets)){
-    rm(list=ls())
-    gc(T)
     source("R/experiments.R")
     experiment  <<- "batch_effects"
     experiments.data[[experiment]] <<- datasets[[i]]
@@ -99,8 +95,6 @@ driver.inter_diseases <- function(){
   datasets <- list(list("ADASD_AD.RDS","ADASD_autism.RDS"),
                    list("GSE96583_8_Ctrl_Pats.RDS","GSE96583_8_Stim_Pats.RDS","GSE96583_batch1_3_samples.RDS"))
   for(i in seq_along(datasets)){
-    rm(list=ls())
-    gc(T)
     source("R/experiments.R")
     experiment  <<- "inter_diseases"
     experiments.data[[experiment]] <<- datasets[[i]]

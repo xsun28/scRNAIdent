@@ -89,8 +89,10 @@ analysis.pivot_table <- function(data,row,col1,col2=NULL,func="n()"){
 analysis.dataset.complexity <- function(data){
   stopifnot(is(data,"SingleCellExperiment"))
   stopifnot("label" %in% colnames(colData(data)))
+  counts(data) <- as.matrix(counts(data))
   agg_sce <- aggregateAcrossCells(data,ids = data$label)
   agg_count <- assay(agg_sce,"counts")
+  agg_count <- agg_count[,apply(agg_count,2,sum)>0]
   corr <- cor(agg_count)
   diag(corr) <- 0
   cor <- apply(corr,1,max)
