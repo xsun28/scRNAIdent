@@ -9,7 +9,7 @@ inter_dataset_properties_list <- c(
                                    )         
                                              
 intra_dataset_properties_list <- c("dataset","complexity","entropy","seq_depth_med","seq_depth_IQR",
-                                   "cell_types","cell_type_max_pctg","parsity","sample_num","gene_num")                                             
+                                   "cell_types","cell_type_max_pctg","sparsity","sample_num","gene_num")                                             
                                    
 summarize_experiments <- function(experiment){
   require(reshape2)
@@ -53,15 +53,15 @@ summary.sequencing_depth <- function(){
   # exp_config <- experiments.parameters[[experiment]]
   exp_results <- summary.collect_experiment_results(experiment)
   # exp_dataset_props <-summary.read_exp_dataset_properties(experiment, exp_config)
-  metric_results <- melt(exp_results,id.vars = c("train_dataset","test_dataset","assigned","methods",'quantile'),measure.vars=c("ARI")) %>%
-    dcast(train_dataset+test_dataset+assigned+quantile ~ methods)
+  metric_results <- melt(exp_results,id.vars = c("dataset","assigned","methods",'quantile'),measure.vars=c("ARI")) %>%
+    dcast(dataset+assigned+quantile ~ methods)
   
-  dataset_prop <- bind_rows(group_by(exp_results,train_dataset,test_dataset,quantile,.keep=T) %>% group_map(~{.[1,append(inter_dataset_properties_list,"quantile")]},.keep=T))
+  dataset_prop <- bind_rows(group_by(exp_results,dataset,quantile,.keep=T) %>% group_map(~{.[1,append(intra_dataset_properties_list,"quantile")]},.keep=T))
   other_results <- dplyr::filter(exp_results,is.na(assigned),supervised==TRUE) %>% 
-    melt(id.vars = c("train_dataset","test_dataset","methods","quantile"),measure.vars=c("unlabeled_pctg","cluster_num","pred_type_max_pctg"),variable.name="metrics") %>%
-    dcast(train_dataset+test_dataset+metrics+quantile ~ methods)
-  combined_prop_metric_results <- left_join(metric_results,dataset_prop,by=c("train_dataset","test_dataset","quantile"))
-  combined_prop_other_results <- left_join(other_results,dataset_prop,by=c("train_dataset","test_dataset","quantile"))
+    melt(id.vars = c("dataset","methods","quantile"),measure.vars=c("unlabeled_pctg","cluster_num","pred_type_max_pctg"),variable.name="metrics") %>%
+    dcast(dataset+metrics+quantile ~ methods)
+  combined_prop_metric_results <- left_join(metric_results,dataset_prop,by=c("dataset","quantile"))
+  combined_prop_other_results <- left_join(other_results,dataset_prop,by=c("dataset","quantile"))
   summary.output_excel(experiment,combined_prop_metric_results,combined_prop_other_results)
   
 }
