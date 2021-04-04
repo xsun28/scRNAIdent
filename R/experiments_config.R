@@ -1,4 +1,4 @@
-experiment <- "sequencing_depth"
+experiment <- "inter_diseases"
 
 experiments.data <- list(simple_accuracy="PBMC_AllCells_withLabels.RDS", 
                                  cell_number="PBMC_AllCells_withLabels.RDS", 
@@ -6,8 +6,8 @@ experiments.data <- list(simple_accuracy="PBMC_AllCells_withLabels.RDS",
                                  celltype_structure="GSE96583_8_Stim_Pats.RDS",
                                  # batch_effects=list(muraro="Muraro_pancreas_clean.RDS",seger="Segerstolpe_pancreas_clean.RDS"),
                                  batch_effects=list("PBMC_AllCells_withLabels.RDS","GSE96583_8_Ctrl_Pats.RDS"),
-                                 # inter_diseases = list("GSE96583_8_Ctrl_Pats.RDS","GSE96583_8_Stim_Pats.RDS","GSE96583_batch1_3_samples.RDS"),
-                                 inter_diseases = list("ADASD_AD.RDS","ADASD_autism.RDS"),
+                                 inter_diseases = list("GSE96583_8_Ctrl_Pats.RDS","GSE96583_8_Stim_Pats.RDS","GSE96583_batch1_3_samples.RDS"),
+                                 # inter_diseases = list("ADASD_AD.RDS","ADASD_autism.RDS"),
                                  celltype_complexity = list(),
                                  inter_species = list(),
                                  random_noise = list(),

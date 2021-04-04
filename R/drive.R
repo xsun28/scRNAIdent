@@ -91,7 +91,7 @@ driver.batch_effects <- function(){
 }
 
 driver.inter_diseases <- function(){
-  output_paths <- list("ADASD","PBMC_ctrl_stim_diseases")
+  output_paths <- list("ADASD","PBMC")
   datasets <- list(list("ADASD_AD.RDS","ADASD_autism.RDS"),
                    list("GSE96583_8_Ctrl_Pats.RDS","GSE96583_8_Stim_Pats.RDS","GSE96583_batch1_3_samples.RDS"))
   for(i in seq_along(datasets)){
