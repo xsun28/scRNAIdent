@@ -302,6 +302,7 @@ utils.try_catch_method_error <- function(code, silent=FALSE){
     msg <- conditionMessage(c)
     if (!silent) warning(c)
     print(str_glue("error occured {msg}"))
+    error(logger, str_glue("error occured {msg}"))
     invisible(structure(msg, class = "try-error"))
   })
 }

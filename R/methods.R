@@ -505,6 +505,7 @@ cluster.liger <- function(data){
   ret <- tryCatch(optimizeALS(liger_data, k=k.suggest, thresh = thresh, lambda=lambda,nrep = 3), error=function(c) {
     msg <- conditionMessage(c)
     print(str_glue("error occured {msg}"))
+    error(logger, str_glue("error occured {msg}"))
     structure(msg, class = "try-error")
   })
   i = 0
@@ -517,6 +518,7 @@ cluster.liger <- function(data){
     ret <- tryCatch(optimizeALS(liger_data, k=k.suggest, thresh = thresh, lambda=lambda,nrep = 3), error=function(c) {
       msg <- conditionMessage(c)
       print(str_glue("error occured {msg}"))
+      error(logger, str_glue("error occured {msg}"))
       structure(msg, class = "try-error")
     })
   }
