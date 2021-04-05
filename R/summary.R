@@ -32,18 +32,33 @@ summarize_experiments <- function(experiment){
 
 summary.cell_number <- function(){
   experiment <- "cell_number"
+  exp_config <- experiments.parameters[[experiment]]
+  cell_numbers <- exp_config$sample_num
+  cell_pctgs <- exp_config$sample_pctg
+  sampling_by_pctg <- purrr::is_null(cell_numbers)||length(cell_numbers)==0
+  sample_id_var <- if(sampling_by_pctg) "sample_pctg" else "sample_num"
   # exp_config <- experiments.parameters[[experiment]]
   exp_results <- summary.collect_experiment_results(experiment)
   # exp_dataset_props <-summary.read_exp_dataset_properties(experiment, exp_config)
-  metric_results <- melt(exp_results,id.vars = c("train_dataset","test_dataset","assigned","methods",'cell_number'),measure.vars=c("ARI")) %>%
-    dcast(train_dataset+test_dataset+assigned+batch_effects_removed ~ methods)
+  metric_results <- melt(exp_results,id.vars = c("train_dataset","test_dataset","assigned","methods",sample_id_var),measure.vars=c("ARI")) 
+  if(sampling_by_pctg){
+    metric_results <- dcast(metric_results, train_dataset+test_dataset+assigned+sample_pctg ~ methods)
+    dataset_prop <- bind_rows(group_by(exp_results,train_dataset,test_dataset,sample_pctg,.keep=T) %>% group_map(~{.[1,append(inter_dataset_properties_list,"sample_pctg")]},.keep=T))
+    other_results <- dplyr::filter(exp_results,is.na(assigned),supervised==TRUE) %>% 
+      melt(id.vars = c("train_dataset","test_dataset","methods","sample_pctg"),measure.vars=c("unlabeled_pctg","cluster_num","pred_type_max_pctg"),variable.name="metrics") %>%
+      dcast(train_dataset+test_dataset+metrics+sample_pctg ~ methods)
+    combined_prop_metric_results <- left_join(metric_results,dataset_prop,by=c("train_dataset","test_dataset","sample_pctg"))
+    combined_prop_other_results <- left_join(other_results,dataset_prop,by=c("train_dataset","test_dataset","sample_pctg"))
+  }else{
+    metric_results <- dcast(metric_results, train_dataset+test_dataset+assigned+sample_num ~ methods)
+    dataset_prop <- bind_rows(group_by(exp_results,train_dataset,test_dataset,sample_num,.keep=T) %>% group_map(~{.[1,append(inter_dataset_properties_list,"sample_num")]},.keep=T))
+    other_results <- dplyr::filter(exp_results,is.na(assigned),supervised==TRUE) %>% 
+      melt(id.vars = c("train_dataset","test_dataset","methods","sample_num"),measure.vars=c("unlabeled_pctg","cluster_num","pred_type_max_pctg"),variable.name="metrics") %>%
+      dcast(train_dataset+test_dataset+metrics+sample_num ~ methods)
+    combined_prop_metric_results <- left_join(metric_results,dataset_prop,by=c("train_dataset","test_dataset","sample_num"))
+    combined_prop_other_results <- left_join(other_results,dataset_prop,by=c("train_dataset","test_dataset","sample_num"))
+  }
   
-  dataset_prop <- bind_rows(group_by(exp_results,train_dataset,test_dataset,batch_effects_removed,.keep=T) %>% group_map(~{.[1,append(inter_dataset_properties_list,c("batch_effects_removed","batch_effects_amount"))]},.keep=T))
-  other_results <- dplyr::filter(exp_results,is.na(assigned),supervised==TRUE) %>% 
-    melt(id.vars = c("train_dataset","test_dataset","methods","batch_effects_removed"),measure.vars=c("unlabeled_pctg","cluster_num","pred_type_max_pctg"),variable.name="metrics") %>%
-    dcast(train_dataset+test_dataset+metrics+batch_effects_removed ~ methods)
-  combined_prop_metric_results <- left_join(metric_results,dataset_prop,by=c("train_dataset","test_dataset","batch_effects_removed"))
-  combined_prop_other_results <- left_join(other_results,dataset_prop,by=c("train_dataset","test_dataset","batch_effects_removed"))
   summary.output_excel(experiment,combined_prop_metric_results,combined_prop_other_results)
   
 }
@@ -182,7 +197,7 @@ summary.read_results_from_dir <- function(current_dir){
     for(i in seq_along(sub_dirs)){
       sub_results[[i]] <- summary.read_results_from_dir(sub_dirs[[i]])
     }
-    return(bind_rows(sub_results))
+    return(bind_rows(purrr::map(sub_results,bind_rows)))
   }
 }
 
