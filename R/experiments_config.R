@@ -209,11 +209,13 @@ experiments.parameters.batch_effects.base_config  <- list(train_sample_pctg=0.8,
                                                           marker_gene_file=NULL,fixed_train=T,fixed_test=T)
 
 
-experiments.parameters.batch_effects.base_config.PBMC <- list(train_sample_pctg=0.2,train_sample_num=NULL,test_sample_pctg=0.2,test_sample_num=NULL,
+experiments.parameters.batch_effects.base_config.PBMC <- list(train_sample_pctg=0.07,train_sample_num=NULL,test_sample_pctg=0.2,test_sample_num=NULL,
                                                               cv=FALSE,remove_batch=TRUE,metrics=c('ARI','AMI','FMI'),
                                                               marker_gene_file=NULL,fixed_train=T,fixed_test=T)
 
-experiments.parameters.batch_effects.base_config.pancreas <- experiments.parameters.batch_effects.base_config
+experiments.parameters.batch_effects.base_config.pancreas <- list(train_sample_pctg=0.5,train_sample_num=NULL,test_sample_pctg=0.5,test_sample_num=NULL,
+                                                                  cv=FALSE,remove_batch=TRUE,metrics=c('ARI','AMI','FMI'),
+                                                                  marker_gene_file=NULL,fixed_train=T,fixed_test=T)
 
 experiments.parameters.batch_effects.base_config.ADASD <- list(train_sample_pctg=0.05,train_sample_num=NULL,test_sample_pctg=0.05,test_sample_num=NULL,
                                                                cv=FALSE,remove_batch=TRUE,metrics=c('ARI','AMI','FMI'),
@@ -224,7 +226,7 @@ experiments.parameters.batch_effects.base_config.midbrain <- experiments.paramet
 experiments.parameters.batch_effects.base_config.cellbench <- experiments.parameters.batch_effects.base_config
 
 experiments.parameters.batch_effects <- list(
-  PBMC_AllCells_withLabels.RDS = list(train_sample_pctg=0.05,train_sample_num=NULL,test_sample_pctg=0.05,test_sample_num=NULL,
+  PBMC_AllCells_withLabels.RDS = list(train_sample_pctg=0.05,train_sample_num=NULL,test_sample_pctg=0.017,test_sample_num=NULL,
                                       cv=FALSE,remove_batch=TRUE,metrics=c('ARI','AMI','FMI'),
                                       marker_gene_file=NULL,fixed_train=T,fixed_test=T),
   
@@ -248,13 +250,14 @@ experiments.parameters.inter_diseases.base_config = list(train_sample_pctg=0.8,t
                                                          cv=FALSE,metrics=c('ARI','AMI','FMI'),marker_gene_file=NULL)
 
 
-experiments.parameters.inter_diseases.base_config.PBMC <- list(train_sample_pctg=0.2,train_sample_num=NULL,test_sample_pctg=0.2,test_sample_num=NULL, 
+experiments.parameters.inter_diseases.base_config.PBMC <- list(train_sample_pctg=0.08,train_sample_num=NULL,test_sample_pctg=0.08,test_sample_num=NULL, 
+                                                               cv=FALSE,metrics=c('ARI','AMI','FMI'),marker_gene_file=NULL)
+
+experiments.parameters.inter_diseases.base_config.pancreas <- list(train_sample_pctg=0.7,train_sample_num=NULL,test_sample_pctg=0.2,test_sample_num=NULL, 
                                                                    cv=FALSE,metrics=c('ARI','AMI','FMI'),marker_gene_file=NULL)
 
-experiments.parameters.inter_diseases.base_config.pancreas <- experiments.parameters.sequencing_depth.base_config
-
-experiments.parameters.inter_diseases.base_config.ADASD <- list(train_sample_pctg=0.05,train_sample_num=NULL,test_sample_pctg=0.05,test_sample_num=NULL,
-                                                                    cv=FALSE,metrics=c('ARI','AMI','FMI'),marker_gene_file=NULL)
+experiments.parameters.inter_diseases.base_config.ADASD <- list(train_sample_pctg=0.016,train_sample_num=NULL,test_sample_pctg=0.016,test_sample_num=NULL,
+                                                                cv=FALSE,metrics=c('ARI','AMI','FMI'),marker_gene_file=NULL)
 
 experiments.parameters.inter_diseases.base_config.midbrain <- experiments.parameters.inter_diseases.base_config
 
@@ -269,8 +272,9 @@ experiments.parameters.inter_diseases <- list(
   Muraro_pancreas_clean.RDS = experiments.parameters.inter_diseases.base_config.pancreas,
   Segerstolpe_pancreas_clean.RDS = experiments.parameters.inter_diseases.base_config.pancreas,
   Xin_pancreas_clean.RDS = experiments.parameters.inter_diseases.base_config.pancreas,
-  ADASD_AD.RDS = experiments.parameters.inter_diseases.base_config.ADASD,
-  ADASD_autism.RDS = experiments.parameters.inter_diseases.base_config.ADASD,
+  ADASD_AD.RDS =  experiments.parameters.inter_diseases.base_config.ADASD,
+  ADASD_autism.RDS = list(train_sample_pctg=0.011,train_sample_num=NULL,test_sample_pctg=0.011,test_sample_num=NULL,
+                          cv=FALSE,metrics=c('ARI','AMI','FMI'),marker_gene_file=NULL),
   midbrain_human.RDS = experiments.parameters.inter_diseases.base_config.midbrain,
   midbrain_mouse.RDS = experiments.parameters.inter_diseases.base_config.midbrain,
   cellbench_10x.RDS = experiments.parameters.inter_diseases.base_config.cellbench,
