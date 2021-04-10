@@ -45,21 +45,33 @@ summary.cell_number <- function(){
     metric_results <- dcast(metric_results, train_dataset+test_dataset+assigned+sample_pctg ~ methods)
     dataset_prop <- bind_rows(group_by(exp_results,train_dataset,test_dataset,sample_pctg,.keep=T) %>% group_map(~{.[1,append(inter_dataset_properties_list,"sample_pctg")]},.keep=T))
     other_results <- dplyr::filter(exp_results,is.na(assigned),supervised==TRUE) %>% 
-      melt(id.vars = c("train_dataset","test_dataset","methods","sample_pctg"),measure.vars=c("unlabeled_pctg","cluster_num","pred_type_max_pctg"),variable.name="metrics") %>%
+      melt(id.vars = c("train_dataset","test_dataset","methods","sample_pctg"),measure.vars=c("unlabeled_pctg","pred_type_max_pctg"),variable.name="metrics") %>%
       dcast(train_dataset+test_dataset+metrics+sample_pctg ~ methods)
+    
+    unsup_other_results <- dplyr::filter(exp_results,is.na(assigned),supervised==F) %>% 
+      melt(id.vars = c("train_dataset","test_dataset","methods","sample_pctg"),measure.vars=c("cluster_num","pred_type_max_pctg"),variable.name="metrics") %>%
+      dcast(train_dataset+test_dataset+metrics+sample_pctg ~ methods)
+    
     combined_prop_metric_results <- left_join(metric_results,dataset_prop,by=c("train_dataset","test_dataset","sample_pctg"))
     combined_prop_other_results <- left_join(other_results,dataset_prop,by=c("train_dataset","test_dataset","sample_pctg"))
+    combined_prop_unsup_other_results <- left_join(unsup_other_results,dataset_prop,by=c("train_dataset","test_dataset","sample_pctg"))
   }else{
     metric_results <- dcast(metric_results, train_dataset+test_dataset+assigned+sample_num ~ methods)
     dataset_prop <- bind_rows(group_by(exp_results,train_dataset,test_dataset,sample_num,.keep=T) %>% group_map(~{.[1,append(inter_dataset_properties_list,"sample_num")]},.keep=T))
     other_results <- dplyr::filter(exp_results,is.na(assigned),supervised==TRUE) %>% 
-      melt(id.vars = c("train_dataset","test_dataset","methods","sample_num"),measure.vars=c("unlabeled_pctg","cluster_num","pred_type_max_pctg"),variable.name="metrics") %>%
+      melt(id.vars = c("train_dataset","test_dataset","methods","sample_num"),measure.vars=c("unlabeled_pctg","pred_type_max_pctg"),variable.name="metrics") %>%
       dcast(train_dataset+test_dataset+metrics+sample_num ~ methods)
+    unsup_other_results <- dplyr::filter(exp_results,is.na(assigned),supervised==F) %>% 
+      melt(id.vars = c("train_dataset","test_dataset","methods","sample_num"),measure.vars=c("cluster_num","pred_type_max_pctg"),variable.name="metrics") %>%
+      dcast(train_dataset+test_dataset+metrics+sample_num ~ methods)
+    
     combined_prop_metric_results <- left_join(metric_results,dataset_prop,by=c("train_dataset","test_dataset","sample_num"))
     combined_prop_other_results <- left_join(other_results,dataset_prop,by=c("train_dataset","test_dataset","sample_num"))
+    combined_prop_unsup_other_results <- left_join(unsup_other_results,dataset_prop,by=c("train_dataset","test_dataset","sample_num"))
+    
   }
   
-  summary.output_excel(experiment,combined_prop_metric_results,combined_prop_other_results)
+  summary.output_excel(experiment,combined_prop_metric_results,combined_prop_other_results,combined_prop_unsup_other_results)
   
 }
 
@@ -73,11 +85,17 @@ summary.sequencing_depth <- function(){
   
   dataset_prop <- bind_rows(group_by(exp_results,dataset,quantile,.keep=T) %>% group_map(~{.[1,append(intra_dataset_properties_list,"quantile")]},.keep=T))
   other_results <- dplyr::filter(exp_results,is.na(assigned),supervised==TRUE) %>% 
-    melt(id.vars = c("dataset","methods","quantile"),measure.vars=c("unlabeled_pctg","cluster_num","pred_type_max_pctg"),variable.name="metrics") %>%
+    melt(id.vars = c("dataset","methods","quantile"),measure.vars=c("unlabeled_pctg","pred_type_max_pctg"),variable.name="metrics") %>%
     dcast(dataset+metrics+quantile ~ methods)
+  
+  unsupervised_other_results <- dplyr::filter(exp_results,is.na(assigned),supervised==F) %>%
+    melt(id.vars = c("dataset","methods","quantile"),measure.vars=c("cluster_num","pred_type_max_pctg"),variable.name="metrics") %>%
+    dcast(dataset+metrics+quantile ~ methods)
+  
   combined_prop_metric_results <- left_join(metric_results,dataset_prop,by=c("dataset","quantile"))
   combined_prop_other_results <- left_join(other_results,dataset_prop,by=c("dataset","quantile"))
-  summary.output_excel(experiment,combined_prop_metric_results,combined_prop_other_results)
+  combined_prop_unsup_other_results <- left_join(unsupervised_other_results,dataset_prop,by=c("dataset","quantile"))
+  summary.output_excel(experiment,combined_prop_metric_results,combined_prop_other_results,combined_prop_unsup_other_results)
   
 }
 
@@ -90,13 +108,18 @@ summary.simple_accuracy <- function(){
     dcast(dataset+assigned ~ methods)
   dataset_prop <- bind_rows(group_by(exp_results,dataset,.keep=T) %>% group_map(~{.[1,intra_dataset_properties_list]},.keep=T))
   
-  other_results <- dplyr::filter(exp_results,is.na(assigned),supervised==TRUE) %>% 
-    melt(id.vars = c("dataset","methods"),measure.vars=c("unlabeled_pctg","cluster_num","pred_type_max_pctg"),variable.name="metrics") %>%
+  supervised_other_results <- dplyr::filter(exp_results,is.na(assigned),supervised==TRUE) %>% 
+    melt(id.vars = c("dataset","methods"),measure.vars=c("unlabeled_pctg","pred_type_max_pctg"),variable.name="metrics") %>%
+    dcast(dataset+metrics ~ methods)
+  
+  unsupervised_other_results <- dplyr::filter(exp_results,is.na(assigned),supervised==F) %>%
+    melt(id.vars = c("dataset","methods"),measure.vars=c("cluster_num","pred_type_max_pctg"),variable.name="metrics") %>%
     dcast(dataset+metrics ~ methods)
   
   combined_prop_metric_results <- left_join(metric_results,dataset_prop,by=c("dataset"))
-  combined_prop_other_results <- left_join(other_results,dataset_prop,by=c("dataset"))
-  summary.output_excel(experiment,combined_prop_metric_results,combined_prop_other_results)
+  combined_prop_sup_other_results <- left_join(supervised_other_results,dataset_prop,by=c("dataset"))
+  combined_prop_unsup_other_results <- left_join(unsupervised_other_results,dataset_prop,by=c("dataset"))
+  summary.output_excel(experiment,combined_prop_metric_results,combined_prop_sup_other_results,combined_prop_unsup_other_results)
 }
 
 
@@ -112,11 +135,17 @@ summary.inter_diseases <- function(){
   
   dataset_prop <- bind_rows(group_by(exp_results,train_dataset,test_dataset,.keep=T) %>% group_map(~{.[1,inter_dataset_properties_list]},.keep=T))
   other_results <- dplyr::filter(exp_results,is.na(assigned),supervised==TRUE) %>% 
-    melt(id.vars = c("train_dataset","test_dataset","methods"),measure.vars=c("unlabeled_pctg","cluster_num","pred_type_max_pctg"),variable.name="metrics") %>%
+    melt(id.vars = c("train_dataset","test_dataset","methods"),measure.vars=c("unlabeled_pctg","pred_type_max_pctg"),variable.name="metrics") %>%
     dcast(train_dataset+test_dataset+metrics ~ methods)
+  
+  unsup_other_results <- dplyr::filter(exp_results,is.na(assigned),supervised==F) %>% 
+    melt(id.vars = c("train_dataset","test_dataset","methods"),measure.vars=c("cluster_num","pred_type_max_pctg"),variable.name="metrics") %>%
+    dcast(train_dataset+test_dataset+metrics ~ methods)
+  
   combined_prop_metric_results <- left_join(metric_results,dataset_prop,by=c("train_dataset","test_dataset"))
   combined_prop_other_results <- left_join(other_results,dataset_prop,by=c("train_dataset","test_dataset"))
-  summary.output_excel(experiment,combined_prop_metric_results,combined_prop_other_results)
+  combined_prop_unsup_other_results <- left_join(unsup_other_results,dataset_prop,by=c("train_dataset","test_dataset"))
+  summary.output_excel(experiment,combined_prop_metric_results,combined_prop_other_results,combined_prop_unsup_other_results)
 }
 
 summary.batch_effects <- function(){
@@ -130,11 +159,17 @@ summary.batch_effects <- function(){
   
   dataset_prop <- bind_rows(group_by(exp_results,train_dataset,test_dataset,batch_effects_removed,.keep=T) %>% group_map(~{.[1,append(inter_dataset_properties_list,c("batch_effects_removed","batch_effects_amount"))]},.keep=T))
   other_results <- dplyr::filter(exp_results,is.na(assigned),supervised==TRUE) %>% 
-    melt(id.vars = c("train_dataset","test_dataset","methods","batch_effects_removed"),measure.vars=c("unlabeled_pctg","cluster_num","pred_type_max_pctg"),variable.name="metrics") %>%
+    melt(id.vars = c("train_dataset","test_dataset","methods","batch_effects_removed"),measure.vars=c("unlabeled_pctg","pred_type_max_pctg"),variable.name="metrics") %>%
     dcast(train_dataset+test_dataset+metrics+batch_effects_removed ~ methods)
+  
+  unsup_other_results <- dplyr::filter(exp_results,is.na(assigned),supervised==F) %>% 
+    melt(id.vars = c("train_dataset","test_dataset","methods","batch_effects_removed"),measure.vars=c("cluster_num","pred_type_max_pctg"),variable.name="metrics") %>%
+    dcast(train_dataset+test_dataset+metrics+batch_effects_removed ~ methods)
+  
   combined_prop_metric_results <- left_join(metric_results,dataset_prop,by=c("train_dataset","test_dataset","batch_effects_removed"))
   combined_prop_other_results <- left_join(other_results,dataset_prop,by=c("train_dataset","test_dataset","batch_effects_removed"))
-  summary.output_excel(experiment,combined_prop_metric_results,combined_prop_other_results)
+  combined_prop_unsup_other_results <- left_join(unsup_other_results,dataset_prop,by=c("train_dataset","test_dataset","batch_effects_removed"))
+  summary.output_excel(experiment,combined_prop_metric_results,combined_prop_other_results,combined_prop_unsup_other_results)
 }
 
 
@@ -201,7 +236,7 @@ summary.read_results_from_dir <- function(current_dir){
   }
 }
 
-summary.output_excel <- function(experiment,combined_prop_metric_results,combined_prop_unlabeled_pctg_results){
+summary.output_excel <- function(experiment,combined_prop_metric_results,combined_prop_unlabeled_pctg_results,combined_prop_unsup_other_results){
   require(xlsx)
   excel_file_name <- str_glue("{result_home}{experiment}/{experiment}_summarized_results.xlsx")
   wb <- createWorkbook()
@@ -258,16 +293,29 @@ summary.output_excel <- function(experiment,combined_prop_metric_results,combine
   setColumnWidth(sheet = unassigned_results_ws, colIndex = 1:dim(unassigned_results_sheet)[[2]],colWidth = colWidth)
   
   ######unlabeled pctg sheet
-  unlabeled_pctg_ws <- createSheet(wb, sheetName = "Other metrics(unlabeled pctg, cluster num...)")
+  unlabeled_pctg_ws <- createSheet(wb, sheetName = "Supervised methods other metrics(unlabeled pctg...)")
   rows <- createRow(unlabeled_pctg_ws, rowIndex = 1)
   sheetTitle4 <- createCell(rows, colIndex = 1)
-  setCellValue(sheetTitle4[[1,1]], "Other metrics(unlabeled pctg, cluster num...)")
+  setCellValue(sheetTitle4[[1,1]], "Other metrics(unlabeled pctg...)")
   setCellStyle(sheetTitle4[[1,1]], title_style)
   addDataFrame(combined_prop_unlabeled_pctg_results, sheet = unlabeled_pctg_ws, startRow = 3, startColumn = 1,
                colnamesStyle = colname_style,
                rownamesStyle = rowname_style,
                row.names = FALSE)
   setColumnWidth(sheet = unlabeled_pctg_ws, colIndex = 1:dim(combined_prop_unlabeled_pctg_results)[[2]], colWidth = colWidth)
+  saveWorkbook(wb, file = excel_file_name)
+  
+  ######unsupervised methods other metrics
+  unsupervised_other_ws <- createSheet(wb, sheetName = "Unsupervised methods other metrics(cluster number...)")
+  rows <- createRow(unsupervised_other_ws, rowIndex = 1)
+  sheetTitle5 <- createCell(rows, colIndex = 1)
+  setCellValue(sheetTitle5[[1,1]], "Other metrics(cluster number...)")
+  setCellStyle(sheetTitle5[[1,1]], title_style)
+  addDataFrame(combined_prop_unsup_other_results, sheet = unsupervised_other_ws, startRow = 3, startColumn = 1,
+               colnamesStyle = colname_style,
+               rownamesStyle = rowname_style,
+               row.names = FALSE)
+  setColumnWidth(sheet = unsupervised_other_ws, colIndex = 1:dim(combined_prop_unsup_other_results)[[2]], colWidth = colWidth)
   saveWorkbook(wb, file = excel_file_name)
   
 }

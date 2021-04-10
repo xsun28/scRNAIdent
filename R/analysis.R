@@ -87,6 +87,7 @@ analysis.pivot_table <- function(data,row,col1,col2=NULL,func="n()"){
 }
 
 analysis.dataset.complexity <- function(data){
+  require(scater)
   stopifnot(is(data,"SingleCellExperiment"))
   stopifnot("label" %in% colnames(colData(data)))
   counts(data) <- as.matrix(counts(data))
@@ -191,3 +192,30 @@ analysis.dataset.batch_effects <- function(dataset1,dataset2){
   mean(batch_distance)
 }
 
+
+
+analysis.interdata.correlation <- function(data1,data2){
+  require(scater)
+  stopifnot(is(data1,"SingleCellExperiment"))
+  stopifnot(is(data2,"SingleCellExperiment"))
+  get_expression_matrix <- function(data){
+    
+    stopifnot("label" %in% colnames(colData(data)))
+    counts(data) <- as.matrix(counts(data))
+    agg_sce <- aggregateAcrossCells(data,ids = data$label)
+    agg_count <- assay(agg_sce,"counts")
+    agg_count <- agg_count[,apply(agg_count,2,sum)>0]
+  }
+  
+  matrix1 <- get_expression_matrix(data1)
+  matrix2 <- get_expression_matrix(data2)
+  matrix1 <- matrix1[intersect(rownames(matrix1),rownames(matrix2)),]
+  matrix2 <- matrix2[intersect(rownames(matrix1),rownames(matrix2)),]
+  celltype <- intersect(colnames(matrix1),colnames(matrix2))
+  corr <- vector()
+  for(i in seq_along(celltype)){
+    corr[i] <- cor(matrix1[,celltype[[i]]],matrix2[,celltype[[i]]])
+  }
+  correlation <- median(corr)
+  correlation
+}
