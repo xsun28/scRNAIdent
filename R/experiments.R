@@ -647,10 +647,10 @@ experiments.inter_diseases <- function(experiment){
   combined_raw_results <- vector('list',dim(datasets_perm2)[[1]])
   for(i in 1:dim(datasets_perm2)[[1]]){
     # experiments.data[[experiment]] <<- unlist(datasets_comb2[,i])
-    experiments.parameters[[experiment]]$train_sample_num <<- experiments.parameters.batch_effects[[datasets_perm2[i,1]]]$train_sample_num
-    experiments.parameters[[experiment]]$train_sample_pctg <<- experiments.parameters.batch_effects[[datasets_perm2[i,1]]]$train_sample_pctg
-    experiments.parameters[[experiment]]$test_sample_num <<- experiments.parameters.batch_effects[[datasets_perm2[i,2]]]$test_sample_num
-    experiments.parameters[[experiment]]$test_sample_pctg <<- experiments.parameters.batch_effects[[datasets_perm2[i,2]]]$test_sample_pctg
+    experiments.parameters[[experiment]]$train_sample_num <<- experiments.parameters.inter_diseases[[datasets_perm2[i,1]]]$train_sample_num
+    experiments.parameters[[experiment]]$train_sample_pctg <<- experiments.parameters.inter_diseases[[datasets_perm2[i,1]]]$train_sample_pctg
+    experiments.parameters[[experiment]]$test_sample_num <<- experiments.parameters.inter_diseases[[datasets_perm2[i,2]]]$test_sample_num
+    experiments.parameters[[experiment]]$test_sample_pctg <<- experiments.parameters.inter_diseases[[datasets_perm2[i,2]]]$test_sample_pctg
     
     print(str_glue("experiment data is {experiments.data[[experiment]]}"))
     experiments.assign.data$train_dataset[[experiment]] <<- unlist(datasets_perm2[i,])[1]
