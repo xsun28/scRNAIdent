@@ -222,7 +222,7 @@ assign.garnett <- function(train_data,test_data,exp_config){
                              cluster_extend = TRUE,
                              cds_gene_id_type = gene_name_type)
   utils.clean_marker_files()
-  unlist(list(pData(cds_test)$cell_type))
+  cds_test$cell_type
 }
 
 
@@ -566,7 +566,7 @@ cluster.monocle3 <- function(data) {
   cds <- preprocess_cds(cds, num_dim = num_dim)
   cds <- reduce_dimension(cds,reduction_method = 'UMAP')
   cds <- cluster_cells(cds, resolution=1e-5)
-  as.character(partitions(cds))
+  as.character(monocle3::clusters(cds))
 
 }
 
