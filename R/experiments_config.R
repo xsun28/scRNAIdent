@@ -1,6 +1,6 @@
-experiment <- "cell_number"
+experiment <- "simple_accuracy"
 
-experiments.data <- list(simple_accuracy="PBMC_AllCells_withLabels.RDS", 
+experiments.data <- list(simple_accuracy="midbrain_human.RDS", 
                                  cell_number="ADASD_autism.RDS", 
                                  sequencing_depth="ADASD_AD.RDS",
                                  celltype_structure="GSE96583_8_Stim_Pats.RDS",
@@ -15,12 +15,12 @@ experiments.data <- list(simple_accuracy="PBMC_AllCells_withLabels.RDS",
                                  )
 
 experiments.assign.data <- list(
-  train_dataset=list(simple_accuracy="PBMC_AllCells_withLabels.RDS", 
+  train_dataset=list(simple_accuracy="midbrain_human.RDS", 
                      cell_number="ADASD_autism.RDS", 
                      sequencing_depth="ADASD_AD.RDS",
                      celltype_structure="GSE96583_8_Stim_Pats.RDS"),
                      # inter_diseases="GSE96583_8_Ctrl_Pats.RDS"),
-  test_dataset=list(simple_accuracy="PBMC_AllCells_withLabels.RDS", 
+  test_dataset=list(simple_accuracy="midbrain_human.RDS", 
                     cell_number="ADASD_autism.RDS", 
                     sequencing_depth="ADASD_AD.RDS",
                     celltype_structure="GSE96583_8_Stim_Pats.RDS")
@@ -28,7 +28,7 @@ experiments.assign.data <- list(
   )
   
 ##for batch effects removed, scmap and singlecellnet doesn't work
-experiments.methods.base_config <- list(cluster=c('seurat','tscan','sc3','liger'),assign=c('scmap_cluster','scmap_cell','chetah','singlecellnet','garnett','singleR'),marker_gene_assign=c("cellassign"))
+experiments.methods.base_config <- list(cluster=c('seurat','tscan','sc3','liger','cidr','monocle3','pcaReduce'),assign=c('scmap_cluster','scmap_cell','chetah','singlecellnet','garnett','singleR'),marker_gene_assign=c("cellassign"))
 experiments.methods <- list(
   simple_accuracy=experiments.methods.base_config, 
   cell_number=experiments.methods.base_config,
@@ -46,15 +46,16 @@ experiments.methods <- list(
 
 
 ######simple accuracy config
-experiments.parameters.simple_accuracy.base_config <- list(train_sample_pctg=0.8,train_sample_num=NULL,test_sample_pctg=1,test_sample_num=NULL, 
+experiments.parameters.simple_accuracy.base_config <- list(train_sample_pctg=0.7,train_sample_num=NULL,test_sample_pctg=1,test_sample_num=NULL, 
                                                            cv=TRUE, cv_fold=5,metrics=c('ARI','AMI','FMI'), marker_gene_file=NULL)
 
-experiments.parameters.simple_accuracy.base_config.PBMC <- list(train_sample_pctg=0.2,train_sample_num=NULL,test_sample_pctg=0.2,test_sample_num=NULL, 
+experiments.parameters.simple_accuracy.base_config.PBMC <- list(train_sample_pctg=0.08,train_sample_num=NULL,test_sample_pctg=0.2,test_sample_num=NULL, 
                                                                 cv=TRUE, cv_fold=5,metrics=c('ARI','AMI','FMI'), marker_gene_file=NULL)
 
-experiments.parameters.simple_accuracy.base_config.pancreas <- experiments.parameters.simple_accuracy.base_config
+experiments.parameters.simple_accuracy.base_config.pancreas <- list(train_sample_pctg=0.5,train_sample_num=NULL,test_sample_pctg=0.2,test_sample_num=NULL, 
+                                                                    cv=TRUE, cv_fold=5,metrics=c('ARI','AMI','FMI'), marker_gene_file=NULL)
 
-experiments.parameters.simple_accuracy.base_config.ADASD <- list(train_sample_pctg=0.05,train_sample_num=NULL,test_sample_pctg=0.05,test_sample_num=NULL, 
+experiments.parameters.simple_accuracy.base_config.ADASD <- list(train_sample_pctg=0.015,train_sample_num=NULL,test_sample_pctg=0.05,test_sample_num=NULL, 
                                                                  cv=TRUE, cv_fold=5,metrics=c('ARI','AMI','FMI'), marker_gene_file=NULL)
 
 experiments.parameters.simple_accuracy.base_config.midbrain <- experiments.parameters.simple_accuracy.base_config
@@ -63,7 +64,7 @@ experiments.parameters.simple_accuracy.base_config.cellbench <- experiments.para
 
 
 experiments.parameters.simple_accuracy <- list(
-  PBMC_AllCells_withLabels.RDS = list(train_sample_pctg=0.05,train_sample_num=NULL,test_sample_pctg=0.05,test_sample_num=NULL, 
+  PBMC_AllCells_withLabels.RDS = list(train_sample_pctg=0.02,train_sample_num=NULL,test_sample_pctg=0.05,test_sample_num=NULL, 
                                   cv=TRUE, cv_fold=5,metrics=c('ARI','AMI','FMI'), marker_gene_file=NULL),
   GSE96583_batch1_3_samples.RDS = experiments.parameters.simple_accuracy.base_config.PBMC,
   GSE96583_8_Stim_Pats.RDS = experiments.parameters.simple_accuracy.base_config.PBMC,
@@ -72,7 +73,8 @@ experiments.parameters.simple_accuracy <- list(
   Segerstolpe_pancreas_clean.RDS = experiments.parameters.simple_accuracy.base_config.pancreas,
   Xin_pancreas_clean.RDS = experiments.parameters.simple_accuracy.base_config.pancreas,
   ADASD_AD.RDS = experiments.parameters.simple_accuracy.base_config.ADASD,
-  ADASD_autism.RDS = experiments.parameters.simple_accuracy.base_config.ADASD,
+  ADASD_autism.RDS = list(train_sample_pctg=0.01,train_sample_num=NULL,test_sample_pctg=0.005,test_sample_num=NULL, 
+                          cv=TRUE, cv_fold=5,metrics=c('ARI','AMI','FMI'), marker_gene_file=NULL),
   midbrain_human.RDS = experiments.parameters.simple_accuracy.base_config.midbrain,
   midbrain_mouse.RDS = experiments.parameters.simple_accuracy.base_config.midbrain,
   cellbench_10x.RDS = experiments.parameters.simple_accuracy.base_config.cellbench,
@@ -87,14 +89,17 @@ experiments.parameters.cell_number.base_config <- list(sample_pctg=c(0.4,0.6,0.8
                                                        train_sampling=F, test_sampling=T, cv=F,cv_fold=NULL,metrics=c('ARI','AMI','FMI'), 
                                                        marker_gene_file=NULL,trained=F)
 
-experiments.parameters.cell_number.base_config.PBMC <- list(sample_pctg=c(0.05,0.1,0.2,0.3),sample_num=NULL,train_sample_pctg=0.1,
+experiments.parameters.cell_number.base_config.PBMC <- list(sample_pctg=c(0.1,0.2,0.3,0.4),sample_num=NULL,train_sample_pctg=0.08,
                                                             train_sample_num=NULL, test_sample_pctg=0.1,test_sample_num=NULL,
                                                             train_sampling=F, test_sampling=T, cv=F,cv_fold=NULL,metrics=c('ARI','AMI','FMI'), 
                                                             marker_gene_file=NULL,trained=F)
 
-experiments.parameters.cell_number.base_config.pancreas <- experiments.parameters.cell_number.base_config
+experiments.parameters.cell_number.base_config.pancreas <- list(sample_pctg=c(0.3,0.5,0.6,0.8),sample_num=NULL,train_sample_pctg=0.5,
+                                                                train_sample_num=NULL, test_sample_pctg=NULL,test_sample_num=NULL,
+                                                                train_sampling=F, test_sampling=T, cv=F,cv_fold=NULL,metrics=c('ARI','AMI','FMI'), 
+                                                                marker_gene_file=NULL,trained=F)
 
-experiments.parameters.cell_number.base_config.ADASD <- list(sample_pctg=c(0.02,0.03,0.04,0.05),sample_num=NULL,train_sample_pctg=0.06,
+experiments.parameters.cell_number.base_config.ADASD <- list(sample_pctg=c(0.01,0.015,0.03,0.04),sample_num=NULL,train_sample_pctg=0.015,
                                                              train_sample_num=NULL, test_sample_pctg=0.1,test_sample_num=NULL,
                                                              train_sampling=F, test_sampling=T, cv=F,cv_fold=NULL,metrics=c('ARI','AMI','FMI'), 
                                                              marker_gene_file=NULL,trained=F)
@@ -104,7 +109,7 @@ experiments.parameters.cell_number.base_config.midbrain <- experiments.parameter
 experiments.parameters.cell_number.base_config.cellbench <- experiments.parameters.cell_number.base_config
 
 experiments.parameters.cell_number <- list(
-  PBMC_AllCells_withLabels.RDS = list(sample_pctg=c(0.03,0.05,0.08,0.1),sample_num=NULL,train_sample_pctg=0.1,
+  PBMC_AllCells_withLabels.RDS = list(sample_pctg=c(0.03,0.05,0.08,0.1),sample_num=NULL,train_sample_pctg=0.02,
                                       train_sample_num=NULL, test_sample_pctg=0.1,test_sample_num=NULL,
                                       train_sampling=F, test_sampling=T, cv=F,cv_fold=NULL,metrics=c('ARI','AMI','FMI'), 
                                       marker_gene_file=NULL,trained=F),
@@ -115,7 +120,10 @@ experiments.parameters.cell_number <- list(
   Segerstolpe_pancreas_clean.RDS = experiments.parameters.cell_number.base_config.pancreas,
   Xin_pancreas_clean.RDS = experiments.parameters.cell_number.base_config.pancreas,
   ADASD_AD.RDS = experiments.parameters.cell_number.base_config.ADASD,
-  ADASD_autism.RDS = experiments.parameters.cell_number.base_config.ADASD,
+  ADASD_autism.RDS = list(sample_pctg=c(0.008,0.01,0.015,0.03),sample_num=NULL,train_sample_pctg=0.01,
+                          train_sample_num=NULL, test_sample_pctg=0.1,test_sample_num=NULL,
+                          train_sampling=F, test_sampling=T, cv=F,cv_fold=NULL,metrics=c('ARI','AMI','FMI'), 
+                          marker_gene_file=NULL,trained=F),
   midbrain_human.RDS = experiments.parameters.cell_number.base_config.midbrain,
   midbrain_mouse.RDS = experiments.parameters.cell_number.base_config.midbrain,
   cellbench_10x.RDS = experiments.parameters.cell_number.base_config.cellbench,

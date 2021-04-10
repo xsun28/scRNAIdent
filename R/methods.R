@@ -21,6 +21,9 @@ run_cluster_methods <- function(method,data){
          seurat = cluster.seurat(data),
          cidr = cluster.cidr(data),
          tscan = cluster.tscan(data),
+         cidr = cluster.cidr(data),
+         monocle3 = cluster.monocle3(data),
+         pcaReduce = cluster.pcaReduce(data),
          stop("No such cluster method")
   )
 }
@@ -529,46 +532,20 @@ cluster.liger <- function(data){
 }
 
 
-
-
-
-
-
-### Monocle
-cluster.monocle <- function(counts, K) {
-  require(monocle)
-  dat <- newCellDataSet(counts)
-  dat <- estimateSizeFactors(dat)
-  dat <- estimateDispersions(dat)
-  
-  ## pick marker genes for cell clustering
-  disp_table <- dispersionTable(dat)
-  ix <- order(disp_table[,"mean_expression"], decreasing=TRUE)
-  unsup_clustering_genes <- disp_table[ix[50:1000], "gene_id"]
-  ## unsup_clustering_genes <- subset(disp_table, mean_expression >= 1)
-  dat <- setOrderingFilter(dat, unsup_clustering_genes)
-  ## the follwoing step can be slow. Need to keep marker genes number low.
-  dat <- reduceDimension(dat, reduction_method="tSNE")
-  
-  ## clustering
-  if( !missing(K) )
-    dat <- clusterCells(dat, num_clusters = K)
-  else
-    dat <- clusterCells(dat)
-  
-  pData(dat)$Cluster
-}
-
 ### CIDR
-cluster.cidr <- function(counts, K) {
+cluster.cidr <- function(data) {
   require(cidr)
-  sData <- scDataConstructor(counts)
+  m_config <- methods.config.cidr
+  stopifnot(is(data,"SingleCellExperiment"))
+  
+  sData <- scDataConstructor(as.matrix(counts(data)))
   sData <- determineDropoutCandidates(sData)
   sData <- wThreshold(sData)
   sData <- scDissim(sData)
   sData <- scPCA(sData, plotPC=FALSE)
   sData <- nPC(sData)
-  if(missing(K))
+  K <- m_config$K
+  if(purrr::is_null(K))
     sData <- scCluster(sData)
   else
     sData <- scCluster(sData, nCluster=K)
@@ -576,4 +553,33 @@ cluster.cidr <- function(counts, K) {
   return(sData@clusters)
 }
 
+### Monocle
+cluster.monocle3 <- function(data) {
+  stopifnot(is(data,"SingleCellExperiment"))
+  require(monocle3)
+  m_config <- methods.config.monocle3
+  num_dim <- if(purrr::is_null(m_config$num_dim)) 100 else m_config$num_dim
+  cds <- new_cell_data_set(as.matrix(counts(data)),
+                           cell_metadata = colData(data),
+                           gene_metadata = rowData(data))
+  
+  cds <- preprocess_cds(cds, num_dim = num_dim)
+  cds <- reduce_dimension(cds,reduction_method = 'UMAP')
+  cds <- cluster_cells(cds, resolution=1e-5)
+  as.character(partitions(cds))
+
+}
+
+###pcaReduce
+cluster.pcaReduce <- function(data) {
+  stopifnot(is(data,"SingleCellExperiment"))
+  require(pcaReduce)
+  m_config <- methods.config.pcaReduce
+  counts(data) <- as.matrix(counts(data))
+  data <- logNormCounts(data)
+  Input <- t(logcounts(data))
+  Output_S <- PCAreduce(Input, nbt=1, q=25, method='S')
+  K <- if(purrr::is_null(m_config$K)) 10 else m_config$K
+  Output_S[[1]][,K]
+}
 

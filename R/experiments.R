@@ -182,16 +182,23 @@ experiments.base.analyze <- function(assign_results,cluster_results,exp_config){
   cluster_methods <- colnames(cluster_results)[colnames(cluster_results)!="label"]
   assign_methods <- colnames(assign_results)[colnames(assign_results)!="label"]
   unlabeled_pctg_results <- analysis.run(assign_results,assign_methods,c("unlabeled_pctg"))
-  cluster_num <- analysis.run(assign_results,assign_methods,c("cluster_num"))
-  pred_type_max_pctg <- analysis.run(assign_results,assign_methods,c("pred_type_max_pctg"))
-  results <- list(assign_results=assign_results,cluster_results=cluster_results)
-  cluster_analysis_results <- analysis.run(results$cluster_results,cluster_methods,exp_config$metrics)
-  cluster_analysis_results$supervised <- F
-  assign_analysis_results <- analysis.run(results$assign_results,assign_methods,exp_config$metrics) %>%
-    dplyr::bind_cols(unlabeled_pctg_results) %>% dplyr::bind_cols(cluster_num) %>% 
-    dplyr::bind_cols(pred_type_max_pctg)
+  supervised_cluster_num <- analysis.run(assign_results,assign_methods,c("cluster_num"))
+  supervised_pred_type_max_pctg <- analysis.run(assign_results,assign_methods,c("pred_type_max_pctg"))
+  assign_analysis_results <- analysis.run(assign_results,assign_methods,exp_config$metrics) %>%
+    dplyr::bind_cols(unlabeled_pctg_results) %>% dplyr::bind_cols(supervised_cluster_num) %>% 
+    dplyr::bind_cols(supervised_pred_type_max_pctg)
   assign_analysis_results$supervised <- T
   
+  unsupervised_cluster_num <- analysis.run(cluster_results,cluster_methods,c("cluster_num"))
+  unsupervised_pred_type_max_pctg <- analysis.run(cluster_results,cluster_methods,c("pred_type_max_pctg"))
+  cluster_analysis_results <- analysis.run(cluster_results,cluster_methods,exp_config$metrics) %>%
+    dplyr::bind_cols(unsupervised_cluster_num) %>% 
+    dplyr::bind_cols(unsupervised_pred_type_max_pctg)
+  cluster_analysis_results$supervised <- F
+  
+
+  
+  results <- list(assign_results=assign_results,cluster_results=cluster_results)
   ####
   assigned_results <- utils.select_assigned(results)
   
@@ -242,7 +249,7 @@ experiments.base <- function(experiment, exp_config){
     
     test_samples <- colnames(assign_data_results$test_data)
     test_data_props <- analysis.dataset.properties(assign_data_results$test_data)
-
+    train_test_corr <- analysis.interdata.correlation(assign_data,assign_data_results$test_data)
     # test_data_props$dataset_usage <- "test"
 
     # output.dataset.properties_table(test_data_props,prop_tbl_path,prefix="test")
@@ -288,6 +295,9 @@ experiments.base <- function(experiment, exp_config){
                                   return(.)
                                   })
     }
+    report_results <- purrr::map(report_results,~{.$train_test_correlation=train_test_corr
+                                  return(.)
+                                  })
     if(experiment %in% c("batch_effects")){
       report_results <- purrr::map(report_results,~{.$batch_effects_amount=batch_effects_quant
                                                      return(.)
