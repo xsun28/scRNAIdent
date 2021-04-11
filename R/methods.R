@@ -566,7 +566,7 @@ cluster.monocle3 <- function(data) {
   cds <- preprocess_cds(cds, num_dim = num_dim)
   cds <- reduce_dimension(cds,reduction_method = 'UMAP')
   cds <- cluster_cells(cds, resolution=1e-5)
-  as.character(monocle3::clusters(cds))
+  as.integer(monocle3::clusters(cds))
 
 }
 

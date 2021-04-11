@@ -713,7 +713,7 @@ experiments.run_assign <- function(methods, train_data, test_data=NA, exp_config
       m_result <- utils.try_catch_method_error(run_assign_methods(m,train_data,test_data,exp_config))
       if(inherits(m_result,"try-error")){
         print(str_glue("error occurs in {m}:{m_result}"))
-        error(logger, str_glue("error occurs in {m}:{m_result}"))
+        error(logger, str_glue("error occurs in {output.dataset_name[[experiment]]}, {m}:{m_result}"))
         # results <- dplyr::select(results,-m)
       }else{
         print(str_glue("{m} finished correctly"))
@@ -738,7 +738,7 @@ experiments.run_marker_gene_assign <- function(methods,data,exp_config){
     m_result <- utils.try_catch_method_error(run_assign_methods(m,data,NULL,exp_config))
     if(inherits(m_result,"try-error")){
       print(str_glue("error occurs in {m}:{m_result}"))
-      error(logger, str_glue("error occurs in {m}:{m_result}"))
+      error(logger, str_glue("error occurs in {output.dataset_name[[experiment]]}, {m}:{m_result}"))
       # results <- dplyr::select(results,-m)
     }else{
       print(str_glue("{m} finished correctly"))
@@ -763,7 +763,7 @@ experiments.run_cluster <- function(methods,data,exp_config){
     m_result <- utils.try_catch_method_error(run_cluster_methods(m,data))
     if(inherits(m_result,"try-error")){
       print(str_glue("error occurs in {m}:{m_result}"))
-      error(logger, str_glue("error occurs in {m}:{m_result}"))
+      error(logger, str_glue("error occurs in {output.dataset_name[[experiment]]}, {m}:{m_result}"))
       # results <- dplyr::select(results,-m)
     }else{
       print(str_glue("{m} finished correctly"))
@@ -794,7 +794,7 @@ experiments.run_cv <- function(methods, data,exp_config){
       if(inherits(m_result,"try-error")){
         # combined_results[[m]][-folds[[i]]] <- NULL
         print(str_glue("error occurs in {m}, cv folds:{i}:{m_result}"))
-        error(logger, str_glue("error occurs in {m}, cv folds:{i}:{m_result}"))
+        error(logger, str_glue("error occurs in {output.dataset_name[[experiment]]}, {m}, cv folds:{i}:{m_result}"))
         next
       }else{
         print(str_glue("{m} in cv folds:{i} finished correctly"))
