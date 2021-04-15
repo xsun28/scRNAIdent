@@ -16,28 +16,28 @@ datasets <- list(PBMC=list("PBMC_AllCells_withLabels.RDS","GSE96583_batch1_3_sam
                  )
 
 dataset.properties <- list(
-                          PBMC_AllCells_withLabels=list(sample_threshold=30,gene_name_type="SYMBOL"),
-                          GSE96583_batch1_3_samples=list(sample_threshold=30,gene_name_type="SYMBOL",cell_type_map="PBMC_celltype_map.csv"),
-                          GSE96583_8_Stim_Pats=list(sample_threshold=30,gene_name_type="SYMBOL",cell_type_map="PBMC_celltype_map.csv"),
-                          GSE96583_8_Ctrl_Pats=list(sample_threshold=30,gene_name_type="SYMBOL",cell_type_map="PBMC_celltype_map.csv"),
-                          ADASD_AD=list(sample_threshold=30,gene_name_type="SYMBOL"),
-                          ADASD_autism=list(sample_threshold=30,gene_name_type="SYMBOL"),
-                          Muraro_pancreas=list(sample_threshold=5,gene_name_type="SYMBOL",
+                          PBMC_AllCells_withLabels=list(sample_threshold=5,gene_name_type="SYMBOL"),
+                          GSE96583_batch1_3_samples=list(sample_threshold=5,gene_name_type="SYMBOL",cell_type_map="PBMC_celltype_map.csv"),
+                          GSE96583_8_Stim_Pats=list(sample_threshold=5,gene_name_type="SYMBOL",cell_type_map="PBMC_celltype_map.csv"),
+                          GSE96583_8_Ctrl_Pats=list(sample_threshold=5,gene_name_type="SYMBOL",cell_type_map="PBMC_celltype_map.csv"),
+                          ADASD_AD=list(sample_threshold=5,gene_name_type="SYMBOL"),
+                          ADASD_autism=list(sample_threshold=5,gene_name_type="SYMBOL"),
+                          Muraro_pancreas=list(sample_threshold=3,gene_name_type="SYMBOL",
                                                               cell_types=c('beta','alpha','delta',
                                                                           'acinar','ductal','gamma',
                                                                           'endothelial')),
-                          Segerstolpe_pancreas=list(sample_threshold=5,gene_name_type="SYMBOL",
+                          Segerstolpe_pancreas=list(sample_threshold=3,gene_name_type="SYMBOL",
                                                cell_types=c('beta','alpha','delta',
                                                             'acinar','ductal','gamma',
                                                             'endothelial')),
-                          Xin_pancreas=list(sample_threshold=5,gene_name_type="SYMBOL",
+                          Xin_pancreas=list(sample_threshold=3,gene_name_type="SYMBOL",
                                                cell_types=c('beta','alpha','delta',
                                                             'acinar','ductal','gamma',
                                                             'endothelial')),
-                          midbrain_human=list(sample_threshold=5,gene_name_type="SYMBOL"),
-                          midbrain_mouse=list(sample_threshold=5,gene_name_type="SYMBOL"),
-                          cellbench_10x=list(sample_threshold=5,gene_name_type="ENSEMBL"),
-                          cellbench_CELseq2=list(sample_threshold=5,gene_name_type="ENSEMBL"),
-                          cellbench_Dropseq=list(sample_threshold=5,gene_name_type="ENSEMBL")
+                          midbrain_human=list(sample_threshold=3,gene_name_type="SYMBOL"),
+                          midbrain_mouse=list(sample_threshold=3,gene_name_type="SYMBOL"),
+                          cellbench_10x=list(sample_threshold=3,gene_name_type="ENSEMBL"),
+                          cellbench_CELseq2=list(sample_threshold=3,gene_name_type="ENSEMBL"),
+                          cellbench_Dropseq=list(sample_threshold=3,gene_name_type="ENSEMBL")
                       )
 
