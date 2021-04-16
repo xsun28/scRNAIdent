@@ -66,15 +66,8 @@ experiments.base.assign <- function(experiment, exp_config){
     all_train_data <- utils.load_datasets(experiments.assign.data$train_dataset[[experiment]])
     if(!purrr::is_null(exp_config$fixed_train)&&exp_config$fixed_train){
       print("train sample is fixed")
-      if(purrr::is_null(exp_config$train_sample_index)){
-        print("generating train sample index")
-        train_data <- constructor.data_constructor(all_train_data, config=exp_config,experiment=experiment,if_train = TRUE)
-        experiments.parameters[[experiment]]$train_sample_index <<- colnames(train_data)
-      }else{
-        print("train sample index exists, generating train data")
-        train_data <- constructor.data_constructor(all_train_data, config=exp_config,
-                                                   experiment=experiment,if_train = TRUE, sample_index = exp_config$train_sample_index)
-      }
+      sample_seed <- if(purrr::is_null(exp_config$sample_seed)) 10 else exp_config$sample_seed
+      train_data <- constructor.data_constructor(all_train_data, config=exp_config,experiment=experiment,if_train = TRUE, sample_seed)
     }else{
       print("train sample is not fixed")
       train_data <- constructor.data_constructor(all_train_data, config=exp_config,experiment=experiment,if_train = TRUE)
@@ -83,47 +76,29 @@ experiments.base.assign <- function(experiment, exp_config){
     colData(train_data)$barcode <- colnames(train_data)
     colnames(train_data) <- 1:length(colnames(train_data))
     if(!purrr::is_null(exp_config$fixed_test)&&exp_config$fixed_test){
+      sample_seed <- if(purrr::is_null(exp_config$sample_seed)) 10 else exp_config$sample_seed
       print("test sample is fixed")
       if(experiments.assign.data$train_dataset[[experiment]]==experiments.assign.data$test_dataset[[experiment]]){
         print(str_glue('train_dataset = test_dataset'))
-        test_sample_data <- all_train_data[,setdiff(colnames(all_train_data),colnames(train_data))]
-        if(purrr::is_null(exp_config$test_sample_index)){
-          print("generating test sample index")
-          test_data <- constructor.data_constructor(test_sample_data, config=exp_config, 
-                                                    experiment = experiment,if_train = FALSE)
-          experiments.parameters[[experiment]]$test_sample_index <<- colnames(test_data)
-        }else{
-          print("test sample index exists, generating train data")
-          test_data <- constructor.data_constructor(test_sample_data, config=exp_config,
-                                                     experiment=experiment,if_train = F, sample_index = exp_config$test_sample_index)
-        }
+        test_data <- all_train_data[,setdiff(colnames(all_train_data),colnames(train_data))]
       }else{
         print(str_glue('train_dataset != test_dataset'))
         test_data <- utils.load_datasets(experiments.assign.data$test_dataset[[experiment]])
-        if(purrr::is_null(exp_config$test_sample_index)){
-          print("generating test sample index")
-          test_data <- constructor.data_constructor(test_data, config=exp_config,
-                                                    experiment = experiment,if_train = FALSE)
-          experiments.parameters[[experiment]]$test_sample_index <<- colnames(test_data)
-        }else{
-          print("test sample index exists, generating train data")
-          test_data <- constructor.data_constructor(test_data, config=exp_config,
-                                                    experiment=experiment,if_train = FALSE, sample_index = exp_config$test_sample_index)
-        }
       }
+      test_data <- constructor.data_constructor(test_data, config=exp_config, 
+                                                experiment = experiment,if_train = FALSE, sample_seed)
     }else{
       print("test sample is not fixed")
       if(experiments.assign.data$train_dataset[[experiment]]==experiments.assign.data$test_dataset[[experiment]]){
         #####same train/test dataset 
         print(str_glue('train_dataset = test_dataset'))
-        test_sample_data <- all_train_data[,setdiff(colnames(all_train_data),colnames(train_data))]
-        test_data <- constructor.data_constructor(test_sample_data, config=exp_config,
-                                                  experiment = experiment,if_train = FALSE)
+        test_data <- all_train_data[,setdiff(colnames(all_train_data),colnames(train_data))]
       }else{#####interdataset
         print(str_glue('train_dataset != test_dataset'))
-        test_data <- utils.load_datasets(experiments.assign.data$test_dataset[[experiment]]) %>%
-          constructor.data_constructor(config=exp_config,experiment = experiment,if_train = FALSE)
+        test_data <- utils.load_datasets(experiments.assign.data$test_dataset[[experiment]]) 
       }
+      test_data <- constructor.data_constructor(test_data, config=exp_config,
+                                                experiment = experiment,if_train = FALSE)
     }
     # colData(test_data)$unique_id <- (dim(colData(train_data))[[1]]+1):(dim(colData(train_data))[[1]]+dim(colData(test_data))[[1]])
     colData(test_data)$barcode <- colnames(test_data)
@@ -521,12 +496,9 @@ experiments.batch_effects <- function(experiment){
   combined_assign_results <- vector('list',dim(datasets_perm2)[[1]])
   combined_raw_results <- vector('list',dim(datasets_perm2)[[1]])
   intersected_datasets <- vector('list',dim(datasets_perm2)[[1]])
-  sample_index <-  vector('list',dim(datasets_perm2)[[1]])
   for(i in 1:dim(datasets_perm2)[1]){
     # experiments.data[[experiment]] <<- unlist(datasets_comb2[,i])
     # print(str_glue("experiment data is {experiments.data[[experiment]]}"))
-    experiments.parameters[[experiment]]$train_sample_index <<- NULL
-    experiments.parameters[[experiment]]$test_sample_index <<- NULL
     experiments.parameters[[experiment]]$train_sample_num <<- experiments.parameters.batch_effects[[datasets_perm2[i,1]]]$train_sample_num
     experiments.parameters[[experiment]]$train_sample_pctg <<- experiments.parameters.batch_effects[[datasets_perm2[i,1]]]$train_sample_pctg
     experiments.parameters[[experiment]]$test_sample_num <<- experiments.parameters.batch_effects[[datasets_perm2[i,2]]]$test_sample_num
@@ -556,8 +528,6 @@ experiments.batch_effects <- function(experiment){
     combined_assign_results[[i]] <- bind_rows(results[grepl(".*_assign_.*",names(results))])
     combined_cluster_results[[i]] <- bind_rows(results[grepl(".*cluster.*",names(results))])
     combined_raw_results[[i]] <- raw_results
-    sample_index[[i]]$train_sample_index <- experiments.parameters[[experiment]]$train_sample_index
-    sample_index[[i]]$teset_sample_index <- experiments.parameters[[experiment]]$test_sample_index
     utils.clean_marker_files()
   }
   combined_assign_results <- bind_rows(combined_assign_results)
@@ -577,8 +547,6 @@ experiments.batch_effects <- function(experiment){
     for(i in 1:dim(datasets_perm2)[1]){
       # experiments.data[[experiment]] <<- unlist(datasets_comb2_no_be[,i])
       # print(str_glue("experiment data is {experiments.data[[experiment]]}"))
-      experiments.parameters[[experiment]]$train_sample_index <<- sample_index[[i]]$train_sample_index
-      experiments.parameters[[experiment]]$test_sample_index <<- sample_index[[i]]$teset_sample_index
       data <- utils.load_datasets(unlist(intersected_datasets[[i]])) 
       data_no_be <- list(str_glue("{metadata(data[[1]])$study_name}_{metadata(data[[2]])$study_name}_batch_effects_removed.RDS"),
                          str_glue("{metadata(data[[2]])$study_name}_{metadata(data[[1]])$study_name}_batch_effects_removed.RDS")

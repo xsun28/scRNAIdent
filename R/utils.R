@@ -96,8 +96,10 @@ utils.filter <- function(data,filter_gene=TRUE, filter_cells=TRUE, filter_cell_t
 }
 
 ###sampling sample_num cells from each cell type
-utils.sampler <- function(data,sample_num=NULL,sample_pctg=NULL,types,column="label"){
+utils.sampler <- function(data,sample_num=NULL,sample_pctg=NULL,types,column="label",sample_seed=NULL){
   stopifnot(!((purrr::is_null(sample_num)&&purrr::is_null(sample_pctg))||(!purrr::is_null(sample_num)&&!purrr::is_null(sample_pctg))))
+  if(!purrr::is_null(sample_seed))
+    set.seed(sample_seed) #####ensures sample the same index by setting seed
   if(!purrr::is_null(sample_num)){
     sample_idx <- purrr::map(types,~ which(colData(data)[[column]]==.)) %>% 
       purrr::map(~sample(.,min(sample_num,length(.)),replace=FALSE)) 
