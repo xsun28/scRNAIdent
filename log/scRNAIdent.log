@@ -1,1 +1,7 @@
-DEBUG [2021-04-11 15:59:16] results methods: scmap_clusterresults methods: scmap_cellresults methods: chetahresults methods: singlecellnetresults methods: garnettresults methods: singleRresults methods: cellassign
+ERROR [2021-04-17 10:59:37] error occured Select k lower than the number of variable genes: 11
+ERROR [2021-04-17 10:59:37] error occured Select k lower than the number of variable genes: 11
+ERROR [2021-04-17 12:26:51] error occured dim(X) must have a positive length
+ERROR [2021-04-17 12:26:51] error occurs in ADASD_AD, tscan:dim(X) must have a positive length
+DEBUG [2021-04-17 12:36:14] results methods: scmap_clusterresults methods: scmap_cellresults methods: chetahresults methods: singlecellnetresults methods: garnettresults methods: singleRresults methods: cellassign
+DEBUG [2021-04-17 13:21:31] results methods: scmap_clusterresults methods: scmap_cellresults methods: chetahresults methods: singlecellnetresults methods: garnettresults methods: singleRresults methods: cellassign
+DEBUG [2021-04-17 14:08:16] results methods: scmap_clusterresults methods: scmap_cellresults methods: chetahresults methods: singlecellnetresults methods: garnettresults methods: singleRresults methods: cellassign

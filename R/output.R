@@ -1,10 +1,14 @@
 
 output.sink <- function(experiment,raw_results,results,exp_config=NULL){
   dataset <- output.dataset_name[[experiment]]
+  train_dataset <- str_split(experiments.assign.data$train_dataset[[experiment]],"\\.")[[1]][[1]]
+  test_dataset <- str_split(experiments.assign.data$test_dataset[[experiment]],"\\.")[[1]][[1]]
+  output_dir <- output.generate_output_path(experiment, train_dataset, test_dataset, exp_config)
+ 
   switch(experiment,
          simple_accuracy = output.simple_accuracy(raw_results,results,dataset,exp_config),
          cell_number = output.cell_number(raw_results,results,dataset,exp_config),
-         sequencing_depth = output.sequencing_depth(raw_results,results,dataset,exp_config),
+         sequencing_depth = output.sequencing_depth(raw_results,results,output_dir),
          celltype_structure = output.celltype_structure(raw_results,results,dataset,exp_config),
          batch_effects = output.batch_effects(raw_results,results,dataset,exp_config),
          inter_diseases = output.inter_diseases(raw_results,results,dataset,exp_config),
@@ -16,16 +20,17 @@ output.sink <- function(experiment,raw_results,results,exp_config=NULL){
   )
 }
 
-output.simple_accuracy <- function(raw_results,results,dataset,exp_config=NULL){
-  output.write_results("simple_accuracy",dataset,raw_results,results)
+output.simple_accuracy <- function(raw_results,results,train_dataset,test_dataset,exp_config=NULL){
+  output.write_results("simple_accuracy",train_dataset,test_dataset,raw_results,results,exp_config)
 }
 
 output.cell_number <- function(raw_results,results,dataset,exp_config=NULL){
   output.write_results("cell_number",dataset,raw_results,results)
 }
 
-output.sequencing_depth <- function(raw_results,results,dataset,exp_config=NULL){
-  output.write_results("sequencing_depth",dataset,raw_results,results)
+output.sequencing_depth <- function(raw_results,results, output_dir){
+  print(str_glue('start writing {experiment} results to {output_dir}'))
+  output.write_results(raw_results,results,output_dir)
 }
 
 output.celltype_structure <- function(raw_results,results,dataset,exp_config=NULL){
@@ -56,15 +61,14 @@ output.inter_protocol <- function(raw_results,results,dataset,exp_config=NULL){
   output.write_results("inter_protocol",dataset,raw_results,results)
 }
 
-output.write_results <- function(experiment,dataset,raw_results,results){
-  print(str_glue('start writing {dataset} {experiment} results'))
-  output_dir <- str_glue("{result_home}{experiment}/{dataset}")
+output.write_results <- function(raw_results,results,output_dir){
+
   if(!dir.exists(output_dir)){
     dir.create(output_dir,recursive=T)
   }
-  write_rds(raw_results,str_glue('{result_home}{experiment}/{dataset}/raw_results.rds'))
-  write_rds(results,str_glue('{result_home}{experiment}/{dataset}/results.rds'))
-  write_csv(rownames_to_column(bind_rows(results),'method'),str_glue('{result_home}{experiment}/{dataset}/results.csv'))
+  write_rds(raw_results,str_glue('{output_dir}/raw_results.rds'))
+  write_rds(results,str_glue('{output_dir}/results.rds'))
+  write_csv(rownames_to_column(bind_rows(results),'method'),str_glue('{output_dir}/results.csv'))
 }
 
 output.dataset.properties_table <- function(t, file_path_name=NULL,prefix=NULL){
@@ -81,6 +85,19 @@ output.dataset.properties_table <- function(t, file_path_name=NULL,prefix=NULL){
 }
 
 ####
-output.cell_number.summary <- function(results,dataset,exp_config){
-  
+output.generate_output_path <- function(experiment, train_dataset, test_dataset, exp_config){
+  if(purrr::is_null(test_dataset)){
+    output_dir <- str_glue("{result_home}{experiment}/{train_dataset}")
+  }else{
+    output_dir <- if(train_dataset==test_dataset) str_glue("{result_home}{experiment}/{train_dataset}") else str_glue("{result_home}{experiment}/{train_dataset}_{test_dataset}")
+  }
+  if(exp_config$fixed_train){
+    output_dir <- str_glue("{output_dir}_train_fixed")
+  }
+  if(exp_config$fixed_test){
+    output_dir <- str_glue("{output_dir}_test_fixed")
+  }
+  print(str_glue("output dir is {output_dir}"))
 }
+
+

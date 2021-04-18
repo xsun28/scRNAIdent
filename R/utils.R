@@ -111,14 +111,10 @@ utils.sampler <- function(data,sample_num=NULL,sample_pctg=NULL,types,column="la
 }
 
 ###select different sequencing depth cells, right means take the deeper sequencing data
-utils.seqDepthSelector <- function(data, quantile,right=TRUE){
+utils.seqDepthSelector <- function(data, low_quantile,high_quantile){
   require(SingleCellExperiment)
   stopifnot(is(data,"SingleCellExperiment"))
-  if(right){
-    return(data[,which(percent_rank(colData(data)$sum)>=quantile)])
-  }else{
-    return(data[,which(percent_rank(colData(data)$sum)<=quantile)])
-  }
+  return(data[,which((percent_rank(colData(data)$sum)>=low_quantile)&(percent_rank(colData(data)$sum)<=high_quantile))])
 }
 
 ###label unassigned cells in the tibble results

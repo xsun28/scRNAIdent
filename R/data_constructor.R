@@ -9,6 +9,7 @@ constructor.data_constructor <- function(data,config,experiment,if_train=TRUE,sa
   switch(experiment,
     simple_accuracy = constructor.simple_accuracy(data,config,if_train,sample_seed),
     cell_number = constructor.cell_number(data,config,if_train,sample_seed),
+    celltype_number = constructor.celltype_number(data,config,if_train,sample_index),
     sequencing_depth = constructor.sequencing_depth(data,config,if_train,sample_seed),
     celltype_structure = constructor.celltype_structure(data,config,if_train,sample_seed),
     batch_effects = constructor.batch_effects(data,config,if_train,sample_seed),
@@ -52,15 +53,57 @@ constructor.cell_number <- function(data,config, if_train,sample_seed=NULL){
   constructor.base(data,config,if_train,sample_seed)
 }
 
-constructor.sequencing_depth <- function(data,config,if_train,sample_seed=NULL){
-  quantile <- config$quantile
-  if_right <- config$right ###if take the deeper sequencing part
+constructor.celltype_number <- function(data,config,if_train,sample_index=NULL){
   if(if_train){
-    data <- utils.filter(data) %>%
-      utils.seqDepthSelector(quantile=quantile,right=if_right)
+    if(purrr::is_null(sample_index)){
+      if(!purrr::is_null(config$train_sample_num) && !is.na(config$train_sample_num)){
+        print(str_glue("start sampling train data: {config$train_sample_num} per cell type"))
+        data <- utils.sampler(data, sample_num=config$train_sample_num, sample_pctg = NULL, types=config$sample_celltype)
+      }else{
+        print(str_glue("start sampling train data: {config$train_sample_pctg} percentage per cell type"))
+        data <- utils.sampler(data, sample_num=NULL, sample_pctg = config$train_sample_pctg, types=config$sample_celltype)
+      }
+    }else{
+      data <- data[,sample_index]
+    }
   }else{
-    data <- utils.filter(data,filter_gene=FALSE) %>%
-      utils.seqDepthSelector(quantile=quantile,right=if_right)
+    if(purrr::is_null(sample_index)){
+      if(!purrr::is_null(config$test_sample_num) && !is.na(config$test_sample_num)){
+        print(str_glue("start sampling test data: {config$test_sample_num} per cell type"))
+        data <- utils.sampler(data, sample_num=config$test_sample_num, sample_pctg = NULL, types=config$sample_celltype)
+      }else{
+        print(str_glue("start sampling test data: {config$test_sample_pctg} percentage per cell type"))
+        data <- utils.sampler(data, sample_num=NULL, sample_pctg = config$test_sample_pctg, types=config$sample_celltype)
+      }
+    }else{
+      data <- data[,sample_index]
+    }
+  }
+  data <- data[!duplicated(rownames(data)),!duplicated(colnames(data))]
+}
+
+
+constructor.sequencing_depth <- function(data,config,if_train,sample_seed=NULL){
+  low_quantile <- config$low_quantile
+  high_quantile <- config$high_quantile 
+  if(if_train){
+    if(config$fixed_train){
+      print("in sequencing depth, sample fixed train dataset")
+      data <- constructor.base(data,config,if_train,sample_seed)
+    }else{
+      print("in sequencing depth, sample unfixed train dataset")
+      data <- utils.filter(data) %>%
+        utils.seqDepthSelector(low_quantile=low_quantile,high_quantile=high_quantile)
+    }
+  }else{
+    if(config$fixed_test){
+      print("in sequencing depth, sample fixed test dataset")
+      data <- constructor.base(data,config,if_train,sample_seed)
+    }else{
+      print("in sequencing depth, sample unfixed test dataset")
+      data <- utils.filter(data,filter_gene=FALSE) %>%
+        utils.seqDepthSelector(low_quantile=low_quantile,high_quantile=high_quantile)
+    }
   }
   data[!duplicated(rownames(data)),!duplicated(colnames(data))]
 }

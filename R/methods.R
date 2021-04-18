@@ -33,9 +33,9 @@ run_cluster_methods <- function(method,data){
 assign.scmap_cluster <- function(train_data, test_data, exp_config){
   require(scmap)
   require(scater)
-  if(experiment=="cell_number")
+  if(experiment %in% c("cell_number","sequencing_depth"))
     saved_trained_path <- str_glue("{pretrained_home}/{experiment}_scmap_cluster_trained.RData")
-  if(experiment=="cell_number" && exp_config$trained){
+  if(experiment %in% c("cell_number","sequencing_depth") && exp_config$trained){
     stopifnot(is(test_data,"SingleCellExperiment"))
     print(str_glue("scmap_cluster already trained, load from {saved_trained_path}"))
     load(saved_trained_path)
@@ -48,7 +48,7 @@ assign.scmap_cluster <- function(train_data, test_data, exp_config){
     train_data <- selectFeatures(train_data,n_features=methods.config.scmap[['nfeatures']]) %>%
       indexCluster(cluster_col = "label")
     index_list <- list(metadata(train_data)$scmap_cluster_index)
-    if(experiment=="cell_number"){
+    if(experiment %in% c("cell_number","sequencing_depth")){
       print(str_glue("saving {experiment} trained scmap_cluster to {saved_trained_path}"))
       save(index_list,file=saved_trained_path)
     }
@@ -65,9 +65,9 @@ assign.scmap_cluster <- function(train_data, test_data, exp_config){
 assign.scmap_cell <- function(train_data, test_data, exp_config){
   require(scmap)
   require(scater)
-  if(experiment=="cell_number")
+  if(experiment %in% c("cell_number","sequencing_depth"))
     saved_trained_path <- str_glue("{pretrained_home}/{experiment}_scmap_cell_trained.RData")
-  if(experiment=="cell_number" && exp_config$trained){
+  if(experiment %in% c("cell_number","sequencing_depth") && exp_config$trained){
     stopifnot(is(test_data,"SingleCellExperiment"))
     print(str_glue("scmap_cell already trained, load from {saved_trained_path}"))
     load(saved_trained_path)
@@ -81,7 +81,7 @@ assign.scmap_cell <- function(train_data, test_data, exp_config){
       indexCell()
     index_list <- list(metadata(train_data)$scmap_cell_index)
     train_labels <- list(as.character(colData(train_data)$label))
-    if(experiment=="cell_number"){
+    if(experiment %in% c("cell_number","sequencing_depth")){
       print(str_glue("saving {experiment} trained scmap_cell to {saved_trained_path}"))
       save(index_list,train_labels,file=saved_trained_path)
     }
@@ -138,7 +138,7 @@ assign.garnett <- function(train_data,test_data,exp_config){
   require(org.Hs.eg.db)
   require(org.Mm.eg.db)
   print("start method garnett")
-  if(experiment=="cell_number"){
+  if(experiment %in% c("cell_number","sequencing_depth")){
     saved_trained_path <- str_glue("{pretrained_home}/{experiment}_garnett_trained.RData")
     if(exp_config$trained){
       stopifnot(is(test_data,"SingleCellExperiment"))
@@ -196,7 +196,7 @@ assign.garnett <- function(train_data,test_data,exp_config){
     }
     num_unknown <- if(purrr::is_null(m_config[[study_name]]$num_unkown)) 50 else m_config[[study_name]]$num_unkown
     min_observations <- if(purrr::is_null(m_config[[study_name]]$num_unkown)) 8 else m_config[[study_name]]$num_unkown
-    if(!(experiment=="cell_number" && exp_config$trained)){
+    if(!(experiment %in% c("cell_number","sequencing_depth") && exp_config$trained)){
       cds_train <- assign.garnett.process_data(train_data, gene_name_type)
       classifier <- train_cell_classifier(cds = cds_train,
                                           marker_file = str_glue("{marker_home}/{marker_file_path}"),
@@ -206,7 +206,7 @@ assign.garnett <- function(train_data,test_data,exp_config){
                                           num_unknown = num_unknown,
                                           marker_file_gene_id_type = gene_name_type)
       write_rds(classifier,str_glue("{pretrained_home}/pretrained_{study_name}_{gene_name_type}_classifier.rds"))
-      if((experiment=="cell_number" && !exp_config$trained)){
+      if((experiment %in% c("cell_number","sequencing_depth") && !exp_config$trained)){
         print(str_glue("saving {experiment} trained garnett classifier to {saved_trained_path}"))
         save(classifier,file=saved_trained_path)
       }

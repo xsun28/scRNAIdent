@@ -1,7 +1,9 @@
 
-plot.plot <- function(experiment,results,raw_results){
+plot.plot <- function(experiment,results,raw_results, exp_config){
   dataset <- output.dataset_name[[experiment]]
-  
+  train_dataset <- str_split(experiments.assign.data$train_dataset[[experiment]],"\\.")[[1]][[1]]
+  test_dataset <- str_split(experiments.assign.data$test_dataset[[experiment]],"\\.")[[1]][[1]]
+  fig_path <- output.generate_output_path(experiment, train_dataset, test_dataset, exp_config)
   if(purrr::is_null(results)){
     results <- read_rds(str_glue("{result_home}/{experiment}/{dataset}/results.rds"))
   }
@@ -11,7 +13,7 @@ plot.plot <- function(experiment,results,raw_results){
   switch(experiment,
     simple_accuracy = plot.simple_accuracy(results,raw_results,dataset),
     cell_number = plot.cell_number(results,raw_results,dataset),
-    sequencing_depth = plot.sequencing_depth(results,raw_results,dataset),
+    sequencing_depth = plot.sequencing_depth(results,raw_results,fig_path),
     celltype_structure = plot.celltype_structure(results,raw_results,dataset),
     batch_effects = plot.batch_effects(results,raw_results,dataset),
     inter_diseases = plot.inter_diseases(results,raw_results,dataset),
@@ -270,14 +272,14 @@ plot.celltype_structure <- function(results,raw_results,dataset){
 }
 
 
-plot.sequencing_depth <- function(results,raw_results,dataset){
+plot.sequencing_depth <- function(results,raw_results,fig_path){
   # dataset <- experiments.data$sequencing_depth
   
   results <- utils.get_methods(results)
   results$quantile <- factor(results$quantile)
   
   #######
-  fig_path <- str_glue("{result_home}{experiment}/{dataset}/")
+
   if(!dir.exists(fig_path)){
     dir.create(fig_path,recursive=T)
   }
@@ -326,9 +328,17 @@ plot.sequencing_depth <- function(results,raw_results,dataset){
   # figure_name <- str_glue("sequencing_depth_{dataset}_unlabeled_pctg.pdf")
   results_unlabeled_pctg <- dplyr::filter(dplyr::select(results[results$supervised,],methods,quantile,unlabeled_pctg),!is.na(unlabeled_pctg))
   results_unlabeled_pctg[,'label'] <- round(results_unlabeled_pctg$unlabeled_pctg,2)
-  plot_params <- list(x="methods",y="unlabeled_pctg",label="label",xlabel="methods",ylabel="unlabeled_pctg",
-                      fill="quantile",dodged=T,facet_wrap=F,width=6,height=4)
-  plot.bar_plot(results_unlabeled_pctg,plot_params,fig_path,"unlabeled_pctg.pdf")
+  # plot_params <- list(x="methods",y="unlabeled_pctg",label="label",xlabel="methods",ylabel="unlabeled_pctg",
+  #                     fill="quantile",dodged=T,facet_wrap=F,width=6,height=4)
+  # plot.bar_plot(results_unlabeled_pctg,plot_params,fig_path,"unlabeled_pctg.pdf")
+  
+  plot_params <- list(x="quantile",y="unlabeled_pctg",group="methods",line_color="methods",point_color="methods",
+                      facet_wrap=F,width=2*length(unique(results_unlabeled_pctg$methods)),
+                      height=2*length(unique(results_unlabeled_pctg$methods)))
+
+  plot.line_plot(results_unlabeled_pctg,plot_params,fig_path,"unlabeled_pctg.pdf")
+  
+  
   # ggplot(results_unlabeled_pctg, aes(quantile,methods, fill=unlabeled_pctg)) + 
   #   geom_tile() +
   #   scale_fill_distiller(palette = "RdPu") +

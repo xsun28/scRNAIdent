@@ -21,12 +21,13 @@ library(SingleCellExperiment)
 library(R.methodsS3)
 logger <- utils.get_logger("DEBUG",log_file)
 ##Wrapper
-runExperiments <- function(experiment=c("simple_accuracy","cell_number", "sequencing_depth","celltype_structure",
+runExperiments <- function(experiment=c("simple_accuracy","cell_number","celltype_number","sequencing_depth","celltype_structure",
                                         "batch_effects","inter_diseases","celltype_complexity","inter_species",
                                         "random_noise","inter_protocol")){
   switch(experiment,
          simple_accuracy = experiments.simple_accuracy(experiment),
          cell_number = experiments.cell_number(experiment),
+         celltype_number = experiments.celltype_number(experiment),
          sequencing_depth = experiments.sequencing_depth(experiment),
          celltype_structure = experiments.celltype_structure(experiment),
          batch_effects = experiments.batch_effects(experiment),
@@ -315,7 +316,6 @@ experiments.cell_number <- function(experiment){
   combined_cluster_results <- vector('list',length(cell_numbers))
   combined_assign_results <- vector('list',length(cell_numbers))
   combined_raw_results <- vector('list',length(cell_numbers))
-  methods <- experiments.methods[[experiment]]
   sampling_by_pctg <- purrr::is_null(cell_numbers)||length(cell_numbers)==0
   cell_sampling_plan <- if(sampling_by_pctg) cell_pctgs else cell_numbers
   for(i in seq_along(cell_sampling_plan)){
@@ -379,40 +379,78 @@ experiments.cell_number <- function(experiment){
   final_results
 }
 
+###cell type number experiment
+experiments.celltype_number <- function(experiment){
+  exp_config <- experiments.parameters[[experiment]]
+  type_pctgs <- exp_config$type_pctg
+  combined_cluster_results <- vector('list',length(type_pctgs))
+  combined_assign_results <- vector('list',length(type_pctgs))
+  combined_raw_results <- vector('list',length(type_pctgs))
+  assign_test_dataset <- experiments.assign.data$train_dataset[[experiment]]
+  data <- utils.load_datasets(assign_test_dataset) 
+  celltype_order <- utils.get_order(data)
+  config <- exp_config
+  methods <- experiments.methods[[experiment]]
+  for(i in seq_along(type_pctgs)){
+    val <- type_pctgs[[i]]
+    print(str_glue('starting sampling type percentage :{val}'))
+    config <- experiments.parameters[[experiment]]
+    config$sample_celltype <- celltype_order[1:round(length(celltype_order)*val)]
+    base_results <- experiments.base(experiment,config)
+    results <- base_results$analy_results%>% 
+      purrr::map(~{
+        .$type_pctg <- val
+        .$type_num <- round(length(celltype_order)*val)
+        return(.)})
+    raw_results <- base_results$pred_results
+    raw_results$type_pctg <- val
+    raw_results$type_num <- round(length(celltype_order)*val)
+    combined_assign_results[[i]] <- bind_rows(results[grepl(".*_assign_.*",names(results))])
+    combined_cluster_results[[i]] <- bind_rows(results[grepl(".*cluster.*",names(results))])
+    combined_raw_results[[i]] <- raw_results
+  }
+  combined_assign_results <- bind_rows(combined_assign_results)
+  combined_cluster_results <- bind_rows(combined_cluster_results)
+  combined_raw_results <- bind_rows(combined_raw_results)
+  final_results <- bind_rows(combined_assign_results,combined_cluster_results)
+  output.sink(experiment,combined_raw_results,final_results,config)
+  plot.plot(experiment,final_results,combined_raw_results,config)
+  utils.clean_marker_files()
+  final_results
+}
+
+
+
 ###experiments with different sequencing depth
 experiments.sequencing_depth <- function(experiment){
   exp_config <- experiments.parameters[[experiment]]
-  shallow_quant <- exp_config$quantile$low
-  shallow_config <- exp_config
-  shallow_config$quantile <- shallow_quant
-  shallow_config$right <- FALSE
-  shallow_results_base <- experiments.base(experiment,shallow_config)
-  shallow_results <- shallow_results_base$analy_results %>%
-    purrr::map(~{
-            .$quantile<-shallow_quant 
-            return(.)})
-  shallow_raw_results <- shallow_results_base$pred_results
-  shallow_raw_results$quantile <- shallow_quant
-  
-  deep_quant <- exp_config$quantile$high
-  deep_config <- exp_config
-  deep_config$quantile <- deep_quant
-  deep_config$right <- TRUE
-  deep_results_base <- experiments.base(experiment,deep_config)
-  deep_results <- deep_results_base$analy_results %>%
-    purrr::map(~{
-      .$quantile<-deep_quant 
-      return(.)})
-  deep_raw_results <- deep_results_base$pred_results
-  deep_raw_results$quantile <- deep_quant
-  
-  combined_assign_results <- bind_rows(bind_rows(shallow_results[grepl(".*_assign_.*",names(shallow_results))]),
-                                       bind_rows(deep_results[grepl(".*_assign_.*",names(deep_results))]))
-  combined_cluster_results <- bind_rows(bind_rows(shallow_results[grepl(".*_cluster_.*",names(shallow_results))]),
-                                        bind_rows(deep_results[grepl(".*_cluster_.*",names(deep_results))]))
-  combined_raw_results <- bind_rows(shallow_raw_results,deep_raw_results)
+  quantiles <- exp_config$quantiles
+  combined_cluster_results <- vector('list',length(quantiles))
+  combined_assign_results <- vector('list',length(quantiles))
+  combined_raw_results <- vector('list',length(quantiles))
+  for(i in seq_along(quantiles)){
+    config <- experiments.parameters[[experiment]]
+    config$trained <- if(i==1) F else T 
+    low_quant <- quantiles[[i]][['low']]
+    high_quant <- quantiles[[i]][['high']]
+    config$high_quantile <- high_quant
+    config$low_quantile <- low_quant
+    results_base <- experiments.base(experiment,config)
+    results <- results_base$analy_results %>%
+      purrr::map(~{
+        .$quantile <- str_glue("{low_quant}-{high_quant}")
+        return(.)})
+    raw_results <- results_base$pred_results
+    raw_results$quantile <- str_glue("{low_quant}-{high_quant}")
+    combined_assign_results[[i]] <- bind_rows(results[grepl(".*_assign_.*",names(results))])
+    combined_cluster_results[[i]] <- bind_rows(results[grepl(".*cluster.*",names(results))])
+    combined_raw_results[[i]] <- raw_results
+  }
+  combined_assign_results <- bind_rows(combined_assign_results)
+  combined_cluster_results <- bind_rows(combined_cluster_results)
+  combined_raw_results <- bind_rows(combined_raw_results)
   final_results <- bind_rows(combined_assign_results,combined_cluster_results)
-  output.sink(experiment,combined_raw_results,final_results,exp_config)
+  output.sink(experiment,combined_raw_results,final_results,config)
   plot.plot(experiment,final_results,combined_raw_results)
   utils.clean_marker_files()
   final_results
