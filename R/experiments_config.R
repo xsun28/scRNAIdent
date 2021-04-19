@@ -2,7 +2,7 @@ experiment <- "sequencing_depth"
 
 experiments.data <- list(simple_accuracy="PBMC_AllCells_withLabels.RDS", 
                                  cell_number="ADASD_autism.RDS",
-                                celltype_number = "midbrain_human.RDS",
+                                 celltype_number = "midbrain_human.RDS",
                                  sequencing_depth="ADASD_AD.RDS",
                                  celltype_structure="GSE96583_8_Stim_Pats.RDS",
                                  # batch_effects=list(muraro="Muraro_pancreas_clean.RDS",seger="Segerstolpe_pancreas_clean.RDS"),

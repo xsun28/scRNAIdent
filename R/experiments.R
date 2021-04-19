@@ -40,6 +40,65 @@ runExperiments <- function(experiment=c("simple_accuracy","cell_number","celltyp
          )
 }
 
+####base function for constructing sampled datasets for all methods
+experiments.base.data_constructor <- function(experiment, exp_config){
+  if_cv <- exp_config$cv
+  if(if_cv){###if intra-dataset using cross-validation
+    data <- utils.load_datasets(experiments.assign.data$train_dataset[[experiment]]) %>%
+      constructor.data_constructor(config=exp_config,experiment = experiment,if_train = TRUE)
+    # colData(data)$unique_id <- 1:dim(colData(data))[[1]]
+    colData(data)$barcode <- colnames(data)
+    colnames(data) <- 1:length(colnames(data)) ###make the sample id unique
+    return(list(train_data=data,test_data=NULL))
+  }
+  ###if inter-dataset or fixed train/test dataset
+  all_train_data <- utils.load_datasets(experiments.assign.data$train_dataset[[experiment]])
+  if(!purrr::is_null(exp_config$fixed_train)&&exp_config$fixed_train){
+    print("train sample is fixed")
+    sample_seed <- if(purrr::is_null(exp_config$sample_seed)) 10 else exp_config$sample_seed
+    train_data <- constructor.data_constructor(all_train_data, config=exp_config,experiment=experiment,if_train = TRUE, sample_seed)
+  }else{
+    print("train sample is not fixed")
+    train_data <- constructor.data_constructor(all_train_data, config=exp_config,experiment=experiment,if_train = TRUE)
+  }
+  # colData(train_data)$unique_id <- 1:dim(colData(train_data))[[1]]
+  colData(train_data)$barcode <- colnames(train_data)
+  colnames(train_data) <- 1:length(colnames(train_data))
+  if(!purrr::is_null(exp_config$fixed_test)&&exp_config$fixed_test){
+    sample_seed <- if(purrr::is_null(exp_config$sample_seed)) 10 else exp_config$sample_seed
+    print("test sample is fixed")
+    if(experiments.assign.data$train_dataset[[experiment]]==experiments.assign.data$test_dataset[[experiment]]){
+      print(str_glue('train_dataset = test_dataset'))
+      test_data <- all_train_data[,setdiff(colnames(all_train_data),colnames(train_data))]
+    }else{
+      print(str_glue('train_dataset != test_dataset'))
+      test_data <- utils.load_datasets(experiments.assign.data$test_dataset[[experiment]])
+    }
+    test_data <- constructor.data_constructor(test_data, config=exp_config, 
+                                              experiment = experiment,if_train = FALSE, sample_seed)
+  }else{
+    print("test sample is not fixed")
+    if(experiments.assign.data$train_dataset[[experiment]]==experiments.assign.data$test_dataset[[experiment]]){
+      #####same train/test dataset 
+      print(str_glue('train_dataset = test_dataset'))
+      test_data <- all_train_data[,setdiff(colnames(all_train_data),colnames(train_data))]
+    }else{#####interdataset
+      print(str_glue('train_dataset != test_dataset'))
+      test_data <- utils.load_datasets(experiments.assign.data$test_dataset[[experiment]]) 
+    }
+    test_data <- constructor.data_constructor(test_data, config=exp_config,
+                                              experiment = experiment,if_train = FALSE)
+  }
+  # colData(test_data)$unique_id <- (dim(colData(train_data))[[1]]+1):(dim(colData(train_data))[[1]]+dim(colData(test_data))[[1]])
+  colData(test_data)$barcode <- colnames(test_data)
+  colnames(test_data) <- (dim(colData(train_data))[[1]]+1):(dim(colData(train_data))[[1]]+dim(colData(test_data))[[1]])    
+  intersected_gene_train_test <- utils.intersect_on_genes(train_data,test_data)
+  train_data <- intersected_gene_train_test$data1
+  test_data <- intersected_gene_train_test$data2
+  return(list(train_data=train_data,test_data=test_data))
+}
+
+
 ###base function for assigning methods for all experiments
 experiments.base.assign <- function(experiment, exp_config){
   require(stringr)
@@ -49,68 +108,14 @@ experiments.base.assign <- function(experiment, exp_config){
   }
   print(str_glue("experiment {experiment} configuration: {exp_config}"))
   methods <- experiments.methods[[experiment]]
-  
   ##assigning methods
   assign_methods <- methods$assign
-  if_cv <- exp_config$cv
-  
-  if(if_cv){###if intra-dataset using cross-validation
-    data <- utils.load_datasets(experiments.assign.data$train_dataset[[experiment]]) %>%
-      constructor.data_constructor(config=exp_config,experiment = experiment,if_train = TRUE)
-    # colData(data)$unique_id <- 1:dim(colData(data))[[1]]
-    colData(data)$barcode <- colnames(data)
-    colnames(data) <- 1:length(colnames(data)) ###make the sample id unique
-    assign_results <- experiments.run_assign(assign_methods,data,NA,exp_config)
-    print("finish prediction for assign methods")
-    return(list(assign_results=assign_results,train_data=data,test_data=NULL))
-  }else{###if inter-dataset or fixed train/test dataset
-    all_train_data <- utils.load_datasets(experiments.assign.data$train_dataset[[experiment]])
-    if(!purrr::is_null(exp_config$fixed_train)&&exp_config$fixed_train){
-      print("train sample is fixed")
-      sample_seed <- if(purrr::is_null(exp_config$sample_seed)) 10 else exp_config$sample_seed
-      train_data <- constructor.data_constructor(all_train_data, config=exp_config,experiment=experiment,if_train = TRUE, sample_seed)
-    }else{
-      print("train sample is not fixed")
-      train_data <- constructor.data_constructor(all_train_data, config=exp_config,experiment=experiment,if_train = TRUE)
-    }
-    # colData(train_data)$unique_id <- 1:dim(colData(train_data))[[1]]
-    colData(train_data)$barcode <- colnames(train_data)
-    colnames(train_data) <- 1:length(colnames(train_data))
-    if(!purrr::is_null(exp_config$fixed_test)&&exp_config$fixed_test){
-      sample_seed <- if(purrr::is_null(exp_config$sample_seed)) 10 else exp_config$sample_seed
-      print("test sample is fixed")
-      if(experiments.assign.data$train_dataset[[experiment]]==experiments.assign.data$test_dataset[[experiment]]){
-        print(str_glue('train_dataset = test_dataset'))
-        test_data <- all_train_data[,setdiff(colnames(all_train_data),colnames(train_data))]
-      }else{
-        print(str_glue('train_dataset != test_dataset'))
-        test_data <- utils.load_datasets(experiments.assign.data$test_dataset[[experiment]])
-      }
-      test_data <- constructor.data_constructor(test_data, config=exp_config, 
-                                                experiment = experiment,if_train = FALSE, sample_seed)
-    }else{
-      print("test sample is not fixed")
-      if(experiments.assign.data$train_dataset[[experiment]]==experiments.assign.data$test_dataset[[experiment]]){
-        #####same train/test dataset 
-        print(str_glue('train_dataset = test_dataset'))
-        test_data <- all_train_data[,setdiff(colnames(all_train_data),colnames(train_data))]
-      }else{#####interdataset
-        print(str_glue('train_dataset != test_dataset'))
-        test_data <- utils.load_datasets(experiments.assign.data$test_dataset[[experiment]]) 
-      }
-      test_data <- constructor.data_constructor(test_data, config=exp_config,
-                                                experiment = experiment,if_train = FALSE)
-    }
-    # colData(test_data)$unique_id <- (dim(colData(train_data))[[1]]+1):(dim(colData(train_data))[[1]]+dim(colData(test_data))[[1]])
-    colData(test_data)$barcode <- colnames(test_data)
-    colnames(test_data) <- (dim(colData(train_data))[[1]]+1):(dim(colData(train_data))[[1]]+dim(colData(test_data))[[1]])    
-    intersected_gene_train_test <- utils.intersect_on_genes(train_data,test_data)
-    train_data <- intersected_gene_train_test$data1
-    test_data <- intersected_gene_train_test$data2
-    assign_results <- experiments.run_assign(assign_methods,train_data,test_data,exp_config)
-    print("finish prediction for assign methods")
-    return(list(assign_results=assign_results,train_data=train_data,test_data=test_data))
-  }
+  train_test_datasets <- experiments.base.data_constructor(experiment, exp_config)
+  train_dataset <- train_test_datasets$train_dataset
+  test_dataset <- train_test_datasets$test_dataset
+  assign_results <- experiments.run_assign(assign_methods,train_data,test_data,exp_config)
+  print("finish prediction for assign methods")
+  return(list(assign_results=assign_results,train_data=train_data,test_data=test_data))
 }
 
 experiments.base.marker_gene_assign <- function(experiment, exp_config, data){
@@ -703,7 +708,7 @@ experiments.inter_protocol <- function(experiment){
 
 #######
 
-experiments.run_assign <- function(methods, train_data, test_data=NA, exp_config){
+experiments.run_assign <- function(methods, train_data, test_data=NULL, exp_config){
   if_cv <- exp_config$cv
   if(if_cv){
     print('start cross validation')
