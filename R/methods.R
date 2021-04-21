@@ -132,6 +132,7 @@ assign.chetah <- function(train_data, test_data){
 
 #######assigning using garnet
 assign.garnett <- function(train_data,test_data,exp_config){
+  options(connectionObserver = NULL)
   require(garnett)
   require(monocle)
   require(SingleCellExperiment)

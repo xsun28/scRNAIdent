@@ -1,32 +1,43 @@
-experiment <- "simple_accuracy"
+experiment <- "celltype_number"
 
 experiments.data <- list(simple_accuracy="Segerstolpe_pancreas_clean.RDS", 
-                                 cell_number="ADASD_autism.RDS", 
-                                 sequencing_depth="ADASD_AD.RDS",
-                                 celltype_structure="GSE96583_8_Stim_Pats.RDS",
-                                 # batch_effects=list(muraro="Muraro_pancreas_clean.RDS",seger="Segerstolpe_pancreas_clean.RDS"),
-                                 batch_effects=list("PBMC_AllCells_withLabels.RDS","GSE96583_8_Ctrl_Pats.RDS"),
-                                 inter_diseases = list("GSE96583_8_Ctrl_Pats.RDS","GSE96583_8_Stim_Pats.RDS","GSE96583_batch1_3_samples.RDS"),
-                                 # inter_diseases = list("ADASD_AD.RDS","ADASD_autism.RDS"),
-                                 celltype_complexity = list(),
-                                 inter_species = list(),
-                                 random_noise = list(),
-                                 inter_protocol = list("cellbench_10x","cellbench_CELseq2","cellbench_Dropseq")
-                                 )
+                         cell_number="Segerstolpe_pancreas_clean.RDS", 
+                         sequencing_depth="ADASD_AD.RDS",
+                         celltype_structure="GSE96583_8_Stim_Pats.RDS",
+                         # batch_effects=list(muraro="Muraro_pancreas_clean.RDS",seger="Segerstolpe_pancreas_clean.RDS"),
+                         batch_effects=list("PBMC_AllCells_withLabels.RDS","GSE96583_8_Ctrl_Pats.RDS"),
+                         inter_diseases = list("GSE96583_8_Ctrl_Pats.RDS","GSE96583_8_Stim_Pats.RDS","GSE96583_batch1_3_samples.RDS"),
+                         # inter_diseases = list("ADASD_AD.RDS","ADASD_autism.RDS"),
+                         celltype_complexity = list(),
+                         inter_species = list(),
+                         random_noise = list(),
+                         inter_protocol = list("cellbench_10x","cellbench_CELseq2","cellbench_Dropseq"),
+                         celltype_number = "midbrain_human.RDS",
+                         celltype_detection = "midbrain_human.RDS",
+                         rare_celltype = "Segerstolpe_pancreas_clean.RDS"
+)
 
 experiments.assign.data <- list(
   train_dataset=list(simple_accuracy="Segerstolpe_pancreas_clean.RDS", 
-                     cell_number="ADASD_autism.RDS", 
+                     cell_number="Segerstolpe_pancreas_clean.RDS", 
                      sequencing_depth="ADASD_AD.RDS",
-                     celltype_structure="GSE96583_8_Stim_Pats.RDS"),
+                     celltype_structure="GSE96583_8_Stim_Pats.RDS",
                      # inter_diseases="GSE96583_8_Ctrl_Pats.RDS"),
+                     celltype_number = "midbrain_human.RDS",
+                     celltype_detection = "midbrain_human.RDS",
+                     rare_celltype = "Segerstolpe_pancreas_clean.RDS"),
+                     
   test_dataset=list(simple_accuracy="Segerstolpe_pancreas_clean.RDS", 
-                    cell_number="ADASD_autism.RDS", 
+                    cell_number="Segerstolpe_pancreas_clean.RDS", 
                     sequencing_depth="ADASD_AD.RDS",
-                    celltype_structure="GSE96583_8_Stim_Pats.RDS")
+                    celltype_structure="GSE96583_8_Stim_Pats.RDS",
                     # inter_diseases="GSE96583_8_Stim_Pats.RDS")
-  )
-  
+                    celltype_number = "midbrain_human.RDS",
+                    celltype_detection = "midbrain_human.RDS",
+                    rare_celltype = "Segerstolpe_pancreas_clean.RDS")
+)
+
+
 ##for batch effects removed, scmap and singlecellnet doesn't work
 experiments.methods.base_config <- list(cluster=c('seurat','tscan','sc3','liger','cidr','monocle3','pcaReduce'),assign=c('scmap_cluster','scmap_cell','chetah','singlecellnet','garnett','singleR'),marker_gene_assign=c("cellassign"))
 experiments.methods <- list(
@@ -35,13 +46,17 @@ experiments.methods <- list(
   sequencing_depth=experiments.methods.base_config,
   celltype_structure=experiments.methods.base_config,
   batch_effects=experiments.methods.base_config, 
-                       # list(cluster_batch_free=c('seurat',"sc3",'tscan','liger'), assign_batch_free=c('chetah','garnett'), marker_gene_assign_batch_free=c("cellassign"))),
+  # list(cluster_batch_free=c('seurat',"sc3",'tscan','liger'), assign_batch_free=c('chetah','garnett'), marker_gene_assign_batch_free=c("cellassign"))),
   inter_diseases = experiments.methods.base_config,
   celltype_complexity = experiments.methods.base_config,
   inter_species = experiments.methods.base_config,
   random_noise = experiments.methods.base_config, 
-  inter_protocol = experiments.methods.base_config
+  inter_protocol = experiments.methods.base_config,
+  celltype_number = experiments.methods.base_config,
+  celltype_detection = experiments.methods.base_config,
+  rare_celltype = experiments.methods.base_config
 )
+
 
 
 
@@ -130,6 +145,89 @@ experiments.parameters.cell_number <- list(
   cellbench_CELseq2.RDS = experiments.parameters.cell_number.base_config.cellbench,
   cellbench_Dropseq=experiments.parameters.cell_number.base_config.cellbench
 )
+
+
+
+#####rare cell type config
+experiments.parameters.rare_celltype.base_config <- list(type_pctg=c(0.1,0.2,0.5,1),train_sample_pctg=0.7,train_sample_num=NULL, test_sample_pctg=0.6,test_sample_num=NULL,
+                                                       train_sampling=F, test_sampling=T, cv=F,cv_fold=NULL,metrics=c('ARI','AMI','FMI'), 
+                                                       marker_gene_file=NULL,trained=F)
+
+experiments.parameters.rare_celltype.base_config.PBMC <- list(type_pctg=c(0.1,0.2,0.5,1),train_sample_pctg=0.08,train_sample_num=NULL, test_sample_pctg=0.1,test_sample_num=NULL,
+                                                            train_sampling=F, test_sampling=T, cv=F,cv_fold=NULL,metrics=c('ARI','AMI','FMI'), 
+                                                            marker_gene_file=NULL,trained=F)
+
+experiments.parameters.rare_celltype.base_config.pancreas <- list(type_pctg=c(0.1,0.2,0.5,0.8),train_sample_pctg=0.5,train_sample_num=NULL, test_sample_pctg=0.4,test_sample_num=NULL,
+                                                                train_sampling=F, test_sampling=T, cv=F,cv_fold=NULL,metrics=c('ARI','AMI','FMI'), 
+                                                                marker_gene_file=NULL,trained=F)
+
+experiments.parameters.rare_celltype.base_config.ADASD <- list(type_pctg=c(0.1,0.2,0.5,1),train_sample_pctg=0.015,train_sample_num=NULL, test_sample_pctg=0.1,test_sample_num=NULL,
+                                                             train_sampling=F, test_sampling=T, cv=F,cv_fold=NULL,metrics=c('ARI','AMI','FMI'), 
+                                                             marker_gene_file=NULL,trained=F)
+
+experiments.parameters.rare_celltype.base_config.midbrain <- experiments.parameters.cell_number.base_config
+
+experiments.parameters.rare_celltype.base_config.cellbench <- experiments.parameters.cell_number.base_config
+
+experiments.parameters.rare_celltype <- list(
+  PBMC_AllCells_withLabels.RDS = experiments.parameters.rare_celltype.base_config.PBMC,
+  GSE96583_batch1_3_samples.RDS = experiments.parameters.rare_celltype.base_config.PBMC,
+  GSE96583_8_Stim_Pats.RDS = experiments.parameters.rare_celltype.base_config.PBMC,
+  GSE96583_8_Ctrl_Pats.RDS = experiments.parameters.rare_celltype.base_config.PBMC,
+  Muraro_pancreas_clean.RDS = experiments.parameters.rare_celltype.base_config.pancreas,
+  Segerstolpe_pancreas_clean.RDS = experiments.parameters.rare_celltype.base_config.pancreas,
+  Xin_pancreas_clean.RDS = experiments.parameters.rare_celltype.base_config.pancreas,
+  ADASD_AD.RDS = experiments.parameters.rare_celltype.base_config.ADASD,
+  ADASD_autism.RDS = experiments.parameters.rare_celltype.base_config.ADASD,
+  midbrain_human.RDS = experiments.parameters.cell_number.base_config.midbrain,
+  midbrain_mouse.RDS = experiments.parameters.cell_number.base_config.midbrain,
+  cellbench_10x.RDS = experiments.parameters.cell_number.base_config.cellbench,
+  cellbench_CELseq2.RDS = experiments.parameters.cell_number.base_config.cellbench,
+  cellbench_Dropseq=experiments.parameters.cell_number.base_config.cellbench
+)
+
+#######celltype detection config
+experiments.parameters.celltype_detection.base_config <- list(type_pctg=c(1,0.75,0.5),train_sample_pctg=0.7,train_sample_num=NULL,
+                                                              test_sample_pctg=1,test_sample_num=NULL,train_sampling=F, test_sampling=T, 
+                                                              cv=F, cv_fold=5,metrics=c('ARI','AMI','FMI'), marker_gene_file=NULL)
+
+experiments.parameters.celltype_detection.base_config.PBMC <- list(type_pctg=c(1,0.75,0.5),train_sample_pctg=0.7,train_sample_num=NULL,
+                                                                   test_sample_pctg=1,test_sample_num=NULL,train_sampling=F, test_sampling=T, 
+                                                                   cv=F, cv_fold=5,metrics=c('ARI','AMI','FMI'), marker_gene_file=NULL)
+
+experiments.parameters.celltype_detection.base_config.pancreas <- list(type_pctg=c(1,0.75,0.5),train_sample_pctg=0.7,train_sample_num=NULL,
+                                                                       test_sample_pctg=1,test_sample_num=NULL,train_sampling=F, test_sampling=T, 
+                                                                       cv=F, cv_fold=5,metrics=c('ARI','AMI','FMI'), marker_gene_file=NULL)
+
+experiments.parameters.celltype_detection.base_config.ADASD <- list(type_pctg=c(1,0.75,0.5),train_sample_pctg=0.7,train_sample_num=NULL,
+                                                                    test_sample_pctg=1,test_sample_num=NULL,train_sampling=F, test_sampling=T, 
+                                                                    cv=F, cv_fold=5,metrics=c('ARI','AMI','FMI'), marker_gene_file=NULL)
+
+experiments.parameters.celltype_detection.base_config.midbrain <- experiments.parameters.celltype_detection.base_config
+
+experiments.parameters.celltype_detection.base_config.cellbench <- experiments.parameters.celltype_detection.base_config
+
+
+experiments.parameters.celltype_detection <- list(
+  PBMC_AllCells_withLabels.RDS = experiments.parameters.celltype_detection.base_config.PBMC,
+  GSE96583_batch1_3_samples.RDS = experiments.parameters.celltype_detection.base_config.PBMC,
+  GSE96583_8_Stim_Pats.RDS = experiments.parameters.celltype_detection.base_config.PBMC,
+  GSE96583_8_Ctrl_Pats.RDS = experiments.parameters.celltype_detection.base_config.PBMC,
+  Muraro_pancreas_clean.RDS = experiments.parameters.celltype_detection.base_config.pancreas,
+  Segerstolpe_pancreas_clean.RDS = experiments.parameters.celltype_detection.base_config.pancreas,
+  Xin_pancreas_clean.RDS = experiments.parameters.celltype_detection.base_config.pancreas,
+  ADASD_AD.RDS = experiments.parameters.celltype_detection.base_config.ADASD,
+  ADASD_autism.RDS = experiments.parameters.celltype_detection.base_config.ADASD,
+  midbrain_human.RDS = experiments.parameters.celltype_detection.base_config.midbrain,
+  midbrain_mouse.RDS = experiments.parameters.celltype_detection.base_config.midbrain,
+  cellbench_10x.RDS = experiments.parameters.celltype_detection.base_config.cellbench,
+  cellbench_CELseq2.RDS = experiments.parameters.celltype_detection.base_config.cellbench,
+  cellbench_Dropseq.RDS = experiments.parameters.celltype_detection.base_config.cellbench
+)
+
+
+
+
 
 ####sequencing depth config
 experiments.parameters.sequencing_depth.base_config <- list(quantile=list(low=0.3,high=0.7),cv=TRUE,cv_fold=5,metrics=c('ARI','AMI','FMI'),
@@ -245,6 +343,46 @@ experiments.parameters.batch_effects <- list(
   cellbench_Dropseq=experiments.parameters.batch_effects.base_config.cellbench
 )
 
+
+#####celltype number config
+experiments.parameters.celltype_number.base_config <- list(type_pctg=c(0.2,0.5,0.8,1),train_sample_pctg=0.7,train_sample_num=NULL,
+                                                           test_sample_pctg=1,test_sample_num=NULL,train_sampling=F, test_sampling=T, 
+                                                           cv=F, cv_fold=5,metrics=c('ARI','AMI','FMI'), marker_gene_file=NULL)
+
+experiments.parameters.celltype_number.base_config.PBMC <- list(type_pctg=c(0.2,0.5,0.8,1),train_sample_pctg=0.7,train_sample_num=NULL,
+                                                                test_sample_pctg=1,test_sample_num=NULL,train_sampling=F, test_sampling=T, 
+                                                                cv=F, cv_fold=5,metrics=c('ARI','AMI','FMI'), marker_gene_file=NULL)
+
+experiments.parameters.celltype_number.base_config.pancreas <- list(type_pctg=c(0.2,0.5,0.8,1),train_sample_pctg=0.7,train_sample_num=NULL,
+                                                                    test_sample_pctg=1,test_sample_num=NULL,train_sampling=F, test_sampling=T, 
+                                                                    cv=F, cv_fold=5,metrics=c('ARI','AMI','FMI'), marker_gene_file=NULL)
+
+experiments.parameters.celltype_number.base_config.ADASD <- list(type_pctg=c(0.2,0.5,0.8,1),train_sample_pctg=0.7,train_sample_num=NULL,
+                                                                 test_sample_pctg=1,test_sample_num=NULL,train_sampling=F, test_sampling=T, 
+                                                                 cv=F, cv_fold=5,metrics=c('ARI','AMI','FMI'), marker_gene_file=NULL)
+
+experiments.parameters.celltype_number.base_config.midbrain <- experiments.parameters.celltype_number.base_config
+
+experiments.parameters.celltype_number.base_config.cellbench <- experiments.parameters.celltype_number.base_config
+
+experiments.parameters.celltype_number <- list(
+  PBMC_AllCells_withLabels.RDS = experiments.parameters.celltype_number.base_config.PBMC,
+  GSE96583_batch1_3_samples.RDS = experiments.parameters.celltype_number.base_config.PBMC,
+  GSE96583_8_Stim_Pats.RDS = experiments.parameters.celltype_number.base_config.PBMC,
+  GSE96583_8_Ctrl_Pats.RDS = experiments.parameters.celltype_number.base_config.PBMC,
+  Muraro_pancreas_clean.RDS = experiments.parameters.celltype_number.base_config.pancreas,
+  Segerstolpe_pancreas_clean.RDS = experiments.parameters.celltype_number.base_config.pancreas,
+  Xin_pancreas_clean.RDS = experiments.parameters.celltype_number.base_config.pancreas,
+  ADASD_AD.RDS = experiments.parameters.celltype_number.base_config.ADASD,
+  ADASD_autism.RDS = experiments.parameters.celltype_number.base_config.ADASD,
+  midbrain_human.RDS = experiments.parameters.celltype_number.base_config.midbrain,
+  midbrain_mouse.RDS = experiments.parameters.celltype_number.base_config.midbrain,
+  cellbench_10x.RDS = experiments.parameters.celltype_number.base_config.cellbench,
+  cellbench_CELseq2.RDS = experiments.parameters.celltype_number.base_config.cellbench,
+  cellbench_Dropseq=experiments.parameters.celltype_number.base_config.cellbench
+)
+
+
 ####inter diseases config
 experiments.parameters.inter_diseases.base_config = list(train_sample_pctg=0.8,train_sample_num=NULL,test_sample_pctg=1,test_sample_num=NULL,
                                                          cv=FALSE,metrics=c('ARI','AMI','FMI'),marker_gene_file=NULL)
@@ -321,6 +459,36 @@ experiments.parameters <- list(
   inter_diseases = list(train_sample_pctg=NULL,train_sample_num=NULL,
                         test_sample_pctg=NULL,test_sample_num=NULL,
                         cv=FALSE,metrics=c('ARI','AMI','FMI'),marker_gene_file=NULL),
+  
+  celltype_number=list(type_pctgs=experiments.parameters.celltype_number[[experiments.data$celltype_number]]$type_pctg,
+                       train_sample_pctg=experiments.parameters.celltype_number[[experiments.assign.data$train_dataset$celltype_number]]$train_sample_pctg,
+                       train_sample_num=experiments.parameters.celltype_number[[experiments.assign.data$train_dataset$celltype_number]]$train_sample_num,
+                       test_sample_pctg=experiments.parameters.celltype_number[[experiments.assign.data$test_dataset$celltype_number]]$test_sample_pctg,
+                       test_sample_num=experiments.parameters.celltype_number[[experiments.assign.data$test_dataset$celltype_number]]$test_sample_num, 
+                       train_sampling=experiments.parameters.celltype_number[[experiments.assign.data$train_dataset$celltype_number]]$train_sampling, 
+                       test_sampling=experiments.parameters.celltype_number[[experiments.assign.data$test_dataset$celltype_number]]$test_sampling, 
+                       cv=FALSE, cv_fold=5,metrics=c('ARI','AMI','FMI'),
+                       marker_gene_file=NULL),
+  
+  celltype_detection=list(type_pctg=experiments.parameters.celltype_detection[[experiments.data$celltype_detection]]$type_pctg,
+                          train_sample_pctg=experiments.parameters.celltype_detection[[experiments.assign.data$train_dataset$celltype_detection]]$train_sample_pctg,
+                          train_sample_num=experiments.parameters.celltype_detection[[experiments.assign.data$train_dataset$celltype_detection]]$train_sample_num,
+                          test_sample_pctg=experiments.parameters.celltype_detection[[experiments.assign.data$test_dataset$celltype_detection]]$test_sample_pctg,
+                          test_sample_num=experiments.parameters.celltype_detection[[experiments.assign.data$test_dataset$celltype_detection]]$test_sample_num, 
+                          train_sampling=experiments.parameters.celltype_detection[[experiments.assign.data$train_dataset$celltype_detection]]$train_sampling, 
+                          test_sampling=experiments.parameters.celltype_detection[[experiments.assign.data$test_dataset$celltype_detection]]$test_sampling, 
+                          cv=FALSE, cv_fold=5,metrics=c('ARI','AMI','FMI'),
+                          marker_gene_file=NULL),
+  
+  rare_celltype=list(type_pctg=experiments.parameters.rare_celltype[[experiments.data$rare_celltype]]$type_pctg,
+                     train_sample_pctg=experiments.parameters.rare_celltype[[experiments.assign.data$train_dataset$rare_celltype]]$train_sample_pctg,
+                     train_sample_num=experiments.parameters.rare_celltype[[experiments.assign.data$train_dataset$rare_celltype]]$train_sample_num,
+                     test_sample_pctg=experiments.parameters.rare_celltype[[experiments.assign.data$test_dataset$rare_celltype]]$test_sample_pctg,
+                     test_sample_num=experiments.parameters.rare_celltype[[experiments.assign.data$test_dataset$rare_celltype]]$test_sample_num,
+                     train_sampling=experiments.parameters.rare_celltype[[experiments.assign.data$train_dataset$rare_celltype]]$train_sampling, 
+                     test_sampling=experiments.parameters.rare_celltype[[experiments.assign.data$test_dataset$rare_celltype]]$test_sampling, 
+                     cv=F,cv_fold=F, metrics=c('ARI','AMI','FMI'), 
+                     marker_gene_file=NULL,trained=F),
   
   celltype_complexity = list(),
   inter_species = list(),

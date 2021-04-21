@@ -1,5 +1,5 @@
 library(stringr)
-home <- '/home/xsun/git/scRNAIdent/'
+home <- '/home/xysun/git/scRNAIdent/'
 conda_home <- "/usr/local/anaconda3/condabin/conda"
 data_home <- paste(home, 'data/',sep='')
 dir.create(data_home,recursive=T)

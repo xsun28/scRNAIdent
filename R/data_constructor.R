@@ -1,66 +1,63 @@
 
 ####Wrapper
-constructor.data_constructor <- function(data,config,experiment,if_train=TRUE,sample_index=NULL){
+constructor.data_constructor <- function(data,config,experiment,if_train=TRUE,sample_seed=NULL){
   require(SingleCellExperiment)
   if(purrr::is_list(data)&length(data)>1)
     stopifnot(all(map_lgl(data,~is(.,class2="SingleCellExperiment"))))
   else
     stopifnot(is(data,"SingleCellExperiment"))
   switch(experiment,
-    simple_accuracy = constructor.simple_accuracy(data,config,if_train,sample_index),
-    cell_number = constructor.cell_number(data,config,if_train,sample_index),
-    sequencing_depth = constructor.sequencing_depth(data,config,if_train,sample_index),
-    celltype_structure = constructor.celltype_structure(data,config,if_train,sample_index),
-    batch_effects = constructor.batch_effects(data,config,if_train,sample_index),
-    inter_diseases = constructor.inter_diseases(data,config,if_train,sample_index),
-    celltype_complexity = constructor.celltype_complexity(data,config,if_train,sample_index),
-    inter_species = constructor.inter_species(data,config,if_train,sample_index),
-    random_noise = constructor.random_noise(data,config,if_train,sample_index),
-    inter_protocol = constructor.inter_protocol(data,config,if_train,sample_index),
-    stop("Can't constructor dataset for unkown experiments")
+         simple_accuracy = constructor.simple_accuracy(data,config,if_train,sample_seed),
+         cell_number = constructor.cell_number(data,config,if_train,sample_seed),
+         sequencing_depth = constructor.sequencing_depth(data,config,if_train,sample_seed),
+         celltype_structure = constructor.celltype_structure(data,config,if_train,sample_seed),
+         batch_effects = constructor.batch_effects(data,config,if_train,sample_seed),
+         inter_diseases = constructor.inter_diseases(data,config,if_train,sample_seed),
+         celltype_complexity = constructor.celltype_complexity(data,config,if_train,sample_seed),
+         inter_species = constructor.inter_species(data,config,if_train,sample_seed),
+         random_noise = constructor.random_noise(data,config,if_train,sample_seed),
+         inter_protocol = constructor.inter_protocol(data,config,if_train,sample_seed),
+         celltype_number = constructor.celltype_number(data,config,if_train,sample_seed),
+         celltype_detection = constructor.celltype_detection(data,config,if_train,sample_seed),
+         rare_celltype = constructor.rare_celltype(data,config,if_train,sample_seed),
+         stop("Can't constructor dataset for unkown experiments")
   )
 }
 
-constructor.base <- function(data,config,if_train,sample_index=NULL){
+
+constructor.base <- function(data,config,if_train,sample_seed=NULL){
   if(if_train){
     data <- utils.filter(data)
-    if(purrr::is_null(sample_index)){
-      if(!purrr::is_null(config$train_sample_num) && !is.na(config$train_sample_num)){
-        print(str_glue("start sampling train data: {config$train_sample_num} per cell type"))
-        data <- utils.sampler(data, sample_num=config$train_sample_num, sample_pctg = NULL, types=unique(colData(data)$label))
-      }else{
-        print(str_glue("start sampling train data: {config$train_sample_pctg} percentage per cell type"))
-        data <- utils.sampler(data, sample_num=NULL, sample_pctg = config$train_sample_pctg, types=unique(colData(data)$label))
-      }
+    if(!purrr::is_null(config$train_sample_num) && !is.na(config$train_sample_num)){
+      print(str_glue("start sampling train data: {config$train_sample_num} per cell type, sample_seed is {sample_seed}"))
+      data <- utils.sampler(data, sample_num=config$train_sample_num, sample_pctg = NULL, types=unique(colData(data)$label), sample_seed=sample_seed)
     }else{
-      data <- data[,sample_index]
+      print(str_glue("start sampling train data: {config$train_sample_pctg} percentage per cell type, sample_seed is {sample_seed}"))
+      data <- utils.sampler(data, sample_num=NULL, sample_pctg = config$train_sample_pctg, types=unique(colData(data)$label), sample_seed=sample_seed)
     }
   }else{
     data <- utils.filter(data,filter_gene=FALSE)
-    if(purrr::is_null(sample_index)){
-      if(!purrr::is_null(config$test_sample_num) && !is.na(config$test_sample_num)){
-        print(str_glue("start sampling test data: {config$test_sample_num} per cell type"))
-        data <- utils.sampler(data, sample_num=config$test_sample_num, sample_pctg = NULL, types=unique(colData(data)$label))
-      }else{
-        print(str_glue("start sampling test data: {config$test_sample_pctg} percentage per cell type"))
-        data <- utils.sampler(data, sample_num=NULL, sample_pctg = config$test_sample_pctg, types=unique(colData(data)$label))
-      }
+    if(!purrr::is_null(config$test_sample_num) && !is.na(config$test_sample_num)){
+      print(str_glue("start sampling test data: {config$test_sample_num} per cell type, sample_seed is {sample_seed}"))
+      data <- utils.sampler(data, sample_num=config$test_sample_num, sample_pctg = NULL, types=unique(colData(data)$label), sample_seed=sample_seed)
     }else{
-      data <- data[,sample_index]
+      print(str_glue("start sampling test data: {config$test_sample_pctg} percentage per cell type, sample_seed is {sample_seed}"))
+      data <- utils.sampler(data, sample_num=NULL, sample_pctg = config$test_sample_pctg, types=unique(colData(data)$label), sample_seed=sample_seed)
     }
   }
   data <- data[!duplicated(rownames(data)),!duplicated(colnames(data))]
 }
 
-constructor.simple_accuracy <- function(data,config, if_train,sample_index=NULL){
-  constructor.base(data,config,if_train,sample_index)
+
+constructor.simple_accuracy <- function(data,config, if_train,sample_seed=NULL){
+  constructor.base(data,config,if_train,sample_seed)
 }
 
-constructor.cell_number <- function(data,config, if_train,sample_index=NULL){
-  constructor.base(data,config,if_train,sample_index)
+constructor.cell_number <- function(data,config, if_train,sample_seed=NULL){
+  constructor.base(data,config,if_train,sample_seed)
 }
 
-constructor.sequencing_depth <- function(data,config,if_train,sample_index=NULL){
+constructor.sequencing_depth <- function(data,config,if_train,sample_seed=NULL){
   quantile <- config$quantile
   if_right <- config$right ###if take the deeper sequencing part
   if(if_train){
@@ -73,74 +70,95 @@ constructor.sequencing_depth <- function(data,config,if_train,sample_index=NULL)
   data[!duplicated(rownames(data)),!duplicated(colnames(data))]
 }
 
-constructor.batch_effects <- function(data,config,if_train,sample_index=NULL){
+constructor.batch_effects <- function(data,config,if_train,sample_seed=NULL){
   if(purrr::is_list(data)&length(data)>1){
     data <- utils.combine_SCEdatasets(data,if_combined = TRUE)
   }else if(purrr::is_list(data)&length(data)==1){
     data <- data[[1]]
   }
-  if(if_train){
-    data <- utils.filter(data)
-    if(purrr::is_null(sample_index)){
-      if(!purrr::is_null(config$train_sample_num) && !is.na(config$train_sample_num)){
-        print(str_glue("start sampling train data: {config$train_sample_num} per cell type"))
-        data <- utils.sampler(data, sample_num=config$train_sample_num, sample_pctg=NULL, types=unique(colData(data)$label))
-      }else{
-        print(str_glue("start sampling train data: {config$train_sample_pctg} percentage per cell type"))
-        data <- utils.sampler(data, sample_num=NULL, sample_pctg=config$train_sample_pctg, types=unique(colData(data)$label))
-      }
-    }else{
-      data <- data[,sample_index]
-    }
-  }else{
-    data <- utils.filter(data,filter_gene=FALSE)
-    if(purrr::is_null(sample_index)){
-      if(!purrr::is_null(config$test_sample_num) && !is.na(config$test_sample_num)){
-        print(str_glue("start sampling test data: {config$test_sample_num} per cell type"))
-        data <- utils.sampler(data, sample_num=config$test_sample_num, sample_pctg=NULL, types=unique(colData(data)$label))
-      }else{
-        print(str_glue("start sampling test data: {config$test_sample_pctg} percentage per cell type"))
-        data <- utils.sampler(data, sample_num=NULL, sample_pctg=config$test_sample_pctg, types=unique(colData(data)$label))
-      }
-    }else{
-      data <- data[,sample_index]
-    }
-  }
-  data[!duplicated(rownames(data)),!duplicated(colnames(data))]
-  
+  data <- constructor.base(data,config,if_train,sample_seed)
+  data
 }
 
-constructor.celltype_structure <- function(data,config,if_train,sample_index=NULL){
+constructor.rare_celltype <- function(data,config,if_train,sample_seed=NULL){
   if(if_train){
     data <- utils.filter(data)
-    if(purrr::is_null(sample_index)){
-      if(!purrr::is_null(config$train_sample_num) && !is.na(config$train_sample_num)){
-        print(str_glue("start sampling train data: {config$train_sample_num} per cell type"))
-        data <- utils.sampler(data, sample_num=config$train_sample_num, sample_pctg = NULL, types=unique(colData(data)[[config$level]]),column = config$level)
-      }else{
-        print(str_glue("start sampling train data: {config$train_sample_pctg} percentage per cell type"))
-        data <- utils.sampler(data, sample_num=NULL, sample_pctg = config$train_sample_pctg, types=unique(colData(data)[[config$level]]),column = config$level)
-      }
+    if(!purrr::is_null(config$train_sample_num) && !is.na(config$train_sample_num)){
+      print(str_glue("start sampling train data: {config$train_sample_num} per cell type, sample_seed is {sample_seed}"))
+      data <- utils.sampler(data, sample_num=config$train_sample_num, sample_pctg = NULL, types=unique(colData(data)$label), sample_seed=sample_seed)
     }else{
-      data <- data[,sample_index]
+      print(str_glue("start sampling train data: {config$train_sample_pctg} percentage per cell type, sample_seed is {sample_seed}"))
+      data <- utils.sampler(data, sample_num=NULL, sample_pctg = config$train_sample_pctg, types=unique(colData(data)$label), sample_seed=sample_seed)
     }
   }else{
     data <- utils.filter(data,filter_gene=FALSE)
-    if(purrr::is_null(sample_index)){
-      if(!purrr::is_null(config$test_sample_num) && !is.na(config$test_sample_num)){
-        print(str_glue("start sampling test data: {config$test_sample_num} per cell type"))
-        data <- utils.sampler(data, sample_num=config$test_sample_num, sample_pctg = NULL, types=unique(colData(data)[[config$level]]),column = config$level)
-      }else{
-        print(str_glue("start sampling test data: {config$test_sample_pctg} percentage per cell type"))
-        data <- utils.sampler(data, sample_num=NULL, sample_pctg = config$test_sample_pctg, types=unique(colData(data)[[config$level]]),column = config$level)
-      }
+    if(!purrr::is_null(config$test_sample_num) && !is.na(config$test_sample_num)){
+      print(str_glue("start sampling test data: {config$test_sample_num} per cell type, sample_seed is {sample_seed}"))
+      data <- utils.sampler(data, sample_num=config$test_sample_num, sample_pctg = NULL, types=unique(colData(data)$label), sample_seed=sample_seed)
     }else{
-      data <- data[,sample_index]
+      print(str_glue("start sampling test data: {config$test_sample_pctg} percentage per cell type, sample_seed is {sample_seed}"))
+      data <- utils.sampler(data, sample_num=NULL, sample_pctg = config$test_sample_pctg, types=unique(colData(data)$label), sample_seed=sample_seed)
     }
   }
+  data <- data[!duplicated(rownames(data)),!duplicated(colnames(data))]
+}
+
+
+
+constructor.celltype_detection <- function(data,config,if_train,sample_seed=NULL){
+  if(if_train){
+    data <- utils.filter(data)
+    if(!purrr::is_null(config$train_sample_num) && !is.na(config$train_sample_num)){
+      print(str_glue("start sampling train data: {config$train_sample_num} per cell type, sample_seed is {sample_seed}"))
+      data <- utils.sampler(data, sample_num=config$train_sample_num, sample_pctg = NULL, types=config$train_type, sample_seed=sample_seed)
+    }else{
+      print(str_glue("start sampling train data: {config$train_sample_pctg} percentage per cell type, sample_seed is {sample_seed}"))
+      data <- utils.sampler(data, sample_num=NULL, sample_pctg = config$train_sample_pctg, types=config$train_type, sample_seed=sample_seed)
+    }
+  }else{
+    data <- utils.filter(data,filter_gene=FALSE)
+    if(!purrr::is_null(config$test_sample_num) && !is.na(config$test_sample_num)){
+      print(str_glue("start sampling test data: {config$test_sample_num} per cell type, sample_seed is {sample_seed}"))
+      data <- utils.sampler(data, sample_num=config$test_sample_num, sample_pctg = NULL, types=unique(colData(data)$label), sample_seed=sample_seed)
+    }else{
+      print(str_glue("start sampling test data: {config$test_sample_pctg} percentage per cell type, sample_seed is {sample_seed}"))
+      data <- utils.sampler(data, sample_num=NULL, sample_pctg = config$test_sample_pctg, types=unique(colData(data)$label), sample_seed=sample_seed)
+    }
+  }
+  data <- data[!duplicated(rownames(data)),!duplicated(colnames(data))]
+}
+
+
+constructor.celltype_number <- function(data,config,if_train,sample_seed=NULL){
+  if(if_train){
+    if(!purrr::is_null(config$train_sample_num) && !is.na(config$train_sample_num)){
+      print(str_glue("start sampling train data: {config$train_sample_num} per cell type, sample_seed is {sample_seed}"))
+      data <- utils.sampler(data, sample_num=config$train_sample_num, sample_pctg = NULL, types=config$sample_celltype, sample_seed=sample_seed)
+    }else{
+      print(str_glue("start sampling train data: {config$train_sample_pctg} percentage per cell type, sample_seed is {sample_seed}"))
+      data <- utils.sampler(data, sample_num=NULL, sample_pctg = config$train_sample_pctg, types=config$sample_celltype, sample_seed=sample_seed)
+    }
+  }else{
+    data <- utils.filter(data,filter_gene=FALSE)
+    if(!purrr::is_null(config$test_sample_num) && !is.na(config$test_sample_num)){
+      print(str_glue("start sampling test data: {config$test_sample_num} per cell type, sample_seed is {sample_seed}"))
+      data <- utils.sampler(data, sample_num=config$test_sample_num, sample_pctg = NULL, types=config$sample_celltype, sample_seed=sample_seed)
+    }else{
+      print(str_glue("start sampling test data: {config$test_sample_pctg} percentage per cell type, sample_seed is {sample_seed}"))
+      data <- utils.sampler(data, sample_num=NULL, sample_pctg = config$test_sample_pctg, types=config$sample_celltype, sample_seed=sample_seed)
+    }
+  }
+  data <- data[!duplicated(rownames(data)),!duplicated(colnames(data))]
+}
+
+
+
+constructor.celltype_structure <- function(data,config,if_train,sample_seed=NULL){
+  data <- constructor.base(data,config,if_train,sample_seed)
   colData(data)$label <- colData(data)[[config$level]]
   data <- data[!duplicated(rownames(data)),!duplicated(colnames(data))]
 }
+
 
 constructor.type_architecturer <- function(config,dataset){
   data <- utils.load_datasets(dataset) 
@@ -164,22 +182,22 @@ constructor.type_architecturer <- function(config,dataset){
   data
 }
 
-constructor.inter_diseases <- function(data,config,if_train,sample_index=NULL){
-  constructor.base(data,config,if_train,sample_index)
+constructor.inter_diseases <- function(data,config,if_train,sample_seed=NULL){
+  constructor.base(data,config,if_train,sample_seed)
 }
 
-constructor.celltype_complexity <- function(data,config,if_train,sample_index=NULL){
+constructor.celltype_complexity <- function(data,config,if_train,sample_seed=NULL){
   
 }
 
-constructor.inter_species <- function(data,config,if_train,sample_index=NULL){
+constructor.inter_species <- function(data,config,if_train,sample_seed=NULL){
   
 }
 
-constructor.random_noise <- function(data,config,if_train,sample_index=NULL){
+constructor.random_noise <- function(data,config,if_train,sample_seed=NULL){
   
 }
 
-constructor.inter_protocol <- function(data,config,if_train,sample_index=NULL){
+constructor.inter_protocol <- function(data,config,if_train,sample_seed=NULL){
   
 }

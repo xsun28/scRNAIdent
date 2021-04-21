@@ -96,8 +96,10 @@ utils.filter <- function(data,filter_gene=TRUE, filter_cells=TRUE, filter_cell_t
 }
 
 ###sampling sample_num cells from each cell type
-utils.sampler <- function(data,sample_num=NULL,sample_pctg=NULL,types,column="label"){
+utils.sampler <- function(data,sample_num=NULL,sample_pctg=NULL,types,column="label",sample_seed=NULL){
   stopifnot(!((purrr::is_null(sample_num)&&purrr::is_null(sample_pctg))||(!purrr::is_null(sample_num)&&!purrr::is_null(sample_pctg))))
+  if(!purrr::is_null(sample_seed))
+    set.seed(sample_seed) #####ensures sample the same index by setting seed
   if(!purrr::is_null(sample_num)){
     sample_idx <- purrr::map(types,~ which(colData(data)[[column]]==.)) %>% 
       purrr::map(~sample(.,min(sample_num,length(.)),replace=FALSE)) 
@@ -409,3 +411,19 @@ utils.manhattan_dist <- function(a,b){
   dist <- sum(dist)
   return(dist)
 }
+
+utils.get_reorder <- function(data){
+  type_pctg <- as.data.frame(table(colData(data)$label)/dim(data)[2])
+  celltype_order <- as.vector(arrange(type_pctg,desc(Freq))[,1])
+  celltype_order
+}
+
+utils.get_order <- function(data){
+  type_pctg <- as.data.frame(table(colData(data)$label)/dim(data)[2])
+  celltype_reorder <- as.vector(arrange(type_pctg,Freq)[,1])
+  celltype_reorder
+}
+
+
+
+

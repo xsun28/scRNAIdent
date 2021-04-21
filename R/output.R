@@ -12,9 +12,13 @@ output.sink <- function(experiment,raw_results,results,exp_config=NULL){
          inter_species = output.inter_species(raw_results,results,dataset,exp_config),
          random_noise = output.random_noise(raw_results,results,dataset,exp_config),
          inter_protocol = output.inter_protocol(raw_results,results,dataset,exp_config),
+         celltype_number = output.celltype_number(raw_results,results,dataset,exp_config),
+         celltype_detection = output.celltype_detection(raw_results,results,dataset,exp_config),
+         rare_celltype = output.celltype_detection(raw_results,results,dataset,exp_config),
          stop("Unkown experiments")
   )
 }
+
 
 output.simple_accuracy <- function(raw_results,results,dataset,exp_config=NULL){
   output.write_results("simple_accuracy",dataset,raw_results,results)
@@ -43,6 +47,19 @@ output.inter_diseases <- function(raw_results,results,dataset,exp_config=NULL){
 output.celltype_complexity <- function(raw_results,results,dataset,exp_config=NULL){
   output.write_results("celltype_complexity",dataset,raw_results,results)
 }
+
+output.celltype_number <- function(raw_results,results,dataset,exp_config=NULL){
+  output.write_results("celltype_number",dataset,raw_results,results)
+}
+
+output.celltype_detection <- function(raw_results,results,dataset,exp_config=NULL){
+  output.write_results("celltype_detection",dataset,raw_results,results)
+}
+
+output.rare_celltype <- function(raw_results,results,dataset,exp_config=NULL){
+  output.write_results("rare_celltype",dataset,raw_results,results)
+}
+
 
 output.inter_species <- function(raw_results,results,dataset,exp_config=NULL){
   output.write_results("inter_species",dataset,raw_results,results)

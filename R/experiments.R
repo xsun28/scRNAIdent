@@ -1,6 +1,7 @@
 source("R/config.R")
 library(reticulate)
 options(reticulate.conda_binary = conda_home)
+options(connectionObserver = NULL)
 use_condaenv('r-reticulate')
 library(stringr)
 library(tidyverse)
@@ -23,7 +24,8 @@ logger <- utils.get_logger("DEBUG",log_file)
 ##Wrapper
 runExperiments <- function(experiment=c("simple_accuracy","cell_number", "sequencing_depth","celltype_structure",
                                         "batch_effects","inter_diseases","celltype_complexity","inter_species",
-                                        "random_noise","inter_protocol")){
+                                        "random_noise","inter_protocol","celltype_number","celltype_detection",
+                                        "rare_celltype")){
   switch(experiment,
          simple_accuracy = experiments.simple_accuracy(experiment),
          cell_number = experiments.cell_number(experiment),
@@ -35,6 +37,9 @@ runExperiments <- function(experiment=c("simple_accuracy","cell_number", "sequen
          inter_species = experiments.inter_species(experiment),
          random_noise = experiments.random_noise(experiment),
          inter_protocol = experiments.inter_protocol(experiment),
+         celltype_number = experiments.celltype_number(experiment),
+         celltype_detection = experiments.celltype_detection(experiment),
+         rare_celltype = experiments.rare_celltype(experiment),
          stop("Unkown experiments")
          )
 }
@@ -66,15 +71,8 @@ experiments.base.assign <- function(experiment, exp_config){
     all_train_data <- utils.load_datasets(experiments.assign.data$train_dataset[[experiment]])
     if(!purrr::is_null(exp_config$fixed_train)&&exp_config$fixed_train){
       print("train sample is fixed")
-      if(purrr::is_null(exp_config$train_sample_index)){
-        print("generating train sample index")
-        train_data <- constructor.data_constructor(all_train_data, config=exp_config,experiment=experiment,if_train = TRUE)
-        experiments.parameters[[experiment]]$train_sample_index <<- colnames(train_data)
-      }else{
-        print("train sample index exists, generating train data")
-        train_data <- constructor.data_constructor(all_train_data, config=exp_config,
-                                                   experiment=experiment,if_train = TRUE, sample_index = exp_config$train_sample_index)
-      }
+      sample_seed <- if(purrr::is_null(exp_config$sample_seed)) 10 else exp_config$sample_seed
+      train_data <- constructor.data_constructor(all_train_data, config=exp_config,experiment=experiment,if_train = TRUE, sample_seed)
     }else{
       print("train sample is not fixed")
       train_data <- constructor.data_constructor(all_train_data, config=exp_config,experiment=experiment,if_train = TRUE)
@@ -83,47 +81,29 @@ experiments.base.assign <- function(experiment, exp_config){
     colData(train_data)$barcode <- colnames(train_data)
     colnames(train_data) <- 1:length(colnames(train_data))
     if(!purrr::is_null(exp_config$fixed_test)&&exp_config$fixed_test){
+      sample_seed <- if(purrr::is_null(exp_config$sample_seed)) 10 else exp_config$sample_seed
       print("test sample is fixed")
       if(experiments.assign.data$train_dataset[[experiment]]==experiments.assign.data$test_dataset[[experiment]]){
         print(str_glue('train_dataset = test_dataset'))
-        test_sample_data <- all_train_data[,setdiff(colnames(all_train_data),colnames(train_data))]
-        if(purrr::is_null(exp_config$test_sample_index)){
-          print("generating test sample index")
-          test_data <- constructor.data_constructor(test_sample_data, config=exp_config, 
-                                                    experiment = experiment,if_train = FALSE)
-          experiments.parameters[[experiment]]$test_sample_index <<- colnames(test_data)
-        }else{
-          print("test sample index exists, generating train data")
-          test_data <- constructor.data_constructor(test_sample_data, config=exp_config,
-                                                     experiment=experiment,if_train = F, sample_index = exp_config$test_sample_index)
-        }
+        test_data <- all_train_data[,setdiff(colnames(all_train_data),colnames(train_data))]
       }else{
         print(str_glue('train_dataset != test_dataset'))
         test_data <- utils.load_datasets(experiments.assign.data$test_dataset[[experiment]])
-        if(purrr::is_null(exp_config$test_sample_index)){
-          print("generating test sample index")
-          test_data <- constructor.data_constructor(test_data, config=exp_config,
-                                                    experiment = experiment,if_train = FALSE)
-          experiments.parameters[[experiment]]$test_sample_index <<- colnames(test_data)
-        }else{
-          print("test sample index exists, generating train data")
-          test_data <- constructor.data_constructor(test_data, config=exp_config,
-                                                    experiment=experiment,if_train = FALSE, sample_index = exp_config$test_sample_index)
-        }
       }
+      test_data <- constructor.data_constructor(test_data, config=exp_config, 
+                                                experiment = experiment,if_train = FALSE, sample_seed)
     }else{
       print("test sample is not fixed")
       if(experiments.assign.data$train_dataset[[experiment]]==experiments.assign.data$test_dataset[[experiment]]){
         #####same train/test dataset 
         print(str_glue('train_dataset = test_dataset'))
-        test_sample_data <- all_train_data[,setdiff(colnames(all_train_data),colnames(train_data))]
-        test_data <- constructor.data_constructor(test_sample_data, config=exp_config,
-                                                  experiment = experiment,if_train = FALSE)
+        test_data <- all_train_data[,setdiff(colnames(all_train_data),colnames(train_data))]
       }else{#####interdataset
         print(str_glue('train_dataset != test_dataset'))
-        test_data <- utils.load_datasets(experiments.assign.data$test_dataset[[experiment]]) %>%
-          constructor.data_constructor(config=exp_config,experiment = experiment,if_train = FALSE)
+        test_data <- utils.load_datasets(experiments.assign.data$test_dataset[[experiment]]) 
       }
+      test_data <- constructor.data_constructor(test_data, config=exp_config,
+                                                experiment = experiment,if_train = FALSE)
     }
     # colData(test_data)$unique_id <- (dim(colData(train_data))[[1]]+1):(dim(colData(train_data))[[1]]+dim(colData(test_data))[[1]])
     colData(test_data)$barcode <- colnames(test_data)
@@ -332,6 +312,90 @@ experiments.simple_accuracy <- function(experiment){
 }
 
 
+###rare celltype experiment
+experiments.rare_celltype <- function(experiment){
+  exp_config <- experiments.parameters[[experiment]]
+  config <- exp_config
+  methods <- experiments.methods[[experiment]]
+  assign_test_dataset <- experiments.assign.data$train_dataset[[experiment]]
+  data <- utils.load_datasets(assign_test_dataset) 
+  celltype <- utils.get_order(data)
+  select_type <- celltype[round((config$type_pctg)*length(celltype))]
+  config
+  
+  if(config$train_sampling &&!config$test_sampling){
+    config$fixed_test <- T
+  }else if(!config$train_sampling&&config$test_sampling){
+    config$fixed_train <- T
+  }
+  
+  base_results <- experiments.base(experiment,config)
+  results <- base_results$analy_results %>% 
+    purrr::map(~{filter(.$label %in% select_type)
+      return(.)}
+    )
+  raw_results <- base_results$pred_results
+    
+  combined_assign_results <- bind_rows(results[grepl(".*_assign_.*",names(results))])
+  combined_cluster_results <- bind_rows(results[grepl(".*cluster.*",names(results))])
+  combined_raw_results <- bind_rows(raw_results)
+  final_results <- bind_rows(combined_assign_results,combined_cluster_results)
+  output.sink(experiment,combined_raw_results,final_results,exp_config)
+  plot.plot(experiment,final_results,combined_raw_results)
+  utils.clean_marker_files()
+  final_results
+}
+
+
+
+###celltype number experiment
+experiments.celltype_number <- function(experiment){
+  exp_config <- experiments.parameters[[experiment]]
+  type_pctgs <- exp_config$type_pctg
+  combined_cluster_results <- vector('list',length(type_pctgs))
+  combined_assign_results <- vector('list',length(type_pctgs))
+  combined_raw_results <- vector('list',length(type_pctgs))
+  assign_test_dataset <- experiments.assign.data$train_dataset[[experiment]]
+  data <- utils.load_datasets(assign_test_dataset) 
+  celltype_order <- utils.get_reorder(data)
+  config <- exp_config
+  methods <- experiments.methods[[experiment]]
+  for(i in seq_along(type_pctgs)){
+    val <- type_pctgs[[i]]
+    print(str_glue('starting sampling type percentage :{val}'))
+    config <- experiments.parameters[[experiment]]
+    config$sample_celltype <- celltype_order[1:round(length(celltype_order)*val)]
+    
+    if(config$train_sampling &&!config$test_sampling){
+      config$fixed_test <- T
+    }else if(!config$train_sampling&&config$test_sampling){
+      config$fixed_train <- T
+    }
+    
+    base_results <- experiments.base(experiment,config)
+    results <- base_results$analy_results%>% 
+      purrr::map(~{
+        .$type_pctg <- val
+        .$type_num <- round(length(celltype_order)*val)
+        return(.)})
+    raw_results <- base_results$pred_results
+    raw_results$type_pctg <- val
+    raw_results$type_num <- round(length(celltype_order)*val)
+    combined_assign_results[[i]] <- bind_rows(results[grepl(".*_assign_.*",names(results))])
+    combined_cluster_results[[i]] <- bind_rows(results[grepl(".*cluster.*",names(results))])
+    combined_raw_results[[i]] <- raw_results
+  }
+  combined_assign_results <- bind_rows(combined_assign_results)
+  combined_cluster_results <- bind_rows(combined_cluster_results)
+  combined_raw_results <- bind_rows(combined_raw_results)
+  final_results <- bind_rows(combined_assign_results,combined_cluster_results)
+  output.sink(experiment,combined_raw_results,final_results,exp_config)
+  plot.plot(experiment,final_results,combined_raw_results)
+  utils.clean_marker_files()
+  final_results
+}
+
+
 ####experiment with different number of cells per type
 experiments.cell_number <- function(experiment){
   exp_config <- experiments.parameters[[experiment]]
@@ -378,15 +442,15 @@ experiments.cell_number <- function(experiment){
     if(sampling_by_pctg){
       results <- base_results$analy_results%>% 
         purrr::map(~{
-         .$sample_pctg <- val
-         return(.)})
+          .$sample_pctg <- val
+          return(.)})
       raw_results <- base_results$pred_results
       raw_results$sample_pctg <- val
     }else{
       results <- base_results$analy_results%>% 
         purrr::map(~{
-                .$sample_num <- val
-                return(.)})
+          .$sample_num <- val
+          return(.)})
       raw_results <- base_results$pred_results
       raw_results$sample_num <- val
     }
@@ -403,6 +467,52 @@ experiments.cell_number <- function(experiment){
   utils.clean_marker_files()
   final_results
 }
+
+
+###celltype detection experiment
+experiments.celltype_detection <- function(experiment){
+  exp_config <- experiments.parameters[[experiment]]
+  config <- exp_config
+  type_pctg <- exp_config$type_pctg
+  assign_test_dataset <- experiments.assign.data$train_dataset[[experiment]]
+  data <- utils.load_datasets(assign_test_dataset) 
+  celltype <- unique(colData(data)$label)
+  unknown.type <- utils.get_reorder(data)
+  type.unknown <- celltype[round(length(unknown.type)*type_pctg)]
+  combined_cluster_results <- vector('list',length(type.unknown))
+  combined_assign_results <- vector('list',length(type.unknown))
+  combined_raw_results <- vector('list',length(type.unknown))
+  for(i in seq_along(type.unknown)){
+    untypes <- type.unknown[i]
+    config$train_type <- celltype[-which(celltype==untypes)]
+    
+    if(config$train_sampling &&!config$test_sampling){
+      config$fixed_test <- T
+    }else if(!config$train_sampling&&config$test_sampling){
+      config$fixed_train <- T
+    }
+    
+    base_results <- experiments.base(experiment,config)
+    results <- base_results$analy_results%>% 
+      purrr::map(~{
+        .$unknown_type <- untypes
+        return(.)})
+    raw_results <- base_results$pred_results
+    raw_results$unknown_type <- untypes
+    combined_assign_results[[i]] <- bind_rows(results[grepl(".*_assign_.*",names(results))])
+    combined_cluster_results[[i]] <- bind_rows(results[grepl(".*cluster.*",names(results))])
+    combined_raw_results[[i]] <- raw_results
+  }
+  combined_assign_results <- bind_rows(combined_assign_results)
+  combined_cluster_results <- bind_rows(combined_cluster_results)
+  combined_raw_results <- bind_rows(combined_raw_results)
+  final_results <- bind_rows(combined_assign_results,combined_cluster_results)
+  output.sink(experiment,combined_raw_results,final_results,exp_config)
+  plot.plot(experiment,final_results,combined_raw_results)
+  utils.clean_marker_files()
+  final_results
+}
+
 
 ###experiments with different sequencing depth
 experiments.sequencing_depth <- function(experiment){
@@ -514,19 +624,16 @@ experiments.batch_effects <- function(experiment){
   ###not remove batch effects
   # experiments.data[[experiment]] <<- purrr::map(raw_data,~{str_glue("{metadata(.)$study_name}_intersected.RDS")})
   # print(str_glue("after global experiments.data {experiment} is {experiments.data[[experiment]]}"))
-
+  
   datasets_perm2 <- gtools::permutations(n=length(experiments.data$batch_effects),r=2,v=unlist(experiments.data$batch_effects),repeats.allowed = F)
-
+  
   combined_cluster_results <- vector('list',dim(datasets_perm2)[[1]])
   combined_assign_results <- vector('list',dim(datasets_perm2)[[1]])
   combined_raw_results <- vector('list',dim(datasets_perm2)[[1]])
   intersected_datasets <- vector('list',dim(datasets_perm2)[[1]])
-  sample_index <-  vector('list',dim(datasets_perm2)[[1]])
   for(i in 1:dim(datasets_perm2)[1]){
     # experiments.data[[experiment]] <<- unlist(datasets_comb2[,i])
     # print(str_glue("experiment data is {experiments.data[[experiment]]}"))
-    experiments.parameters[[experiment]]$train_sample_index <<- NULL
-    experiments.parameters[[experiment]]$test_sample_index <<- NULL
     experiments.parameters[[experiment]]$train_sample_num <<- experiments.parameters.batch_effects[[datasets_perm2[i,1]]]$train_sample_num
     experiments.parameters[[experiment]]$train_sample_pctg <<- experiments.parameters.batch_effects[[datasets_perm2[i,1]]]$train_sample_pctg
     experiments.parameters[[experiment]]$test_sample_num <<- experiments.parameters.batch_effects[[datasets_perm2[i,2]]]$test_sample_num
@@ -535,7 +642,7 @@ experiments.batch_effects <- function(experiment){
     data <- utils.load_datasets(datasets_perm2[i,])
     data_intersected <- list(str_glue("{metadata(data[[1]])$study_name}_{metadata(data[[2]])$study_name}_intersected.RDS"),
                              str_glue("{metadata(data[[2]])$study_name}_{metadata(data[[1]])$study_name}_intersected.RDS")
-                            )
+    )
     intersected_datasets[[i]] <- data_intersected
     preprocess.intersect_sces(data,unlist(data_intersected))
     
@@ -547,8 +654,8 @@ experiments.batch_effects <- function(experiment){
     base_results <- experiments.base(experiment,exp_config)
     results <- base_results$analy_results%>% 
       purrr::map(~{.$batch_effects_removed <- FALSE
-                  return(.)}
-                 )
+      return(.)}
+      )
     raw_results <- base_results$pred_results
     # raw_results$train_dataset <- experiments.assign.data$train_dataset[[experiment]]
     # raw_results$test_dataset <- experiments.assign.data$test_dataset[[experiment]]
@@ -556,8 +663,6 @@ experiments.batch_effects <- function(experiment){
     combined_assign_results[[i]] <- bind_rows(results[grepl(".*_assign_.*",names(results))])
     combined_cluster_results[[i]] <- bind_rows(results[grepl(".*cluster.*",names(results))])
     combined_raw_results[[i]] <- raw_results
-    sample_index[[i]]$train_sample_index <- experiments.parameters[[experiment]]$train_sample_index
-    sample_index[[i]]$teset_sample_index <- experiments.parameters[[experiment]]$test_sample_index
     utils.clean_marker_files()
   }
   combined_assign_results <- bind_rows(combined_assign_results)
@@ -565,7 +670,7 @@ experiments.batch_effects <- function(experiment){
   combined_raw_results <- bind_rows(combined_raw_results)
   
   ###remove batch effects from dataset and save
-
+  
   if(exp_config$remove_batch){
     # datasets_comb2_no_be <- combn(experiments.data[[experiment]],2)
     combined_cluster_results_no_be <- vector('list',dim(datasets_perm2)[[1]])
@@ -577,12 +682,10 @@ experiments.batch_effects <- function(experiment){
     for(i in 1:dim(datasets_perm2)[1]){
       # experiments.data[[experiment]] <<- unlist(datasets_comb2_no_be[,i])
       # print(str_glue("experiment data is {experiments.data[[experiment]]}"))
-      experiments.parameters[[experiment]]$train_sample_index <<- sample_index[[i]]$train_sample_index
-      experiments.parameters[[experiment]]$test_sample_index <<- sample_index[[i]]$teset_sample_index
       data <- utils.load_datasets(unlist(intersected_datasets[[i]])) 
       data_no_be <- list(str_glue("{metadata(data[[1]])$study_name}_{metadata(data[[2]])$study_name}_batch_effects_removed.RDS"),
                          str_glue("{metadata(data[[2]])$study_name}_{metadata(data[[1]])$study_name}_batch_effects_removed.RDS")
-                         )
+      )
       preprocess.remove_batch_effects(data,unlist(data_no_be))
       
       experiments.assign.data$train_dataset[[experiment]] <<- data_no_be[[1]]
@@ -594,8 +697,8 @@ experiments.batch_effects <- function(experiment){
       base_results_no_be <- experiments.base(experiment,exp_config)
       results_no_be <- base_results_no_be$analy_results%>% 
         purrr::map(~{.$batch_effects_removed <- T
-                    return(.)}
-                  )
+        return(.)}
+        )
       # results_no_be <- base_results_no_be$analy_results%>% 
       #   purrr::map(~{.$train_dataset <- str_split(datasets_perm2[i,1],"\\.")[[1]][[1]]
       #   .$test_dataset <- str_split(datasets_perm2[i,2],"\\.")[[1]][[1]]
@@ -614,7 +717,7 @@ experiments.batch_effects <- function(experiment){
     }
     
     utils.remove_files(unlist(intersected_datasets[[i]]))
-   
+    
     
     combined_assign_results_no_be <- bind_rows(combined_assign_results_no_be)
     combined_cluster_results_no_be <- bind_rows(combined_cluster_results_no_be)
@@ -636,6 +739,7 @@ experiments.batch_effects <- function(experiment){
   utils.clean_marker_files()
   final_results
 }
+
 
 ############
 experiments.inter_diseases <- function(experiment){
@@ -682,6 +786,7 @@ experiments.inter_diseases <- function(experiment){
   utils.clean_marker_files()
   final_results
 }
+
 ############
 experiments.inter_species <- function(experiment){
   
