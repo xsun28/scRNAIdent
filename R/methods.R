@@ -14,16 +14,16 @@ run_assign_methods <- function(method,train_data, test_data,exp_config){
   
 }
 
-run_cluster_methods <- function(method,data){
+run_cluster_methods <- function(method,data,exp_config){
   switch(method,
-         sc3 = cluster.sc3(data),
-         liger = cluster.liger(data),
-         seurat = cluster.seurat(data),
-         cidr = cluster.cidr(data),
-         tscan = cluster.tscan(data),
-         cidr = cluster.cidr(data),
-         monocle3 = cluster.monocle3(data),
-         pcaReduce = cluster.pcaReduce(data),
+         sc3 = cluster.sc3(data,exp_config),
+         liger = cluster.liger(data,exp_config),
+         seurat = cluster.seurat(data,exp_config),
+         cidr = cluster.cidr(data,exp_config),
+         tscan = cluster.tscan(data,exp_config),
+         cidr = cluster.cidr(data,exp_config),
+         monocle3 = cluster.monocle3(data,exp_config),
+         pcaReduce = cluster.pcaReduce(data,exp_config),
          stop("No such cluster method")
   )
 }
@@ -149,7 +149,7 @@ assign.garnett <- function(train_data,test_data,exp_config){
   
   stopifnot(is(test_data,"SingleCellExperiment"))
   stopifnot(is(train_data,"SingleCellExperiment"))
-  m_config <- methods.config.garnett
+  m_config <- if(purrr::is_null(exp_config$batch_free) || !exp_config$batch_free || !exists("methods.config.garnett.batch_free")) methods.config.garnett else methods.config.garnett.batch_free
   study <- metadata(train_data)$study[[1]]
   study_name <- metadata(train_data)$study_name[[1]]
   gene_name_type <- dataset.properties[[study_name]]$gene_name_type
@@ -303,7 +303,7 @@ assign.cellassign <- function(data,exp_config){
   require(cellassign)
   require(scran)
   stopifnot(is(data,"SingleCellExperiment"))
-  m_config <- methods.config.cellassign
+  m_config <- if(purrr::is_null(exp_config$batch_free) || !exp_config$batch_free || !exists("methods.config.cellassign.batch_free")) methods.config.cellassign else methods.config.cellassign.batch_free
   marker_gene_file <- exp_config$marker_gene_file
   study_name <- metadata(data)$study_name[[1]]
   gene_name_type <- dataset.properties[[study_name]]$gene_name_type
@@ -364,8 +364,7 @@ assign.singlecellnet <- function(train_data, test_data, exp_config){
     
     return(list(sampTab = sampTab, expDat = expDat))
   }
-  
-  m_config <- methods.config.singlecellnet 
+  m_config <- if(purrr::is_null(exp_config$batch_free) || !exp_config$batch_free || !exists("methods.config.singlecellnet.batch_free")) methods.config.singlecellnet else methods.config.singlecellnet.batch_free
   set.seed(100) #can be any random seed number
   train_scefile <- extractSCE(train_data, exp_type = "counts") 
   train_metadata <- train_scefile$sampTab
@@ -402,7 +401,7 @@ assign.singlecellnet <- function(train_data, test_data, exp_config){
 #### assigning using singleR
 assign.singleR <- function(train_data, test_data, exp_config=NULL){
   require(SingleR)
-  m_config <- methods.config.singleR 
+  m_config <- if(purrr::is_null(exp_config$batch_free) || !exp_config$batch_free || !exists("methods.config.singleR.batch_free")) methods.config.singleR else methods.config.singleR.batch_free
   stopifnot(is(train_data,"SingleCellExperiment"))
   stopifnot(is(test_data,"SingleCellExperiment"))
   train_data <- logNormCounts(train_data) 
@@ -414,11 +413,11 @@ assign.singleR <- function(train_data, test_data, exp_config=NULL){
 
 
 ### clustering using Seurat
-cluster.seurat <- function(data) {
+cluster.seurat <- function(data,exp_config) {
   require(Seurat)
   stopifnot(is(data,"SingleCellExperiment"))
   cnts <- counts(data)
-  m_config <- methods.config.seurat
+  m_config <- if(purrr::is_null(exp_config$batch_free) || !exp_config$batch_free || !exists("methods.config.seurat.batch_free")) methods.config.seurat else methods.config.seurat.batch_free
   ## PCA dimention redcution
   seuset <- CreateSeuratObject(cnts, project='simple_accuracy')
   seuset <- NormalizeData(object = seuset)
@@ -431,11 +430,11 @@ cluster.seurat <- function(data) {
 }
 
 ### TSCAN
-cluster.tscan <- function(data) {
+cluster.tscan <- function(data,exp_config) {
   require(TSCAN)
   stopifnot(is(data,"SingleCellExperiment"))
   cnts <- counts(data)
-  m_config <- methods.config.tscan
+  m_config <- if(purrr::is_null(exp_config$batch_free) || !exp_config$batch_free || !exists("methods.config.tscan.batch_free")) methods.config.tscan else methods.config.tscan.batch_free
   minexpr_value = m_config[['minexpr_value']]
   minexpr_percent = m_config[['minexpr_percent']] 
   cvcutoff=m_config[['cvcutoff']]
@@ -459,12 +458,12 @@ cluster.tscan <- function(data) {
 }
 
 ### SC3
-cluster.sc3 <- function(data) {
+cluster.sc3 <- function(data,exp_config) {
   require(SC3)
   stopifnot(is(data,"SingleCellExperiment"))
   counts(data) <- as.matrix(counts(data))
   data <- logNormCounts(data)
-  m_config <- methods.config.sc3
+  m_config <- if(purrr::is_null(exp_config$batch_free) || !exp_config$batch_free || !exists("methods.config.sc3.batch_free")) methods.config.sc3 else methods.config.sc3.batch_free
   k <- m_config$k
   gene_filter <- m_config$gene_filter
   print(str_glue("gene filter for sc3 is {gene_filter}"))
@@ -485,9 +484,9 @@ cluster.sc3 <- function(data) {
 }
 
 #####liger
-cluster.liger <- function(data){
+cluster.liger <- function(data,exp_config){
   require(rliger)
-  m_config <- methods.config.liger
+  m_config <- if(purrr::is_null(exp_config$batch_free) || !exp_config$batch_free || !exists("methods.config.liger.batch_free")) methods.config.liger else methods.config.liger.batch_free
   stopifnot(is(data,"SingleCellExperiment"))
   data_list <- list(counts(data))
   names(data_list) <- metadata(data)$study[[1]]
@@ -508,7 +507,7 @@ cluster.liger <- function(data){
   ret <- tryCatch(optimizeALS(liger_data, k=k.suggest, thresh = thresh, lambda=lambda,nrep = 3), error=function(c) {
     msg <- conditionMessage(c)
     print(str_glue("error occured {msg}"))
-    error(logger, str_glue("error occured {msg}"))
+    error(logger, str_glue("error occured in liger {msg}"))
     structure(msg, class = "try-error")
   })
   i = 0
@@ -520,8 +519,8 @@ cluster.liger <- function(data){
     print(str_glue("new k: {k.suggest}"))
     ret <- tryCatch(optimizeALS(liger_data, k=k.suggest, thresh = thresh, lambda=lambda,nrep = 3), error=function(c) {
       msg <- conditionMessage(c)
-      print(str_glue("error occured {msg}"))
-      error(logger, str_glue("error occured {msg}"))
+      print(str_glue("error occured in liger: {msg}"))
+      error(logger, str_glue("error occured in liger {msg}"))
       structure(msg, class = "try-error")
     })
   }
@@ -533,9 +532,9 @@ cluster.liger <- function(data){
 
 
 ### CIDR
-cluster.cidr <- function(data) {
+cluster.cidr <- function(data,exp_config) {
   require(cidr)
-  m_config <- methods.config.cidr
+  m_config <- if(purrr::is_null(exp_config$batch_free) || !exp_config$batch_free || !exists("methods.config.cidr.batch_free")) methods.config.cidr else methods.config.cidr.batch_free
   stopifnot(is(data,"SingleCellExperiment"))
   
   sData <- scDataConstructor(as.matrix(counts(data)))
@@ -554,10 +553,10 @@ cluster.cidr <- function(data) {
 }
 
 ### Monocle
-cluster.monocle3 <- function(data) {
+cluster.monocle3 <- function(data,exp_config) {
   stopifnot(is(data,"SingleCellExperiment"))
   require(monocle3)
-  m_config <- methods.config.monocle3
+  m_config <- if(purrr::is_null(exp_config$batch_free) || !exp_config$batch_free || !exists("methods.config.monocle3.batch_free")) methods.config.monocle3 else methods.config.monocle3.batch_free
   num_dim <- if(purrr::is_null(m_config$num_dim)) 100 else m_config$num_dim
   cds <- new_cell_data_set(as.matrix(counts(data)),
                            cell_metadata = colData(data),
@@ -571,10 +570,10 @@ cluster.monocle3 <- function(data) {
 }
 
 ###pcaReduce
-cluster.pcaReduce <- function(data) {
+cluster.pcaReduce <- function(data,exp_config) {
   stopifnot(is(data,"SingleCellExperiment"))
   require(pcaReduce)
-  m_config <- methods.config.pcaReduce
+  m_config <- if(purrr::is_null(exp_config$batch_free) || !exp_config$batch_free || !exists("methods.config.pcaReduce.batch_free")) methods.config.pcaReduce else methods.config.pcaReduce.batch_free
   counts(data) <- as.matrix(counts(data))
   data <- logNormCounts(data)
   Input <- t(logcounts(data))

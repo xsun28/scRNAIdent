@@ -1,7 +1,7 @@
-ERROR [2021-04-17 10:59:37] error occured Select k lower than the number of variable genes: 11
-ERROR [2021-04-17 10:59:37] error occured Select k lower than the number of variable genes: 11
-ERROR [2021-04-17 12:26:51] error occured dim(X) must have a positive length
-ERROR [2021-04-17 12:26:51] error occurs in ADASD_AD, tscan:dim(X) must have a positive length
-DEBUG [2021-04-17 12:36:14] results methods: scmap_clusterresults methods: scmap_cellresults methods: chetahresults methods: singlecellnetresults methods: garnettresults methods: singleRresults methods: cellassign
-DEBUG [2021-04-17 13:21:31] results methods: scmap_clusterresults methods: scmap_cellresults methods: chetahresults methods: singlecellnetresults methods: garnettresults methods: singleRresults methods: cellassign
-DEBUG [2021-04-17 14:08:16] results methods: scmap_clusterresults methods: scmap_cellresults methods: chetahresults methods: singlecellnetresults methods: garnettresults methods: singleRresults methods: cellassign
+ERROR [2021-04-22 08:35:25] error occured Select k lower than the number of variable genes: 9
+ERROR [2021-04-22 08:35:26] error occured Select k lower than the number of variable genes: 9
+ERROR [2021-04-22 08:35:27] error occured Select k lower than the number of variable genes: 9
+DEBUG [2021-04-22 08:41:06] results methods: scmap_clusterresults methods: scmap_cellresults methods: chetahresults methods: singlecellnetresults methods: garnettresults methods: singleRresults methods: cellassign
+DEBUG [2021-04-22 09:27:28] results methods: scmap_clusterresults methods: scmap_cellresults methods: chetahresults methods: singlecellnetresults methods: garnettresults methods: singleRresults methods: cellassign
+DEBUG [2021-04-22 10:12:00] results methods: scmap_clusterresults methods: scmap_cellresults methods: chetahresults methods: singlecellnetresults methods: garnettresults methods: singleRresults methods: cellassign
+DEBUG [2021-04-22 10:48:47] results methods: scmap_clusterresults methods: scmap_cellresults methods: chetahresults methods: singlecellnetresults methods: garnettresults methods: singleRresults methods: cellassign

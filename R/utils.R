@@ -114,7 +114,8 @@ utils.sampler <- function(data,sample_num=NULL,sample_pctg=NULL,types,column="la
 utils.seqDepthSelector <- function(data, low_quantile,high_quantile){
   require(SingleCellExperiment)
   stopifnot(is(data,"SingleCellExperiment"))
-  return(data[,which((percent_rank(colData(data)$sum)>=low_quantile)&(percent_rank(colData(data)$sum)<=high_quantile))])
+  sampled <- dplyr::group_by(dplyr::mutate(as.data.frame(colData(data)),id=colnames(data)),label) %>% filter(percent_rank(sum)>=low_quantile,percent_rank(sum)<=high_quantile)
+  return(data[,sampled$id])
 }
 
 ###label unassigned cells in the tibble results
@@ -187,8 +188,19 @@ utils.col2rowNames <- function(data,col){
   data
 }
 
+######remove batch effects
+utils.remove_batch_effects <- function(batches, method){
+  switch(method,
+         MNN = utils.batch_effects.MNN(batches),
+         seurat = utils.batch_effects.seurat(batches),
+         harmony = utils.batch_effects.harmony(batches),
+         stop("Unkown experiments")
+  )
+}
+
+
 ###remove batch effects using MNN
-utils.remove_batch_effects <- function(batches){
+utils.batch_effects.MNN <- function(batches){
   require(batchelor)
   require(scater)
   require(scran)
@@ -209,6 +221,30 @@ utils.remove_batch_effects <- function(batches){
     x <- addPerCellQC(x)
   }
   purrr::map2(sces_batch_free,batches,add_col_row_data)
+}
+
+###remove batch effects using harmony
+
+utils.batch_effects.harmony <- function(batches){
+  require(harmony)
+  require(MUDAN)
+  batch1 <- counts(batches[[1]])
+  batch2 <- counts(batches[[2]])
+  cd <- cbind(batch1, batch2)
+  meta <- c(rep('batch1', ncol(batch1)), rep('batch2', ncol(batch2)))
+  names(meta) <- c(colnames(batch1), colnames(batch2))
+  meta <- factor(meta)
+  mat <- MUDAN::normalizeCounts(cd, verbose=FALSE) 
+  ## variance normalize, identify overdispersed genes
+  matnorm.info <- MUDAN::normalizeVariance(mat, details=TRUE, verbose=FALSE) 
+  ## log transform
+  matnorm <- log10(matnorm.info$mat+1) 
+  ## 30 PCs on overdispersed genes
+  pcs <- MUDAN::getPcs(matnorm[matnorm.info$ods,], nGenes=length(matnorm.info$ods), nPcs=30, verbose=FALSE) 
+  harmonized <- HarmonyMatrix(pcs, meta, do_pca = FALSE, verbose = FALSE)
+  corrected_batch_1 <- harmonized[names(meta[meta=="batch1"]),]
+  corrected_batch_2 <- harmonized[names(meta[meta=="batch2"]),]
+  return(list(corrected_batch_1,corrected_batch_2))
 }
 
 ####append one singlecellexperiment onto another

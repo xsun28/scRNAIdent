@@ -172,14 +172,15 @@ analysis.dataset.properties_table <- function(dataset_names){
 
 
 analysis.dataset.batch_effects <- function(dataset1,dataset2){
+  require(scater)
   stopifnot(is(dataset1,"SingleCellExperiment"))
   stopifnot(is(dataset2,"SingleCellExperiment"))
 
   batch_name <- intersect(dataset1$label,dataset2$label)
   sce_data1 <- computeLibraryFactors(dataset1)
-  assay(sce_data1,"normed") <- normalizeCounts(sce_data1,log = FALSE)
-  sce_data2 <- computeLibraryFactors(dataset2)
-  assay(sce_data2,"normed") <- normalizeCounts(sce_data2,log = FALSE)
+  assay(sce_data1,"normed") <- scater::normalizeCounts(sce_data1,log = FALSE)
+  sce_data2 <- scater::computeLibraryFactors(dataset2)
+  assay(sce_data2,"normed") <- scater::normalizeCounts(sce_data2,log = FALSE)
   batch_name <- intersect(sce_data1$label,sce_data2$label)
   genename <- intersect(rownames(sce_data1),rownames(sce_data2))
   data1 <- sce_data1[genename,]

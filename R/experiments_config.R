@@ -3,7 +3,7 @@ experiment <- "sequencing_depth"
 experiments.data <- list(simple_accuracy="PBMC_AllCells_withLabels.RDS", 
                                  cell_number="ADASD_autism.RDS",
                                  celltype_number = "midbrain_human.RDS",
-                                 sequencing_depth="ADASD_AD.RDS",
+                                 sequencing_depth="ADASD_AD.RDS",####only use PBMC and ADASD datasets
                                  celltype_structure="GSE96583_8_Stim_Pats.RDS",
                                  # batch_effects=list(muraro="Muraro_pancreas_clean.RDS",seger="Segerstolpe_pancreas_clean.RDS"),
                                  batch_effects=list("PBMC_AllCells_withLabels.RDS","GSE96583_8_Ctrl_Pats.RDS"),
@@ -334,7 +334,7 @@ experiments.parameters <- list(
                        train_sample_num=experiments.parameters.simple_accuracy[[experiments.assign.data$train_dataset$simple_accuracy]]$train_sample_num,
                        test_sample_pctg=experiments.parameters.simple_accuracy[[experiments.assign.data$test_dataset$simple_accuracy]]$test_sample_pctg,
                        test_sample_num=experiments.parameters.simple_accuracy[[experiments.assign.data$test_dataset$simple_accuracy]]$test_sample_num, 
-                       cv=TRUE, cv_fold=5,metrics=c('ARI','AMI','FMI'),
+                       cv=TRUE, cv_fold=5,metrics=c('ARI','AMI','FMI'),batch_free=F,
                        marker_gene_file=NULL),
   
   cell_number=list(sample_pctg=experiments.parameters.cell_number[[experiments.data$cell_number]]$sample_pctg,
@@ -345,7 +345,7 @@ experiments.parameters <- list(
                    test_sample_num=experiments.parameters.cell_number[[experiments.assign.data$test_dataset$cell_number]]$test_sample_num,
                    train_sampling=experiments.parameters.cell_number[[experiments.assign.data$train_dataset$cell_number]]$train_sampling, 
                    test_sampling=experiments.parameters.cell_number[[experiments.assign.data$test_dataset$cell_number]]$test_sampling, 
-                   cv=F,cv_fold=F, metrics=c('ARI','AMI','FMI'), 
+                   cv=F,cv_fold=F, metrics=c('ARI','AMI','FMI'), batch_free=F,
                    marker_gene_file=NULL,trained=F),
   
   celltype_number=list(type_pctgs=experiments.parameters.celltype_number[[experiments.data$celltype_number]]$type_pctg,
@@ -353,29 +353,29 @@ experiments.parameters <- list(
                        train_sample_num=experiments.parameters.celltype_number[[experiments.assign.data$train_dataset$celltype_number]]$train_sample_num,
                        test_sample_pctg=experiments.parameters.celltype_number[[experiments.assign.data$test_dataset$celltype_number]]$test_sample_pctg,
                        test_sample_num=experiments.parameters.celltype_number[[experiments.assign.data$test_dataset$celltype_number]]$test_sample_num, 
-                       cv=TRUE, cv_fold=5,metrics=c('ARI','AMI','FMI'),
+                       cv=TRUE, cv_fold=5,metrics=c('ARI','AMI','FMI'),batch_free=F,
                        marker_gene_file=NULL),
   
   sequencing_depth=list(quantiles=experiments.parameters.sequencing_depth[[experiments.data$sequencing_depth]]$quantiles,
                         cv=F,cv_fold=5,metrics=c('ARI','AMI','FMI'),fixed_train=T,fixed_test=F,
                         train_sample_pctg=experiments.parameters.sequencing_depth[[experiments.data$sequencing_depth]]$train_sample_pctg, 
                         test_sample_pctg=experiments.parameters.sequencing_depth[[experiments.data$sequencing_depth]]$test_sample_pctg,
-                        marker_gene_file=NULL),
+                        marker_gene_file=NULL,batch_free=F),
   
   celltype_structure=list(train_sample_pctg=experiments.parameters.celltype_structure[[experiments.assign.data$train_dataset$celltype_structure]]$train_sample_pctg,
                           train_sample_num=experiments.parameters.celltype_structure[[experiments.assign.data$train_dataset$celltype_structure]]$train_sample_num,
                           test_sample_pctg=experiments.parameters.celltype_structure[[experiments.assign.data$test_dataset$celltype_structure]]$test_sample_pctg,
                           test_sample_num=experiments.parameters.celltype_structure[[experiments.assign.data$test_dataset$celltype_structure]]$test_sample_num,
-                          cv=TRUE,cv_fold=5,metrics=c('wNMI','wRI'),
+                          cv=TRUE,cv_fold=5,metrics=c('wNMI','wRI'),batch_free=F,
                           structure_file="PBMC_celltypes.csv",marker_gene_file=NULL),
   
   batch_effects=list(train_sample_pctg=NULL,train_sample_num=NULL,
                      test_sample_pctg=NULL,test_sample_num=NULL,
                      cv=FALSE,remove_batch=TRUE,metrics=c('ARI','AMI','FMI'),
-                     marker_gene_file=NULL,fixed_train=T,fixed_test=T),
+                     marker_gene_file=NULL,fixed_train=T,fixed_test=T,batch_correct_method="MNN"),
   
   inter_diseases = list(train_sample_pctg=NULL,train_sample_num=NULL,
-                        test_sample_pctg=NULL,test_sample_num=NULL,
+                        test_sample_pctg=NULL,test_sample_num=NULL,batch_free=F,
                         cv=FALSE,metrics=c('ARI','AMI','FMI'),marker_gene_file=NULL),
   
   celltype_complexity = list(),

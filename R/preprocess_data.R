@@ -213,13 +213,19 @@ preprocess_cellbench <- function(dataset){
 }
 
 ##remove batch effects of datasets and saves
-preprocess.remove_batch_effects <- function(sces,file_names){
-  sces <- utils.remove_batch_effects(sces) 
-  for(i in seq_along(sces)){
-    path <- utils.get_dataset_paths(data_home,file_names[[i]])
-    write_rds(sces[[i]],path)
-  }
+
+preprocess.remove_batch_effects <- function(sces, method="MNN"){
+  sces <- utils.remove_batch_effects(sces, method) 
+  return(sces)
 }
+
+# preprocess.remove_batch_effects <- function(sces,file_names){
+#   sces <- utils.remove_batch_effects(sces) 
+#   for(i in seq_along(sces)){
+#     path <- utils.get_dataset_paths(data_home,file_names[[i]])
+#     write_rds(sces[[i]],path)
+#   }
+# }
 
 ###intersect singlecellexperiments objects with different genes and save
 preprocess.intersect_sces <- function(sces,file_names){
