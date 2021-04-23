@@ -5,15 +5,39 @@ raw_datasets <- list(PBMC=c("PBMC_AllCells_withLabels.RData","GSE96583_batch1_3_
                      midbrain="midbrain.RData",
                      cellbench="cellbench.RData")
 
-datasets <- list(PBMC=list("PBMC_AllCells_withLabels.RDS","GSE96583_batch1_3_samples.RDS","GSE96583_8_Stim_Pats.RDS","GSE96583_8_Ctrl_Pats.RDS"),
-                 pancreas=list(muraro="Muraro_pancreas_clean.RDS",
-                               seger="Segerstolpe_pancreas_clean.RDS"
-                               #xin="Xin_pancreas_clean.RDS"
-                               ),
-                 ADASD=list(AD="ADASD_AD.RDS",autism="ADASD_autism.RDS"),
-                 midbrain=list(human="midbrain_human.RDS",mouse="midbrain_mouse.RDS"),
-                 cellbench=list(tenx="cellbench_10x.RDS",CELseq2="cellbench_CELseq2.RDS",Dropseq="cellbench_Dropseq.RDS")
+dataset.datasets <- list("PBMC_AllCells_withLabels.RDS","GSE96583_batch1_3_samples.RDS","GSE96583_8_Stim_Pats.RDS","GSE96583_8_Ctrl_Pats.RDS",
+                 "Muraro_pancreas_clean.RDS","Segerstolpe_pancreas_clean.RDS","Xin_pancreas_clean.RDS",
+                 "ADASD_AD.RDS","ADASD_autism.RDS",
+                 "midbrain_human.RDS","midbrain_mouse.RDS"
+                 # cellbench=list(tenx="cellbench_10x.RDS",CELseq2="cellbench_CELseq2.RDS",Dropseq="cellbench_Dropseq.RDS")
                  )
+
+dataset.interdatasets <- list(
+                              PBMC1 = list(train_dataset="PBMC_AllCells_withLabels.RDS", test_dataset="GSE96583_batch1_3_samples.RDS"),
+                              PBMC2 = list(train_dataset="PBMC_AllCells_withLabels.RDS",  test_dataset="GSE96583_8_Ctrl_Pats.RDS"),
+                              PBMC3 = list(train_dataset="PBMC_AllCells_withLabels.RDS",  test_dataset="GSE96583_8_Stim_Pats.RDS"),
+                              PBMC4 = list(train_dataset="GSE96583_8_Ctrl_Pats.RDS",  test_dataset="PBMC_AllCells_withLabels.RDS"),
+                              PBMC5 = list(train_dataset="GSE96583_8_Ctrl_Pats.RDS",  test_dataset="GSE96583_8_Stim_Pats.RDS"),
+                              PBMC6 = list(train_dataset="GSE96583_8_Ctrl_Pats.RDS",  test_dataset="GSE96583_batch1_3_samples.RDS"),
+                              PBMC7 = list(train_dataset="GSE96583_batch1_3_samples.RDS",  test_dataset="PBMC_AllCells_withLabels.RDS"),
+                              PBMC8 = list(train_dataset="GSE96583_batch1_3_samples.RDS",  test_dataset="GSE96583_8_Stim_Pats.RDS"),
+                              PBMC9 = list(train_dataset="GSE96583_batch1_3_samples.RDS",  test_dataset="GSE96583_8_Ctrl_Pats.RDS"),
+                              PBMC10 = list(train_dataset="GSE96583_8_Stim_Pats.RDS",  test_dataset="PBMC_AllCells_withLabels.RDS"),
+                              PBMC11 = list(train_dataset="GSE96583_8_Stim_Pats.RDS",  test_dataset="GSE96583_8_Ctrl_Pats.RDS"),
+                              PBMC12 = list(train_dataset="GSE96583_8_Stim_Pats.RDS",  test_dataset="GSE96583_batch1_3_samples.RDS"),
+                              pancreas1 = list(train_dataset="Muraro_pancreas_clean.RDS",  test_dataset="Segerstolpe_pancreas_clean.RDS"),
+                              pancreas2 = list(train_dataset="Muraro_pancreas_clean.RDS",  test_dataset="Xin_pancreas_clean.RDS"),
+                              pancreas3 = list(train_dataset="Segerstolpe_pancreas_clean.RDS",  test_dataset="Muraro_pancreas_clean.RDS"),
+                              pancreas4 = list(train_dataset="Segerstolpe_pancreas_clean.RDS",  test_dataset="Xin_pancreas_clean.RDS"),
+                              pancreas5 = list(train_dataset="Xin_pancreas_clean.RDS",  test_dataset="Muraro_pancreas_clean.RDS"),
+                              pancreas6 = list(train_dataset="Xin_pancreas_clean.RDS",  test_dataset="Segerstolpe_pancreas_clean.RDS"),
+                              ADASD1 = list(train_dataset="ADASD_AD.RDS",  test_dataset="ADASD_autism.RDS"),
+                              ADASD2 = list(train_dataset="ADASD_autism.RDS",  test_dataset="ADASD_AD.RDS"),
+                              midbrain1 = list(train_dataset="midbrain_human.RDS",  test_dataset="midbrain_mouse.RDS"),
+                              midbrain2 = list(train_dataset="midbrain_mouse.RDS",  test_dataset="midbrain_human.RDS")
+                              # cellbench=list(tenx="cellbench_10x.RDS",CELseq2="cellbench_CELseq2.RDS",Dropseq="cellbench_Dropseq.RDS")
+                            )
+
 
 dataset.properties <- list(
                           PBMC_AllCells_withLabels=list(sample_threshold=5,gene_name_type="SYMBOL"),

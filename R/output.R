@@ -1,9 +1,10 @@
 
 output.sink <- function(experiment,raw_results,results,exp_config=NULL){
   # dataset <- output.dataset_name[[experiment]]
+  dataset <- unique(results$dataset)
   train_dataset <- unique(results$train_dataset)
   test_dataset <- unique(results$test_dataset)
-  output_dir <- output.generate_output_path(experiment, train_dataset, test_dataset, exp_config)
+  output_dir <- output.generate_output_path(experiment, dataset, train_dataset, test_dataset, exp_config)
  
   switch(experiment,
          simple_accuracy = output.simple_accuracy(raw_results,results,output_dir),
@@ -88,17 +89,25 @@ output.dataset.properties_table <- function(t, file_path_name=NULL,prefix=NULL){
 }
 
 ####
-output.generate_output_path <- function(experiment, train_dataset, test_dataset, exp_config){
-  if(purrr::is_null(test_dataset)){
-    output_dir <- str_glue("{result_home}{experiment}/{train_dataset}")
+output.generate_output_path <- function(experiment, dataset, train_dataset, test_dataset, exp_config){
+  if(!purrr::is_null(dataset)){
+    output_dir <- str_glue("{result_home}{experiment}/{dataset}")
   }else{
-    output_dir <- if(train_dataset==test_dataset) str_glue("{result_home}{experiment}/{train_dataset}") else str_glue("{result_home}{experiment}/{train_dataset}_{test_dataset}")
+    if(purrr::is_null(test_dataset)){
+      output_dir <- str_glue("{result_home}{experiment}/{train_dataset}")
+    }else{
+      output_dir <- if(train_dataset==test_dataset) str_glue("{result_home}{experiment}/{train_dataset}") else str_glue("{result_home}{experiment}/{train_dataset}_{test_dataset}")
+    }
   }
-  if(exp_config$fixed_train){
-    output_dir <- str_glue("{output_dir}_train_fixed")
+  if(!purrr::is_null(exp_config$fixed_train)){
+    if(exp_config$fixed_train){
+      output_dir <- str_glue("{output_dir}_train_fixed")
+    }
   }
-  if(exp_config$fixed_test){
-    output_dir <- str_glue("{output_dir}_test_fixed")
+  if(!purrr::is_null(exp_config$fixed_test)){
+    if(exp_config$fixed_test){
+      output_dir <- str_glue("{output_dir}_test_fixed")
+    }
   }
   print(str_glue("output dir is {output_dir}"))
   return(str_glue("{output_dir}/"))

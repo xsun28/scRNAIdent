@@ -443,3 +443,34 @@ utils.manhattan_dist <- function(a,b){
   dist <- sum(dist)
   return(dist)
 }
+
+
+utils.calculate_sampling_pctg <- function(train_dataset, test_dataset, exp_config){
+  train_test <- utils.load_datasets(list(train_dataset,test_dataset))
+  train_dataset <- train_test[[1]]
+  test_dataset <- train_test[[1]]
+  rm(train_test)
+  gc(T)
+  target_train_num <- if(purrr::is_null(exp_config$target_train_num)) 1200 else exp_config$target_train_num
+  target_test_num <- if(purrr::is_null(exp_config$target_test_num)) 800 else exp_config$target_test_num
+  total_train_num <- length(colnames(train_dataset))
+  if(exp_config$use_inter_dataset){
+    print("use intra dataset")
+    total_test_num <- length(colnames(test_dataset))
+    target_train_sampling_pctg <- min(1,target_train_num/total_train_num)
+    target_test_sampling_pctg <- min(1,target_test_num/total_test_num)
+  }else{
+    print("use intra dataset")
+    if(exp_config$cv){
+      print("using CV")
+      target_train_sampling_pctg <- target_train_num/total_train_num
+      target_test_sampling_pctg <- NULL
+    }else{
+      print("using same train test dataset")
+      target_train_sampling_pctg <- min(0.8,target_train_num/total_train_num)
+      target_teset_sampling_pctg <- min(1-target_train_sampling_pctg,target_train_num/total_train_num)
+    }
+  }
+  print(str_glue("train_sampling_pctg={target_train_sampling_pctg}, target_test_sampling_pctg={target_test_sampling_pctg}"))
+  return(target_train_sampling_pctg,target_test_sampling_pctg)
+}

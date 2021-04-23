@@ -154,8 +154,7 @@ experiments.base.cluster <- function(experiment, exp_config,data){
 
 
 ####attached train and test dataset properties to experiment results
-experiments.base.attach_dataset_props <- function(experiment,exp_config, train_dataset, test_dataset, total_dataset, report_results, combined_results){
-  have_test <- !purrr::is_null(test_dataset)
+experiments.base.attach_dataset_props <- function(experiment,exp_config, train_dataset, test_dataset, total_dataset, report_results, combined_results, have_test){
   if(have_test){
     if(experiment %in% c("batch_effects")) batch_effects_quant = analysis.dataset.batch_effects(train_dataset, test_dataset)
     train_data_props <- analysis.dataset.properties(train_dataset)
@@ -208,12 +207,13 @@ experiments.base <- function(experiment, exp_config){
   train_test_datasets <- experiments.base.data_constructor(experiment, exp_config)
   train_dataset <- train_test_datasets$train_data
   test_dataset <- train_test_datasets$test_data
-  have_test <- !purrr::is_null(test_dataset)
+  have_test <- !purrr::is_null(train_test_datasets$test_data)
   if(have_test){
     test_samples <- colnames(test_dataset)
     total_dataset <- utils.append_sce(train_dataset,test_dataset)
   }else{
     total_dataset <- train_dataset
+    test_dataset <- train_dataset
   }
   ####assign methods
   assign_results <- experiments.base.assign(experiment,train_dataset, test_dataset, exp_config)
@@ -240,7 +240,7 @@ experiments.base <- function(experiment, exp_config){
   #####analyze results
   report_results <- experiments.analysis(experiment, assign_results,cluster_results,exp_config)
   #####combine results with dataset properties
-  results_prop <- experiments.base.attach_dataset_props(experiment,exp_config, train_dataset, test_dataset, total_dataset, report_results, combined_results)
+  results_prop <- experiments.base.attach_dataset_props(experiment,exp_config, train_dataset, test_dataset, total_dataset, report_results, combined_results, have_test)
   report_results_prop <- results_prop$report_results
   combined_results_pro <- results_prop$combined_results
   debug(logger, str_glue("results methods: {rownames(report_results$all_assign_results)}"))
@@ -250,162 +250,154 @@ experiments.base <- function(experiment, exp_config){
 ###simple accuracy experiment
 experiments.simple_accuracy <- function(experiment){
   exp_config <- experiments.parameters[[experiment]]
-  base_results <- experiments.base(experiment,exp_config)
-  report_results <- base_results$analy_results
-  pred_results <- base_results$pred_results
-  output.sink(experiment,pred_results,report_results,exp_config)
-  plot.plot(experiment,report_results,pred_results)
-  utils.clean_marker_files()
-  report_results
+  experiments.config.check_config(exp_config)
+  for(i in seq_along(exp_config$intra_dataset)){
+    train_dataset <- exp_config$intra_dataset[[i]]
+    test_dataset <- exp_config$intra_dataset[[i]]
+    experiments.config.update.train_test_datasets(experiment, train_dataset, test_dataset)
+    exp_config <- experiments.config.update(experiment, train_dataset, test_dataset,exp_config)
+    base_results <- experiments.base(experiment,exp_config)
+    report_results <- bind_rows(base_results$analy_results)
+    pred_results <- bind_rows(base_results$pred_results)
+    output.sink(experiment,pred_results,report_results,exp_config)
+    plot.plot(experiment,report_results,pred_results,exp_config)
+    utils.clean_marker_files()
+    info(report_results,str_glue("simple accuracy dataset: {train_dataset} report results"))
+  }
 }
 
 
 ####experiment with different number of cells per type
 experiments.cell_number <- function(experiment){
   exp_config <- experiments.parameters[[experiment]]
-  cell_numbers <- exp_config$sample_num
-  cell_pctgs <- exp_config$sample_pctg
-  combined_cluster_results <- vector('list',length(cell_numbers))
-  combined_assign_results <- vector('list',length(cell_numbers))
-  combined_raw_results <- vector('list',length(cell_numbers))
-  sampling_by_pctg <- purrr::is_null(cell_numbers)||length(cell_numbers)==0
-  cell_sampling_plan <- if(sampling_by_pctg) cell_pctgs else cell_numbers
-  for(i in seq_along(cell_sampling_plan)){
-    val <- cell_sampling_plan[[i]]
-    print(str_glue('starting sampling :{val}'))
-    config <- experiments.parameters[[experiment]]
-    config$trained <- F
-    if(!sampling_by_pctg){
-      if(config$train_sampling){
-        config$train_sample_num <- val
-      }
-      if(config$test_sampling){
-        config$test_sample_num <- val
-        config$trained <- if(i==1) F else T 
-      }
+  experiments.config.check_config(exp_config)
+  used_dataset <- if(exp_config$use_intra_dataset) exp_config$intra_dataset else exp_config$inter_dataset
+  for(i in seq_along(used_dataset)){
+    if(exp_config$use_intra_dataset){
+      train_dataset <- used_dataset[[i]]
+      test_dataset <- used_dataset[[i]]
     }else{
-      if(config$train_sampling){
-        config$train_sample_num <- NULL
-        config$train_sample_pctg <- val
+      train_dataset <- used_dataset[[i]]$train_dataset
+      test_dataset <- used_dataset[[i]]$test_dataset
+    }
+    experiments.config.update.train_test_datasets(experiment, train_dataset, test_dataset)
+    exp_config <-  experiments.config.update(experiment, train_dataset, test_dataset,exp_config)
+    cell_numbers <- exp_config$sample_num
+    cell_pctgs <- exp_config$sample_pctg
+    combined_cluster_results <- vector('list',length(cell_numbers))
+    combined_assign_results <- vector('list',length(cell_numbers))
+    combined_raw_results <- vector('list',length(cell_numbers))
+    sampling_by_pctg <- purrr::is_null(cell_numbers)||length(cell_numbers)==0
+    cell_sampling_plan <- if(sampling_by_pctg) cell_pctgs else cell_numbers
+    for(i in seq_along(cell_sampling_plan)){
+      val <- cell_sampling_plan[[i]]
+      print(str_glue('starting sampling :{val}'))
+      config <- exp_config
+      config$trained <- F
+      if(!sampling_by_pctg){
+        if(config$train_sampling){
+          config$train_sample_num <- val
+        }
+        if(config$test_sampling){
+          config$test_sample_num <- val
+          config$trained <- if(i==1) F else T 
+        }
+      }else{
+        if(config$train_sampling){
+          config$train_sample_num <- NULL
+          config$train_sample_pctg <- val
+        }
+        if(config$test_sampling){
+          config$test_sample_num <- NULL
+          config$test_sample_pctg <- val
+          config$trained <- if(i==1) F else T 
+        }
       }
-      if(config$test_sampling){
-        config$test_sample_num <- NULL
-        config$test_sample_pctg <- val
-        config$trained <- if(i==1) F else T 
+      
+      base_results <- experiments.base(experiment,config)
+      if(sampling_by_pctg){
+        results <- base_results$analy_results%>% 
+          purrr::map(~{
+           .$sample_pctg <- val
+           return(.)})
+        raw_results <- base_results$pred_results
+        raw_results$sample_pctg <- val
+      }else{
+        results <- base_results$analy_results%>% 
+          purrr::map(~{
+                  .$sample_num <- val
+                  return(.)})
+        raw_results <- base_results$pred_results
+        raw_results$sample_num <- val
       }
+      combined_assign_results[[i]] <- bind_rows(results[grepl(".*_assign_.*",names(results))])
+      combined_cluster_results[[i]] <- bind_rows(results[grepl(".*cluster.*",names(results))])
+      combined_raw_results[[i]] <- raw_results
     }
-    
-    if(config$train_sampling&&!config$test_sampling){
-      config$fixed_test <- T
-    }else if(!exp_config$train_sampling&&exp_config$test_sampling){
-      config$fixed_train <- T
-    }
-    
-    base_results <- experiments.base(experiment,config)
-    if(sampling_by_pctg){
-      results <- base_results$analy_results%>% 
-        purrr::map(~{
-         .$sample_pctg <- val
-         return(.)})
-      raw_results <- base_results$pred_results
-      raw_results$sample_pctg <- val
-    }else{
-      results <- base_results$analy_results%>% 
-        purrr::map(~{
-                .$sample_num <- val
-                return(.)})
-      raw_results <- base_results$pred_results
-      raw_results$sample_num <- val
-    }
-    combined_assign_results[[i]] <- bind_rows(results[grepl(".*_assign_.*",names(results))])
-    combined_cluster_results[[i]] <- bind_rows(results[grepl(".*cluster.*",names(results))])
-    combined_raw_results[[i]] <- raw_results
+    combined_assign_results <- bind_rows(combined_assign_results)
+    combined_cluster_results <- bind_rows(combined_cluster_results)
+    combined_raw_results <- bind_rows(combined_raw_results)
+    final_results <- bind_rows(combined_assign_results,combined_cluster_results)
+    output.sink(experiment,combined_raw_results,final_results,exp_config)
+    plot.plot(experiment,final_results,combined_raw_results)
+    utils.clean_marker_files()
+    final_results
+    info(final_results,str_glue("{experiment} train_dataset={train_dataset}, test_dataset={test_datast}, {final_results}"))
   }
-  combined_assign_results <- bind_rows(combined_assign_results)
-  combined_cluster_results <- bind_rows(combined_cluster_results)
-  combined_raw_results <- bind_rows(combined_raw_results)
-  final_results <- bind_rows(combined_assign_results,combined_cluster_results)
-  output.sink(experiment,combined_raw_results,final_results,exp_config)
-  plot.plot(experiment,final_results,combined_raw_results)
-  utils.clean_marker_files()
-  final_results
 }
 
 ###cell type number experiment
-experiments.celltype_number <- function(experiment){
-  exp_config <- experiments.parameters[[experiment]]
-  type_pctgs <- exp_config$type_pctg
-  combined_cluster_results <- vector('list',length(type_pctgs))
-  combined_assign_results <- vector('list',length(type_pctgs))
-  combined_raw_results <- vector('list',length(type_pctgs))
-  assign_test_dataset <- experiments.assign.data$train_dataset[[experiment]]
-  data <- utils.load_datasets(assign_test_dataset) 
-  celltype_order <- utils.get_order(data)
-  config <- exp_config
-  methods <- experiments.methods[[experiment]]
-  for(i in seq_along(type_pctgs)){
-    val <- type_pctgs[[i]]
-    print(str_glue('starting sampling type percentage :{val}'))
-    config <- experiments.parameters[[experiment]]
-    config$sample_celltype <- celltype_order[1:round(length(celltype_order)*val)]
-    base_results <- experiments.base(experiment,config)
-    results <- base_results$analy_results%>% 
-      purrr::map(~{
-        .$type_pctg <- val
-        .$type_num <- round(length(celltype_order)*val)
-        return(.)})
-    raw_results <- base_results$pred_results
-    raw_results$type_pctg <- val
-    raw_results$type_num <- round(length(celltype_order)*val)
-    combined_assign_results[[i]] <- bind_rows(results[grepl(".*_assign_.*",names(results))])
-    combined_cluster_results[[i]] <- bind_rows(results[grepl(".*cluster.*",names(results))])
-    combined_raw_results[[i]] <- raw_results
-  }
-  combined_assign_results <- bind_rows(combined_assign_results)
-  combined_cluster_results <- bind_rows(combined_cluster_results)
-  combined_raw_results <- bind_rows(combined_raw_results)
-  final_results <- bind_rows(combined_assign_results,combined_cluster_results)
-  output.sink(experiment,combined_raw_results,final_results,config)
-  plot.plot(experiment,final_results,combined_raw_results,config)
-  utils.clean_marker_files()
-  final_results
-}
 
 
 
 ###experiments with different sequencing depth
 experiments.sequencing_depth <- function(experiment){
   exp_config <- experiments.parameters[[experiment]]
-  quantiles <- exp_config$quantiles
-  combined_cluster_results <- vector('list',length(quantiles))
-  combined_assign_results <- vector('list',length(quantiles))
-  combined_raw_results <- vector('list',length(quantiles))
-  for(i in seq_along(quantiles)){
-    config <- experiments.parameters[[experiment]]
-    config$trained <- if(i==1) F else T 
-    low_quant <- quantiles[[i]][['low']]
-    high_quant <- quantiles[[i]][['high']]
-    config$high_quantile <- high_quant
-    config$low_quantile <- low_quant
-    results_base <- experiments.base(experiment,config)
-    results <- results_base$analy_results %>%
-      purrr::map(~{
-        .$quantile <- str_glue("{low_quant}-{high_quant}")
-        return(.)})
-    raw_results <- results_base$pred_results
-    raw_results$quantile <- str_glue("{low_quant}-{high_quant}")
-    combined_assign_results[[i]] <- bind_rows(results[grepl(".*_assign_.*",names(results))])
-    combined_cluster_results[[i]] <- bind_rows(results[grepl(".*cluster.*",names(results))])
-    combined_raw_results[[i]] <- raw_results
+  experiments.config.check_config(exp_config)
+  used_dataset <- if(exp_config$use_intra_dataset) exp_config$intra_dataset else exp_config$inter_dataset
+  for(j in seq_along(used_dataset)){
+    if(exp_config$use_intra_dataset){
+      train_dataset <- used_dataset[[j]]
+      test_dataset <- used_dataset[[j]]
+    }else{
+      train_dataset <- used_dataset[[j]]$train_dataset
+      test_dataset <- used_dataset[[j]]$test_dataset
+    }
+    experiments.config.update.train_test_datasets(experiment, train_dataset, test_dataset)
+    exp_config <-  experiments.config.update(experiment, train_dataset, test_dataset,exp_config)
+    
+    quantiles <- if(exp_config$fixed_train)  exp_config$test_quantiles else exp_config$train_quantiles
+    combined_cluster_results <- vector('list',length(quantiles))
+    combined_assign_results <- vector('list',length(quantiles))
+    combined_raw_results <- vector('list',length(quantiles))
+    for(i in seq_along(quantiles)){
+      config <- exp_config
+      config$trained <- if(i==1) F else T 
+      low_quant <- quantiles[[i]][['low']]
+      high_quant <- quantiles[[i]][['high']]
+      config$high_quantile <- high_quant
+      config$low_quantile <- low_quant
+      results_base <- experiments.base(experiment,config)
+      results <- results_base$analy_results %>%
+        purrr::map(~{
+          .$quantile <- str_glue("{low_quant}-{high_quant}")
+          return(.)})
+      raw_results <- results_base$pred_results
+      raw_results$quantile <- str_glue("{low_quant}-{high_quant}")
+      combined_assign_results[[i]] <- bind_rows(results[grepl(".*_assign_.*",names(results))])
+      combined_cluster_results[[i]] <- bind_rows(results[grepl(".*cluster.*",names(results))])
+      combined_raw_results[[i]] <- raw_results
+    }
+    combined_assign_results <- bind_rows(combined_assign_results)
+    combined_cluster_results <- bind_rows(combined_cluster_results)
+    combined_raw_results <- bind_rows(combined_raw_results)
+    final_results <- bind_rows(combined_assign_results,combined_cluster_results)
+    output.sink(experiment,combined_raw_results,final_results,config)
+    plot.plot(experiment,final_results,combined_raw_results, config)
+    utils.clean_marker_files()
+    final_results
+    info(final_results,str_glue("{experiment} train_dataset={train_dataset}, test_dataset={test_datast}, {final_results}"))
   }
-  combined_assign_results <- bind_rows(combined_assign_results)
-  combined_cluster_results <- bind_rows(combined_cluster_results)
-  combined_raw_results <- bind_rows(combined_raw_results)
-  final_results <- bind_rows(combined_assign_results,combined_cluster_results)
-  output.sink(experiment,combined_raw_results,final_results,config)
-  plot.plot(experiment,final_results,combined_raw_results, config)
-  utils.clean_marker_files()
-  final_results
 }
 
 
@@ -475,27 +467,34 @@ experiments.celltype_complexity <- function(experiment){
 experiments.batch_effects <- function(experiment){
   require(gtools)
   exp_config <- experiments.parameters[[experiment]]
-  datasets_perm2 <- gtools::permutations(n=length(experiments.data$batch_effects),r=2,v=unlist(experiments.data$batch_effects),repeats.allowed = F)
-  
-  for(i in 1:dim(datasets_perm2)[1]){
-    # experiments.data[[experiment]] <<- unlist(datasets_comb2[,i])
-    # print(str_glue("experiment data is {experiments.data[[experiment]]}"))
-    experiments.parameters[[experiment]]$train_sample_num <<- experiments.parameters.batch_effects[[datasets_perm2[i,1]]]$train_sample_num
-    experiments.parameters[[experiment]]$train_sample_pctg <<- experiments.parameters.batch_effects[[datasets_perm2[i,1]]]$train_sample_pctg
-    experiments.parameters[[experiment]]$test_sample_num <<- experiments.parameters.batch_effects[[datasets_perm2[i,2]]]$test_sample_num
-    experiments.parameters[[experiment]]$test_sample_pctg <<- experiments.parameters.batch_effects[[datasets_perm2[i,2]]]$test_sample_pctg
-    
-    data <- utils.load_datasets(datasets_perm2[i,])
+  # datasets_perm2 <- gtools::permutations(n=length(experiments.data$batch_effects),r=2,v=unlist(experiments.data$batch_effects),repeats.allowed = F)
+  experiments.config.check_config(exp_config)
+  used_dataset <- if(exp_config$use_intra_dataset) exp_config$intra_dataset else exp_config$inter_dataset
+  for(j in seq_along(used_dataset)){
+    if(exp_config$use_intra_dataset){
+      train_dataset <- used_dataset[[j]]
+      test_dataset <- used_dataset[[j]]
+    }else{
+      train_dataset <- used_dataset[[j]]$train_dataset
+      test_dataset <- used_dataset[[j]]$test_dataset
+    }
+    experiments.config.update.train_test_datasets(experiment, train_dataset, test_dataset)
+    exp_config <-  experiments.config.update(experiment, train_dataset, test_dataset,exp_config)
+    # experiments.parameters[[experiment]]$train_sample_num <<- experiments.parameters.batch_effects[[datasets_perm2[i,1]]]$train_sample_num
+    # experiments.parameters[[experiment]]$train_sample_pctg <<- experiments.parameters.batch_effects[[datasets_perm2[i,1]]]$train_sample_pctg
+    # experiments.parameters[[experiment]]$test_sample_num <<- experiments.parameters.batch_effects[[datasets_perm2[i,2]]]$test_sample_num
+    # experiments.parameters[[experiment]]$test_sample_pctg <<- experiments.parameters.batch_effects[[datasets_perm2[i,2]]]$test_sample_pctg
+    data <- utils.load_datasets(list(train_dataset,test_dataset))
     data_intersected <- list(str_glue("{metadata(data[[1]])$study_name}_{metadata(data[[2]])$study_name}_intersected.RDS"),
                              str_glue("{metadata(data[[2]])$study_name}_{metadata(data[[1]])$study_name}_intersected.RDS")
                               )
     preprocess.intersect_sces(data,unlist(data_intersected))
     
-    experiments.assign.data$train_dataset[[experiment]] <<- data_intersected[[1]]
-    print(str_glue("assign train data is {experiments.assign.data$train_dataset[[experiment]]}"))
-    experiments.assign.data$test_dataset[[experiment]] <<- data_intersected[[2]]
-    print(str_glue("assign test data is {experiments.assign.data$test_dataset[[experiment]]}"))
-    exp_config <- experiments.parameters[[experiment]]
+    # experiments.assign.data$train_dataset[[experiment]] <<- data_intersected[[1]]
+    # print(str_glue("assign train data is {experiments.assign.data$train_dataset[[experiment]]}"))
+    # experiments.assign.data$test_dataset[[experiment]] <<- data_intersected[[2]]
+    # print(str_glue("assign test data is {experiments.assign.data$test_dataset[[experiment]]}"))
+    experiments.config.update.train_test_datasets(experiment, data_intersected[[1]], data_intersected[[2]])
     exp_config$batch_free <- F
     base_results <- experiments.base(experiment,exp_config)
     results <- base_results$analy_results%>% 
@@ -511,7 +510,6 @@ experiments.batch_effects <- function(experiment){
   ###remove batch effects from dataset and save
   
     if(exp_config$remove_batch){
-      # datasets_comb2_no_be <- combn(experiments.data[[experiment]],2)
       print("in batch effects experiment, starting removing batch effects")
       exp_config$batch_free <- T
       base_results_no_be <- experiments.base(experiment,exp_config)
@@ -543,20 +541,19 @@ experiments.batch_effects <- function(experiment){
 experiments.inter_diseases <- function(experiment){
   require(gtools)
   exp_config <- experiments.parameters[[experiment]]
-  datasets_perm2 <- gtools::permutations(n=length(experiments.data[[experiment]]),r=2,v=unlist(experiments.data[[experiment]]),repeats.allowed = F)
-  for(i in 1:dim(datasets_perm2)[[1]]){
-    # experiments.data[[experiment]] <<- unlist(datasets_comb2[,i])
-    experiments.parameters[[experiment]]$train_sample_num <<- experiments.parameters.inter_diseases[[datasets_perm2[i,1]]]$train_sample_num
-    experiments.parameters[[experiment]]$train_sample_pctg <<- experiments.parameters.inter_diseases[[datasets_perm2[i,1]]]$train_sample_pctg
-    experiments.parameters[[experiment]]$test_sample_num <<- experiments.parameters.inter_diseases[[datasets_perm2[i,2]]]$test_sample_num
-    experiments.parameters[[experiment]]$test_sample_pctg <<- experiments.parameters.inter_diseases[[datasets_perm2[i,2]]]$test_sample_pctg
-    
-    print(str_glue("experiment data is {experiments.data[[experiment]]}"))
-    experiments.assign.data$train_dataset[[experiment]] <<- unlist(datasets_perm2[i,])[1]
-    print(str_glue("assign train data is {experiments.assign.data$train_dataset[[experiment]]}"))
-    experiments.assign.data$test_dataset[[experiment]] <<- unlist(datasets_perm2[i,])[2]
-    print(str_glue("assign test data is {experiments.assign.data$test_dataset[[experiment]]}"))
-    exp_config <- experiments.parameters[[experiment]]
+  # datasets_perm2 <- gtools::permutations(n=length(experiments.data[[experiment]]),r=2,v=unlist(experiments.data[[experiment]]),repeats.allowed = F)
+  experiments.config.check_config(exp_config)
+  used_dataset <- if(exp_config$use_intra_dataset) exp_config$intra_dataset else exp_config$inter_dataset
+  for(j in seq_along(used_dataset)){
+    if(exp_config$use_intra_dataset){
+      train_dataset <- used_dataset[[j]]
+      test_dataset <- used_dataset[[j]]
+    }else{
+      train_dataset <- used_dataset[[j]]$train_dataset
+      test_dataset <- used_dataset[[j]]$test_dataset
+    }
+    experiments.config.update.train_test_datasets(experiment, train_dataset, test_dataset)
+    exp_config <-  experiments.config.update(experiment, train_dataset, test_dataset,exp_config)
     base_results <- experiments.base(experiment,exp_config)
     results <- base_results$analy_results
     raw_results <- base_results$pred_results

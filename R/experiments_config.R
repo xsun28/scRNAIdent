@@ -1,29 +1,29 @@
-experiment <- "sequencing_depth"
+experiment <- "cell_number"
 
-experiments.data <- list(simple_accuracy="PBMC_AllCells_withLabels.RDS", 
-                                 cell_number="ADASD_autism.RDS",
-                                 celltype_number = "midbrain_human.RDS",
-                                 sequencing_depth="ADASD_AD.RDS",####only use PBMC and ADASD datasets
-                                 celltype_structure="GSE96583_8_Stim_Pats.RDS",
-                                 # batch_effects=list(muraro="Muraro_pancreas_clean.RDS",seger="Segerstolpe_pancreas_clean.RDS"),
-                                 batch_effects=list("PBMC_AllCells_withLabels.RDS","GSE96583_8_Ctrl_Pats.RDS"),
-                                 inter_diseases = list("GSE96583_8_Ctrl_Pats.RDS","GSE96583_8_Stim_Pats.RDS","GSE96583_batch1_3_samples.RDS"),
-                                 # inter_diseases = list("ADASD_AD.RDS","ADASD_autism.RDS"),
-                                 celltype_complexity = list(),
-                                 inter_species = list(),
-                                 random_noise = list(),
-                                 inter_protocol = list("cellbench_10x","cellbench_CELseq2","cellbench_Dropseq")
-                                 )
+# experiments.data <- list(simple_accuracy="PBMC_AllCells_withLabels.RDS", 
+#                                  cell_number="ADASD_autism.RDS",
+#                                  celltype_number = "midbrain_human.RDS",
+#                                  sequencing_depth="ADASD_AD.RDS",####only use PBMC and ADASD datasets
+#                                  celltype_structure="GSE96583_8_Stim_Pats.RDS",
+#                                  # batch_effects=list(muraro="Muraro_pancreas_clean.RDS",seger="Segerstolpe_pancreas_clean.RDS"),
+#                                  batch_effects=list("PBMC_AllCells_withLabels.RDS","GSE96583_8_Ctrl_Pats.RDS"),
+#                                  inter_diseases = list("GSE96583_8_Ctrl_Pats.RDS","GSE96583_8_Stim_Pats.RDS","GSE96583_batch1_3_samples.RDS"),
+#                                  # inter_diseases = list("ADASD_AD.RDS","ADASD_autism.RDS"),
+#                                  celltype_complexity = list(),
+#                                  inter_species = list(),
+#                                  random_noise = list(),
+#                                  inter_protocol = list("cellbench_10x","cellbench_CELseq2","cellbench_Dropseq")
+#                                  )
 
 experiments.assign.data <- list(
-  train_dataset=list(simple_accuracy="PBMC_AllCells_withLabels.RDS", 
-                     cell_number="ADASD_autism.RDS",
+  train_dataset=list(simple_accuracy="PBMC_AllCells_withLabels.RDS",
+                     cell_number="GSE96583_8_Ctrl_Pats.RData",
                      celltype_number = "midbrain_human.RDS",
                      sequencing_depth="ADASD_AD.RDS",
                      celltype_structure="GSE96583_8_Stim_Pats.RDS"),
                      # inter_diseases="GSE96583_8_Ctrl_Pats.RDS"),
-  test_dataset=list(simple_accuracy="PBMC_AllCells_withLabels.RDS", 
-                    cell_number="ADASD_autism.RDS",
+  test_dataset=list(simple_accuracy="PBMC_AllCells_withLabels.RDS",
+                    cell_number="PBMC_AllCells_withLabels.RDS",
                     celltype_number = "midbrain_human.RDS",
                     sequencing_depth="ADASD_AD.RDS",
                     celltype_structure="GSE96583_8_Stim_Pats.RDS")
@@ -171,21 +171,27 @@ experiments.parameters.celltype_number <- list(
 
 
 ####sequencing depth config
-experiments.parameters.sequencing_depth.base_config <- list(quantiles=list(c(low=0.0, high=0.1),c(low=0.3, high=0.4),c(low=0.6, high=0.7),c(low=0.9, high=1)),cv=F,
-                                                            cv_fold=5,metrics=c('ARI','AMI','FMI'),fixed_train=T,fixed_test=F,train_sample_pctg=0.1, test_sample_pctg=0.1,
+experiments.parameters.sequencing_depth.base_config <- list(train_quantiles=list(c(low=0.0, high=0.1),c(low=0.3, high=0.4),c(low=0.6, high=0.7),c(low=0.9, high=1)),
+                                                            test_quantiles=list(c(low=0.0, high=0.1),c(low=0.3, high=0.4),c(low=0.6, high=0.7),c(low=0.9, high=1)),
+                                                            cv=F, cv_fold=5,metrics=c('ARI','AMI','FMI'),fixed_train=T,fixed_test=F,train_sample_pctg=0.1, test_sample_pctg=0.1,
                                                             marker_gene_file=NULL)
 
 experiments.parameters.sequencing_depth.base_config.PBMC <- experiments.parameters.sequencing_depth.base_config
 
-experiments.parameters.sequencing_depth.base_config.pancreas <- list(quantiles=list(c(low=0.0, high=0.25),c(low=0.25, high=0.5),c(low=0.5, high=0.75),c(low=0.75, high=1)),cv=F,
+experiments.parameters.sequencing_depth.base_config.pancreas <- list(train_quantiles=list(c(low=0.0, high=0.25),c(low=0.25, high=0.5),c(low=0.5, high=0.75),c(low=0.75, high=1)),
+                                                                     test_quantiles=list(c(low=0.0, high=0.25),c(low=0.25, high=0.5),c(low=0.5, high=0.75),c(low=0.75, high=1)),
+                                                                     cv=F,
                                                                      cv_fold=5,metrics=c('ARI','AMI','FMI'),fixed_train=T,fixed_test=F,train_sample_pctg=0.4, test_sample_pctg=0.4,
                                                                      marker_gene_file=NULL)
 
-experiments.parameters.sequencing_depth.base_config.ADASD <- list(quantiles=list(c(low=0., high=0.02),c(low=0.24, high=0.26),c(low=0.74, high=0.76),c(low=0.98, high=1)),
+experiments.parameters.sequencing_depth.base_config.ADASD <- list(train_quantiles=list(c(low=0., high=0.02),c(low=0.24, high=0.26),c(low=0.74, high=0.76),c(low=0.98, high=1)),
+                                                                  test_quantiles=list(c(low=0., high=0.02),c(low=0.24, high=0.26),c(low=0.74, high=0.76),c(low=0.98, high=1)),
                                                                   cv=F,cv_fold=5,metrics=c('ARI','AMI','FMI'),fixed_train=T,fixed_test=F,train_sample_pctg=0.02, test_sample_pctg=0.02,
                                                                   marker_gene_file=NULL)
 
-experiments.parameters.sequencing_depth.base_config.midbrain <- list(quantiles=list(c(low=0.0, high=0.25),c(low=0.25, high=0.5),c(low=0.5, high=0.75),c(low=0.75, high=1)),cv=F,
+experiments.parameters.sequencing_depth.base_config.midbrain <- list(train_quantiles=list(c(low=0.0, high=0.25),c(low=0.25, high=0.5),c(low=0.5, high=0.75),c(low=0.75, high=1)),
+                                                                     test_quantiles=list(c(low=0.0, high=0.25),c(low=0.25, high=0.5),c(low=0.5, high=0.75),c(low=0.75, high=1)),
+                                                                     cv=F,
                                                                      cv_fold=5,metrics=c('ARI','AMI','FMI'),fixed_train=T,fixed_test=F,train_sample_pctg=0.7, test_sample_pctg=0.7,
                                                                      marker_gene_file=NULL)
 
@@ -196,7 +202,9 @@ experiments.parameters.sequencing_depth <- list(
   GSE96583_batch1_3_samples.RDS = experiments.parameters.sequencing_depth.base_config.PBMC,
   GSE96583_8_Stim_Pats.RDS = experiments.parameters.sequencing_depth.base_config.PBMC,
   GSE96583_8_Ctrl_Pats.RDS = experiments.parameters.sequencing_depth.base_config.PBMC,
-  Muraro_pancreas_clean.RDS = list(quantiles=list(c(low=0.0, high=0.25),c(low=0.25, high=0.5),c(low=0.5, high=0.75),c(low=0.75, high=1)),cv=F,
+  Muraro_pancreas_clean.RDS = list(train_quantiles=list(c(low=0.0, high=0.25),c(low=0.25, high=0.5),c(low=0.5, high=0.75),c(low=0.75, high=1)),
+                                   test_quantiles=list(c(low=0.0, high=0.25),c(low=0.25, high=0.5),c(low=0.5, high=0.75),c(low=0.75, high=1)),
+                                   cv=F,
                                    cv_fold=5,metrics=c('ARI','AMI','FMI'),fixed_train=T,fixed_test=F,train_sample_pctg=0.6, test_sample_pctg=0.6,
                                    marker_gene_file=NULL),
   Segerstolpe_pancreas_clean.RDS = experiments.parameters.sequencing_depth.base_config.pancreas,
@@ -330,56 +338,148 @@ experiments.parameters.inter_diseases <- list(
 
 ##########
 experiments.parameters <- list(
-  simple_accuracy=list(train_sample_pctg=experiments.parameters.simple_accuracy[[experiments.assign.data$train_dataset$simple_accuracy]]$train_sample_pctg,
-                       train_sample_num=experiments.parameters.simple_accuracy[[experiments.assign.data$train_dataset$simple_accuracy]]$train_sample_num,
-                       test_sample_pctg=experiments.parameters.simple_accuracy[[experiments.assign.data$test_dataset$simple_accuracy]]$test_sample_pctg,
-                       test_sample_num=experiments.parameters.simple_accuracy[[experiments.assign.data$test_dataset$simple_accuracy]]$test_sample_num, 
-                       cv=TRUE, cv_fold=5,metrics=c('ARI','AMI','FMI'),batch_free=F,
-                       marker_gene_file=NULL),
+  simple_accuracy=list(cv=TRUE, cv_fold=5,metrics=c('ARI','AMI','FMI'),batch_free=F,
+                       marker_gene_file=NULL,use_intra_dataset=T,intra_dataset=dataset.datasets,
+                       use_inter_dataset=F,inter_dataset=NULL),
   
-  cell_number=list(sample_pctg=experiments.parameters.cell_number[[experiments.data$cell_number]]$sample_pctg,
-                   sample_num=experiments.parameters.cell_number[[experiments.data$cell_number]]$sample_num,
-                   train_sample_pctg=experiments.parameters.cell_number[[experiments.assign.data$train_dataset$cell_number]]$train_sample_pctg,
-                   train_sample_num=experiments.parameters.cell_number[[experiments.assign.data$train_dataset$cell_number]]$train_sample_num,
-                   test_sample_pctg=experiments.parameters.cell_number[[experiments.assign.data$test_dataset$cell_number]]$test_sample_pctg,
-                   test_sample_num=experiments.parameters.cell_number[[experiments.assign.data$test_dataset$cell_number]]$test_sample_num,
-                   train_sampling=experiments.parameters.cell_number[[experiments.assign.data$train_dataset$cell_number]]$train_sampling, 
-                   test_sampling=experiments.parameters.cell_number[[experiments.assign.data$test_dataset$cell_number]]$test_sampling, 
-                   cv=F,cv_fold=F, metrics=c('ARI','AMI','FMI'), batch_free=F,
-                   marker_gene_file=NULL,trained=F),
+  cell_number=list( cv=F,cv_fold=F, metrics=c('ARI','AMI','FMI'), batch_free=F,
+                   marker_gene_file=NULL,trained=F,use_intra_dataset=F,intra_dataset=list(),
+                   use_inter_dataset=T,inter_dataset=list(dataset.interdatasets$PBMC1,dataset.interdatasets$PBMC2,
+                                                          dataset.interdatasets$PBMC3,dataset.interdatasets$PBMC5,
+                                                          dataset.interdatasets$PBMC6,dataset.interdatasets$PBMC8,
+                                                          dataset.interdatasets$pancreas1,dataset.interdatasets$pancreas2,
+                                                          dataset.interdatasets$pancreas5,dataset.interdatasets$ADASD2,
+                                                          dataset.interdatasets$midbrain2
+                                                          )),
+
   
-  celltype_number=list(type_pctgs=experiments.parameters.celltype_number[[experiments.data$celltype_number]]$type_pctg,
-                       train_sample_pctg=experiments.parameters.celltype_number[[experiments.assign.data$train_dataset$celltype_number]]$train_sample_pctg,
-                       train_sample_num=experiments.parameters.celltype_number[[experiments.assign.data$train_dataset$celltype_number]]$train_sample_num,
-                       test_sample_pctg=experiments.parameters.celltype_number[[experiments.assign.data$test_dataset$celltype_number]]$test_sample_pctg,
-                       test_sample_num=experiments.parameters.celltype_number[[experiments.assign.data$test_dataset$celltype_number]]$test_sample_num, 
-                       cv=TRUE, cv_fold=5,metrics=c('ARI','AMI','FMI'),batch_free=F,
-                       marker_gene_file=NULL),
+  sequencing_depth=list(cv=F,cv_fold=5,metrics=c('ARI','AMI','FMI'),fixed_train=T,fixed_test=F,
+                        marker_gene_file=NULL,batch_free=F,use_intra_dataset=F,intra_dataset=list(),
+                        use_inter_dataset=T,inter_dataset=list(dataset.interdatasets$PBMC1,dataset.interdatasets$PBMC2,
+                                                               dataset.interdatasets$PBMC3,dataset.interdatasets$PBMC5,
+                                                               dataset.interdatasets$PBMC6,dataset.interdatasets$PBMC8,
+                                                               dataset.interdatasets$pancreas1,dataset.interdatasets$pancreas2,
+                                                               dataset.interdatasets$pancreas5,dataset.interdatasets$ADASD2,
+                                                               dataset.interdatasets$midbrain2)),
   
-  sequencing_depth=list(quantiles=experiments.parameters.sequencing_depth[[experiments.data$sequencing_depth]]$quantiles,
-                        cv=F,cv_fold=5,metrics=c('ARI','AMI','FMI'),fixed_train=T,fixed_test=F,
-                        train_sample_pctg=experiments.parameters.sequencing_depth[[experiments.data$sequencing_depth]]$train_sample_pctg, 
-                        test_sample_pctg=experiments.parameters.sequencing_depth[[experiments.data$sequencing_depth]]$test_sample_pctg,
-                        marker_gene_file=NULL,batch_free=F),
-  
-  celltype_structure=list(train_sample_pctg=experiments.parameters.celltype_structure[[experiments.assign.data$train_dataset$celltype_structure]]$train_sample_pctg,
-                          train_sample_num=experiments.parameters.celltype_structure[[experiments.assign.data$train_dataset$celltype_structure]]$train_sample_num,
-                          test_sample_pctg=experiments.parameters.celltype_structure[[experiments.assign.data$test_dataset$celltype_structure]]$test_sample_pctg,
-                          test_sample_num=experiments.parameters.celltype_structure[[experiments.assign.data$test_dataset$celltype_structure]]$test_sample_num,
-                          cv=TRUE,cv_fold=5,metrics=c('wNMI','wRI'),batch_free=F,
-                          structure_file="PBMC_celltypes.csv",marker_gene_file=NULL),
+  # celltype_structure=list(train_sample_pctg=experiments.parameters.celltype_structure[[experiments.assign.data$train_dataset$celltype_structure]]$train_sample_pctg,
+  #                         train_sample_num=experiments.parameters.celltype_structure[[experiments.assign.data$train_dataset$celltype_structure]]$train_sample_num,
+  #                         test_sample_pctg=experiments.parameters.celltype_structure[[experiments.assign.data$test_dataset$celltype_structure]]$test_sample_pctg,
+  #                         test_sample_num=experiments.parameters.celltype_structure[[experiments.assign.data$test_dataset$celltype_structure]]$test_sample_num,
+  #                         cv=TRUE,cv_fold=5,metrics=c('wNMI','wRI'),batch_free=F,
+  #                         structure_file="PBMC_celltypes.csv",marker_gene_file=NULL),
   
   batch_effects=list(train_sample_pctg=NULL,train_sample_num=NULL,
                      test_sample_pctg=NULL,test_sample_num=NULL,
                      cv=FALSE,remove_batch=TRUE,metrics=c('ARI','AMI','FMI'),
-                     marker_gene_file=NULL,fixed_train=T,fixed_test=T,batch_correct_method="MNN"),
+                     marker_gene_file=NULL,fixed_train=T,fixed_test=T,batch_correct_method="MNN",use_intra_dataset=T,intra_dataset=list(),
+                     use_inter_dataset=F,inter_dataset=list()),
   
   inter_diseases = list(train_sample_pctg=NULL,train_sample_num=NULL,
                         test_sample_pctg=NULL,test_sample_num=NULL,batch_free=F,
-                        cv=FALSE,metrics=c('ARI','AMI','FMI'),marker_gene_file=NULL),
+                        cv=FALSE,metrics=c('ARI','AMI','FMI'),marker_gene_file=NULL,use_intra_dataset=T,intra_dataset=list(),
+                        use_inter_dataset=F,inter_dataset=list()),
   
   celltype_complexity = list(),
   inter_species = list(),
   random_noise = list(),
   inter_protocol = list()
 )
+
+
+experiments.config.update <- function(experiment, train_dataset, test_dataset=NULL, exp_config){
+  switch(experiment,
+         simple_accuracy=experiments.config.update.simple_accuracy(train_dataset, test_dataset, exp_config),
+         cell_number = experiments.config.update.cell_number(train_dataset, test_dataset, exp_config),
+         celltype_number = experiments.config.update.celltype_number(train_dataset, test_dataset, exp_config),
+         sequencing_depth = experiments.config.update.sequencing_depth(train_dataset, test_dataset, exp_config),
+         celltype_structure = experiments.config.update.celltype_structure(train_dataset, test_dataset, exp_config),
+         batch_effects = experiments.config.update.batch_effects(train_dataset, test_dataset, exp_config),
+         inter_diseases = experiments.config.update.inter_diseases(train_dataset, test_dataset, exp_config),
+         celltype_complexity = experiments.config.update.celltype_complexity(train_dataset, test_dataset, exp_config),
+         inter_species = experiments.config.update.inter_species(train_dataset, test_dataset, exp_config),
+         random_noise = experiments.config.update.random_noise(train_dataset, test_dataset, exp_config),
+         inter_protocol = experiments.config.update.inter_protocol(train_dataset, test_dataset, exp_config),
+         stop("Unkown experiments")
+         )
+}
+
+
+experiments.config.update.simple_accuracy <-function(train_dataset, test_dataset=NULL, exp_config){
+  # train_test_sample_pctgs <- utils.calculate_sampling_pctg(train_dataset, test_dataset,exp_config)
+  # train_sample_pctg <- train_test_pctgs[[1]]
+  # test_sample_pctg <- train_test_pctgs[[2]]
+  exp_config$train_sample_pctg <- experiments.parameters.simple_accuracy[[train_dataset]]$train_sample_pctg
+  exp_config$train_sample_num <- experiments.parameters.simple_accuracy[[train_dataset]]$train_sample_num
+  exp_config$test_sample_pctg <- experiments.parameters.simple_accuracy[[test_dataset]]$test_sample_pctg
+  exp_config$test_sample_num <- experiments.parameters.simple_accuracy[[test_dataset]]$test_sample_num
+  exp_config
+}
+
+experiments.config.update.cell_number <-function(train_dataset, test_dataset=NULL, exp_config){
+  if(purrr::is_null(test_dataset)){
+    print("cell number is intra_dataset, using train dataset properties...")
+    exp_config$sample_pctg <- experiments.parameters.cell_number[[train_dataset]]$sample_pctg
+    exp_config$sample_num <- experiments.parameters.cell_number[[train_dataset]]$sample_num
+  }
+  if(exp_config$train_sampling&&!exp_config$test_sampling){
+    exp_config$fixed_test <- T
+  }else if(!exp_config$train_sampling&&exp_config$test_sampling){
+    exp_config$fixed_train <- T
+  }
+  
+  exp_config$train_sample_pctg <- experiments.parameters.cell_number[[train_dataset]]$train_sample_pctg
+  exp_config$train_sample_num <- experiments.parameters.cell_number[[train_dataset]]$train_sample_num
+  exp_config$test_sample_pctg <- experiments.parameters.cell_number[[test_dataset]]$test_sample_pctg
+  exp_config$test_sample_num <- experiments.parameters.cell_number[[test_dataset]]$test_sample_num
+  exp_config$train_sampling <- experiments.parameters.cell_number[[train_dataset]]$train_sampling
+  exp_config$test_sampling <- experiments.parameters.cell_number[[test_dataset]]$test_sampling
+  exp_config
+}
+
+
+experiments.config.update.sequencing_depth <-function(train_dataset, test_dataset=NULL,exp_config){
+  exp_config$train_quantiles <- experiments.parameters.sequencing_depth[[train_dataset]]$train_quantiles
+  exp_config$train_sample_pctg <- experiments.parameters.sequencing_depth[[train_dataset]]$train_sample_pctg
+  exp_config$test_quantiles <- experiments.parameters.sequencing_depth[[test_dataset]]$test_quantiles
+  exp_config$test_sample_pctg <- experiments.parameters.sequencing_depth[[test_dataset]]$test_sample_pctg
+  exp_config
+}
+
+
+experiments.config.update.batch_effects <- function(train_dataset, test_dataset=NULL,exp_config){
+  exp_config$train_sample_num <- experiments.parameters.batch_effects[[train_dataset]]$train_sample_num
+  exp_config$train_sample_pctg <- experiments.parameters.batch_effects[[train_dataset]]$train_sample_pctg
+  exp_config$test_sample_num <- experiments.parameters.batch_effects[[test_dataset]]$test_sample_num
+  exp_config$test_sample_pctg <- experiments.parameters.batch_effects[[test_dataset]]$test_sample_pctg
+  exp_config
+}
+
+
+experiments.config.update.inter_diseases <- function(train_dataset, test_dataset=NULL, exp_config){
+  experiments.parameters$inter_diseases$train_sample_num <<- experiments.parameters.inter_diseases[[train_dataset]]$train_sample_num
+  experiments.parameters$inter_diseases$train_sample_pctg <<- experiments.parameters.inter_diseases[[train_dataset]]$train_sample_pctg
+  experiments.parameters$inter_diseases$test_sample_num <<- experiments.parameters.inter_diseases[[test_dataset]]$test_sample_num
+  experiments.parameters$inter_diseases$test_sample_pctg <<- experiments.parameters.inter_diseases[[test_dataset]]$test_sample_pctg
+}
+
+experiments.config.update.train_test_datasets <- function(experiment, train_dataset, test_dataset){
+  experiments.assign.data$train_dataset[[experiment]] <<- train_dataset
+  print(str_glue("assign train data is {experiments.assign.data$train_dataset[[experiment]]}"))
+  experiments.assign.data$test_dataset[[experiment]] <<- test_dataset
+  print(str_glue("assign test data is {experiments.assign.data$test_dataset[[experiment]]}"))
+}
+
+experiments.config.check_config <- function(exp_config){
+  stopifnot(!(purrr::is_null(exp_config$use_intra_dataset)&purrr::is_null(exp_config$use_inter_dataset)))
+  stopifnot(xor(exp_config$use_intra_dataset,exp_config$use_inter_dataset))
+  if(exp_config$use_intra_dataset){
+    stopifnot(!purrr::is_null(exp_config$intra_dataset))
+  }else{
+    stopifnot(!purrr::is_null(exp_config$inter_dataset))
+  }
+  if(!purrr::is_null(exp_config$cv)){
+    if(exp_config$cv)
+    {stopifnot(!purrr::is_null(exp_config$intra_dataset))}
+  }
+}
