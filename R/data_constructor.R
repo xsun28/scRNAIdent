@@ -25,22 +25,17 @@ constructor.data_constructor <- function(data,config,experiment,if_train=TRUE,sa
 constructor.base <- function(data,config,if_train,sample_seed=NULL){
   if(if_train){
     data <- utils.filter(data)
-      if(!purrr::is_null(config$train_sample_num) && !is.na(config$train_sample_num)){
-        print(str_glue("start sampling train data: {config$train_sample_num} per cell type, sample_seed is {sample_seed}"))
-        data <- utils.sampler(data, sample_num=config$train_sample_num, sample_pctg = NULL, types=unique(colData(data)$label), sample_seed=sample_seed)
-      }else{
-        print(str_glue("start sampling train data: {config$train_sample_pctg} percentage per cell type, sample_seed is {sample_seed}"))
-        data <- utils.sampler(data, sample_num=NULL, sample_pctg = config$train_sample_pctg, types=unique(colData(data)$label), sample_seed=sample_seed)
-      }
+    train_sample_pctg <- if(purrr::is_null(config$train_sample_pctg)) utils.calculate_sampling_pctg(data, config$target_train_num,config, if_train) else config$train_sample_pctg
+    print(str_glue("start sampling train data: {train_sample_pctg} percentage per cell type"))
+    if(!purrr::is_null(sample_seed)) print(str_glue("sample_seed is {sample_seed}"))
+    data <- utils.sampler(data, sample_pctg = train_sample_pctg, types=unique(colData(data)$label), sample_seed=sample_seed)
+  
   }else{
     data <- utils.filter(data,filter_gene=FALSE)
-      if(!purrr::is_null(config$test_sample_num) && !is.na(config$test_sample_num)){
-        print(str_glue("start sampling test data: {config$test_sample_num} per cell type, sample_seed is {sample_seed}"))
-        data <- utils.sampler(data, sample_num=config$test_sample_num, sample_pctg = NULL, types=unique(colData(data)$label), sample_seed=sample_seed)
-      }else{
-        print(str_glue("start sampling test data: {config$test_sample_pctg} percentage per cell type, sample_seed is {sample_seed}"))
-        data <- utils.sampler(data, sample_num=NULL, sample_pctg = config$test_sample_pctg, types=unique(colData(data)$label), sample_seed=sample_seed)
-      }
+    test_sample_pctg <- if(purrr::is_null(config$test_sample_pctg)) utils.calculate_sampling_pctg(data, config$target_test_num,config, if_train) else config$test_sample_pctg
+    print(str_glue("start sampling test data: {test_sample_pctg} percentage per cell type"))
+    if(!purrr::is_null(sample_seed)) print(str_glue("sample_seed is {sample_seed}"))
+    data <- utils.sampler(data,  sample_pctg = test_sample_pctg, types=unique(colData(data)$label), sample_seed=sample_seed)
   }
   data <- data[!duplicated(rownames(data)),!duplicated(colnames(data))]
 }
@@ -52,36 +47,6 @@ constructor.simple_accuracy <- function(data,config, if_train,sample_seed=NULL){
 constructor.cell_number <- function(data,config, if_train,sample_seed=NULL){
   constructor.base(data,config,if_train,sample_seed)
 }
-
-constructor.celltype_number <- function(data,config,if_train,sample_index=NULL){
-  if(if_train){
-    if(purrr::is_null(sample_index)){
-      if(!purrr::is_null(config$train_sample_num) && !is.na(config$train_sample_num)){
-        print(str_glue("start sampling train data: {config$train_sample_num} per cell type"))
-        data <- utils.sampler(data, sample_num=config$train_sample_num, sample_pctg = NULL, types=config$sample_celltype)
-      }else{
-        print(str_glue("start sampling train data: {config$train_sample_pctg} percentage per cell type"))
-        data <- utils.sampler(data, sample_num=NULL, sample_pctg = config$train_sample_pctg, types=config$sample_celltype)
-      }
-    }else{
-      data <- data[,sample_index]
-    }
-  }else{
-    if(purrr::is_null(sample_index)){
-      if(!purrr::is_null(config$test_sample_num) && !is.na(config$test_sample_num)){
-        print(str_glue("start sampling test data: {config$test_sample_num} per cell type"))
-        data <- utils.sampler(data, sample_num=config$test_sample_num, sample_pctg = NULL, types=config$sample_celltype)
-      }else{
-        print(str_glue("start sampling test data: {config$test_sample_pctg} percentage per cell type"))
-        data <- utils.sampler(data, sample_num=NULL, sample_pctg = config$test_sample_pctg, types=config$sample_celltype)
-      }
-    }else{
-      data <- data[,sample_index]
-    }
-  }
-  data <- data[!duplicated(rownames(data)),!duplicated(colnames(data))]
-}
-
 
 constructor.sequencing_depth <- function(data,config,if_train,sample_seed=NULL){
   low_quantile <- config$low_quantile

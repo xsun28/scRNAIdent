@@ -96,17 +96,11 @@ utils.filter <- function(data,filter_gene=TRUE, filter_cells=TRUE, filter_cell_t
 }
 
 ###sampling sample_num cells from each cell type
-utils.sampler <- function(data,sample_num=NULL,sample_pctg=NULL,types,column="label",sample_seed=NULL){
-  stopifnot(!((purrr::is_null(sample_num)&&purrr::is_null(sample_pctg))||(!purrr::is_null(sample_num)&&!purrr::is_null(sample_pctg))))
+utils.sampler <- function(data,sample_pctg=NULL,types,column="label",sample_seed=NULL){
   if(!purrr::is_null(sample_seed))
     set.seed(sample_seed) #####ensures sample the same index by setting seed
-  if(!purrr::is_null(sample_num)){
-    sample_idx <- purrr::map(types,~ which(colData(data)[[column]]==.)) %>% 
-      purrr::map(~sample(.,min(sample_num,length(.)),replace=FALSE)) 
-  }else{
-    sample_idx <- purrr::map(types,~ which(colData(data)[[column]]==.)) %>% 
-      purrr::map(~sample(.,ceiling(length(.)*sample_pctg),replace=FALSE)) 
-  }
+  sample_idx <- purrr::map(types,~ which(colData(data)[[column]]==.)) %>% 
+    purrr::map(~sample(.,ceiling(length(.)*sample_pctg),replace=FALSE)) 
   return(data[,unlist(sample_idx)])
 }
 
@@ -445,32 +439,24 @@ utils.manhattan_dist <- function(a,b){
 }
 
 
-utils.calculate_sampling_pctg <- function(train_dataset, test_dataset, exp_config){
-  train_test <- utils.load_datasets(list(train_dataset,test_dataset))
-  train_dataset <- train_test[[1]]
-  test_dataset <- train_test[[1]]
-  rm(train_test)
-  gc(T)
-  target_train_num <- if(purrr::is_null(exp_config$target_train_num)) 1200 else exp_config$target_train_num
-  target_test_num <- if(purrr::is_null(exp_config$target_test_num)) 800 else exp_config$target_test_num
-  total_train_num <- length(colnames(train_dataset))
+utils.calculate_sampling_pctg <- function(dataset, target_num, exp_config, if_train){
+  total_num <- length(colnames(dataset))
   if(exp_config$use_inter_dataset){
-    print("use intra dataset")
-    total_test_num <- length(colnames(test_dataset))
-    target_train_sampling_pctg <- min(1,target_train_num/total_train_num)
-    target_test_sampling_pctg <- min(1,target_test_num/total_test_num)
+    print("use inter dataset")
+    target_sampling_pctg <- min(1,target_num/total_num)
   }else{
     print("use intra dataset")
     if(exp_config$cv){
       print("using CV")
-      target_train_sampling_pctg <- target_train_num/total_train_num
-      target_test_sampling_pctg <- NULL
+      target_sampling_pctg <- min(1,target_num/total_num)
     }else{
       print("using same train test dataset")
-      target_train_sampling_pctg <- min(0.8,target_train_num/total_train_num)
-      target_teset_sampling_pctg <- min(1-target_train_sampling_pctg,target_train_num/total_train_num)
+      if(if_train){
+        target_sampling_pctg <- min(0.8,target_num/total_num)
+      }else{
+        target_sampling_pctg <- min(1,target_num/total_num)
+      }
     }
   }
-  print(str_glue("train_sampling_pctg={target_train_sampling_pctg}, target_test_sampling_pctg={target_test_sampling_pctg}"))
-  return(target_train_sampling_pctg,target_test_sampling_pctg)
+  target_sampling_pctg
 }
