@@ -347,10 +347,10 @@ experiments.sequencing_depth <- function(experiment){
       results_base <- experiments.base(experiment,exp_config)
       results <- results_base$analy_results %>%
         purrr::map(~{
-          .$quantile <- str_glue("{low_quant}-{high_quant}")
+          .$quantile <- str_glue("{round(low_quant,2)}-{round(high_quant,2)}")
           return(.)})
       raw_results <- results_base$pred_results
-      raw_results$quantile <- str_glue("{low_quant}-{high_quant}")
+      raw_results$quantile <- str_glue("{round(low_quant,2)}-{round(high_quant,2)}")
       combined_assign_results[[i]] <- bind_rows(results[grepl(".*_assign_.*",names(results))])
       combined_cluster_results[[i]] <- bind_rows(results[grepl(".*cluster.*",names(results))])
       combined_raw_results[[i]] <- raw_results
@@ -359,11 +359,11 @@ experiments.sequencing_depth <- function(experiment){
     combined_cluster_results <- bind_rows(combined_cluster_results)
     combined_raw_results <- bind_rows(combined_raw_results)
     final_results <- bind_rows(combined_assign_results,combined_cluster_results)
-    output.sink(experiment,combined_raw_results,final_results,config)
-    plot.plot(experiment,final_results,combined_raw_results, config)
+    output.sink(experiment,combined_raw_results,final_results,exp_config)
+    plot.plot(experiment,final_results,combined_raw_results, exp_config)
     utils.clean_marker_files()
-    final_results
-    info(final_results,str_glue("{experiment} train_dataset={train_dataset}, test_dataset={test_datast}, {final_results}"))
+    print(str_glue("{experiment} train_dataset={train_dataset}, test_dataset={test_dataset}"))
+    print(final_results)
   }
 }
 

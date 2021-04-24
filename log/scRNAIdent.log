@@ -1,27 +1,6 @@
-DEBUG [2021-04-24 05:19:56] results methods: scmap_clusterresults methods: scmap_cellresults methods: chetahresults methods: singlecellnetresults methods: garnettresults methods: singleRresults methods: cellassign
-ERROR [2021-04-24 06:28:41] error occured argument is of length zero
-ERROR [2021-04-24 06:28:41] error occurs in ADASD_autism, cidr:argument is of length zero
-DEBUG [2021-04-24 06:28:59] results methods: scmap_clusterresults methods: scmap_cellresults methods: chetahresults methods: singlecellnetresults methods: garnettresults methods: singleRresults methods: cellassign
-ERROR [2021-04-24 06:56:59] error occured argument is of length zero
-ERROR [2021-04-24 06:56:59] error occurs in ADASD_autism, cidr:argument is of length zero
-ERROR [2021-04-24 07:20:08] error occured in liger argument is of length zero
-ERROR [2021-04-24 07:20:49] error occured in liger argument is of length zero
-ERROR [2021-04-24 07:21:52] error occured in cidr argument is of length zero
-ERROR [2021-04-24 07:21:52] error occured in liger unable to find an inherited method for function ‘scCluster’ for signature ‘"try-error"’
-ERROR [2021-04-24 07:21:52] error occured in liger unable to find an inherited method for function ‘scCluster’ for signature ‘"try-error"’
-ERROR [2021-04-24 07:21:52] error occured in liger unable to find an inherited method for function ‘scCluster’ for signature ‘"try-error"’
-ERROR [2021-04-24 07:21:52] error occured in liger unable to find an inherited method for function ‘scCluster’ for signature ‘"try-error"’
-ERROR [2021-04-24 07:21:52] error occured in liger unable to find an inherited method for function ‘scCluster’ for signature ‘"try-error"’
-ERROR [2021-04-24 07:22:23] error occured in cidr unable to find an inherited method for function ‘scCluster’ for signature ‘"try-error"’
-ERROR [2021-04-24 07:23:02] error occured in cidr argument is of length zero
-ERROR [2021-04-24 07:23:29] error occured in cidr argument is of length zero
-ERROR [2021-04-24 07:23:29] error occured in liger unable to find an inherited method for function ‘scCluster’ for signature ‘"try-error"’
-ERROR [2021-04-24 07:23:29] error occured in liger unable to find an inherited method for function ‘scCluster’ for signature ‘"try-error"’
-ERROR [2021-04-24 07:23:29] error occured in liger unable to find an inherited method for function ‘scCluster’ for signature ‘"try-error"’
-ERROR [2021-04-24 07:23:29] error occured in liger unable to find an inherited method for function ‘scCluster’ for signature ‘"try-error"’
-ERROR [2021-04-24 07:23:29] error occured in liger unable to find an inherited method for function ‘scCluster’ for signature ‘"try-error"’
-ERROR [2021-04-24 07:25:09] error occured in cidr unable to find an inherited method for function ‘scCluster’ for signature ‘"try-error"’
-ERROR [2021-04-24 07:26:09] error occured in cidr argument is of length zero
-ERROR [2021-04-24 07:26:46] error occured in cidr argument is of length zero
-ERROR [2021-04-24 07:28:01] error occured in cidr argument is of length zero
-ERROR [2021-04-24 07:36:02] error occured in cidr argument is of length zero
+ERROR [2021-04-24 10:07:55] error occured 0 (non-NA) cases
+ERROR [2021-04-24 10:07:55] error occurs in train=PBMC_AllCells_withLabels_GSE96583_8_Ctrl_Pats_intersected.RDS, test=GSE96583_8_Ctrl_Pats_PBMC_AllCells_withLabels_intersected.RDS,scmap_cluster:0 (non-NA) cases
+ERROR [2021-04-24 10:07:57] error occured 0 (non-NA) cases
+ERROR [2021-04-24 10:07:57] error occurs in train=PBMC_AllCells_withLabels_GSE96583_8_Ctrl_Pats_intersected.RDS, test=GSE96583_8_Ctrl_Pats_PBMC_AllCells_withLabels_intersected.RDS,scmap_cell:0 (non-NA) cases
+ERROR [2021-04-24 10:47:22] error occured object 'org.Hs.eg.db' not found
+ERROR [2021-04-24 10:47:22] error occurs in train=PBMC_AllCells_withLabels_GSE96583_8_Ctrl_Pats_intersected.RDS, test=GSE96583_8_Ctrl_Pats_PBMC_AllCells_withLabels_intersected.RDS,garnett:object 'org.Hs.eg.db' not found

@@ -52,11 +52,12 @@ utils.combine_SCEdatasets <- function(sces,if_combined=TRUE,colDatas_cols=NULL){
 utils.convert_to_SingleCellExperiment <- function(data_matrix,genes,cellIds,coldata,meta){
   require(SingleCellExperiment)
   require(scater)
+  require(tidyverse)
   colnames(data_matrix) <- cellIds
   rownames(data_matrix) <- genes
   sce <- SingleCellExperiment(list(counts=data_matrix),colData=coldata,metadata=meta)
   sce <- addPerCellQC(sce)
-  sce <- sce[,-quickPerCellQC(sce)$discard]
+  sce <- sce[,which(!quickPerCellQC(sce)$discard)]
   rowData(sce) <- tibble(count=nexprs(sce,byrow=TRUE),geneName=genes)
   sce
 }
@@ -188,6 +189,7 @@ utils.remove_batch_effects <- function(batches, method){
          MNN = utils.batch_effects.MNN(batches),
          seurat = utils.batch_effects.seurat(batches),
          harmony = utils.batch_effects.harmony(batches),
+         combat_seq = utils.batch_effects.combat_seq(batches),
          stop("Unkown experiments")
   )
 }
@@ -198,6 +200,8 @@ utils.batch_effects.MNN <- function(batches){
   require(batchelor)
   require(scater)
   require(scran)
+  print("using MNN to remove batch effects")
+  
   batches <- do.call(multiBatchNorm,as.list(batches))
   decs <- purrr::map(batches,modelGeneVar)
   combined.decs <- do.call('combineVar',decs)
@@ -222,6 +226,8 @@ utils.batch_effects.MNN <- function(batches){
 utils.batch_effects.harmony <- function(batches){
   require(harmony)
   require(MUDAN)
+  print("using harmony to remove batch effects")
+  
   batch1 <- counts(batches[[1]])
   batch2 <- counts(batches[[2]])
   cd <- cbind(batch1, batch2)
@@ -234,12 +240,33 @@ utils.batch_effects.harmony <- function(batches){
   ## log transform
   matnorm <- log10(matnorm.info$mat+1) 
   ## 30 PCs on overdispersed genes
-  pcs <- MUDAN::getPcs(matnorm[matnorm.info$ods,], nGenes=length(matnorm.info$ods), nPcs=30, verbose=FALSE) 
-  harmonized <- HarmonyMatrix(pcs, meta, do_pca = FALSE, verbose = FALSE)
-  corrected_batch_1 <- harmonized[names(meta[meta=="batch1"]),]
-  corrected_batch_2 <- harmonized[names(meta[meta=="batch2"]),]
+  harmonized <- HarmonyMatrix(matnorm, meta, do_pca = FALSE, verbose = FALSE)
+  # harmonized[harmonized<0] = 0
+  corrected_batch_1 <- t(harmonized[names(meta[meta=="batch1"]),])
+  corrected_batch_1 <- utils.convert_to_SingleCellExperiment(corrected_batch_1,rownames(batch1),colnames(batch1),colData(batches[[1]]),metadata(batches[[1]]))
+  corrected_batch_2 <- t(harmonized[names(meta[meta=="batch2"]),])
+  corrected_batch_2 <- utils.convert_to_SingleCellExperiment(corrected_batch_2,rownames(batch2),colnames(batch2),colData(batches[[2]]),metadata(batches[[2]]))
   return(list(corrected_batch_1,corrected_batch_2))
 }
+
+##########
+utils.batch_effects.combat_seq <- function(batches){
+  require(sva)
+  print("using combat-seq to remove batch effects")
+  batch1 <- as.matrix(counts(batches[[1]]))
+  batch2 <- as.matrix(counts(batches[[2]]))
+  cd <- cbind(batch1, batch2)
+  meta <- c(rep(1, ncol(batch1)), rep(2, ncol(batch2)))
+  names(meta) <- c(colnames(batch1), colnames(batch2))
+  meta <- factor(meta)
+  adjusted <- ComBat_seq(cd, batch=meta, group=NULL)
+  corrected_batch_1 <- adjusted[,names(meta[meta==1])]
+  corrected_batch_1 <- utils.convert_to_SingleCellExperiment(corrected_batch_1,rownames(batch1),colnames(batch1),colData(batches[[1]]),metadata(batches[[1]]))
+  corrected_batch_2 <- adjusted[,names(meta[meta==2])]
+  corrected_batch_2 <- utils.convert_to_SingleCellExperiment(corrected_batch_2,rownames(batch2),colnames(batch2),colData(batches[[2]]),metadata(batches[[2]]))
+  return(list(corrected_batch_1,corrected_batch_2))
+}
+
 
 ####append one singlecellexperiment onto another
 utils.append_sce <- function(sce1,sce2){
