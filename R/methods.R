@@ -545,11 +545,38 @@ cluster.cidr <- function(data,exp_config) {
   sData <- nPC(sData)
   K <- m_config$K
   if(purrr::is_null(K))
-    sData <- scCluster(sData)
+    ret <- tryCatch(scCluster(sData), error=function(c) {
+      msg <- conditionMessage(c)
+      print(str_glue("error occured in cidr: {msg}"))
+      error(logger, str_glue("error occured in cidr {msg}"))
+      structure(msg, class = "try-error")
+    })
   else
-    sData <- scCluster(sData, nCluster=K)
+    ret <- tryCatch(scCluster(sData, nCluster=K), error=function(c) {
+      msg <- conditionMessage(c)
+      print(str_glue("error occured in cidr: {msg}"))
+      error(logger, str_glue("error occured in cidr {msg}"))
+      structure(msg, class = "try-error")
+    })
   
-  return(sData@clusters)
+  i = 0
+  K = 10
+  while(inherits(ret,"try-error")){
+    if(i > 10||K <= 0) return(NULL)
+    i = i+1
+    print(str_glue("in cidr:{ret}"))
+    K = K -2
+    print(str_glue("new k: {K}"))
+    ret <- tryCatch(scCluster(sData, nCluster=K), error=function(c) {
+      msg <- conditionMessage(c)
+      print(str_glue("error occured in cidr: {msg}"))
+      error(logger, str_glue("error occured in cidr {msg}"))
+      structure(msg, class = "try-error")
+    })
+  }
+  
+  
+  return(ret@clusters)
 }
 
 ### Monocle

@@ -1,1 +1,27 @@
 DEBUG [2021-04-24 05:19:56] results methods: scmap_clusterresults methods: scmap_cellresults methods: chetahresults methods: singlecellnetresults methods: garnettresults methods: singleRresults methods: cellassign
+ERROR [2021-04-24 06:28:41] error occured argument is of length zero
+ERROR [2021-04-24 06:28:41] error occurs in ADASD_autism, cidr:argument is of length zero
+DEBUG [2021-04-24 06:28:59] results methods: scmap_clusterresults methods: scmap_cellresults methods: chetahresults methods: singlecellnetresults methods: garnettresults methods: singleRresults methods: cellassign
+ERROR [2021-04-24 06:56:59] error occured argument is of length zero
+ERROR [2021-04-24 06:56:59] error occurs in ADASD_autism, cidr:argument is of length zero
+ERROR [2021-04-24 07:20:08] error occured in liger argument is of length zero
+ERROR [2021-04-24 07:20:49] error occured in liger argument is of length zero
+ERROR [2021-04-24 07:21:52] error occured in cidr argument is of length zero
+ERROR [2021-04-24 07:21:52] error occured in liger unable to find an inherited method for function ‘scCluster’ for signature ‘"try-error"’
+ERROR [2021-04-24 07:21:52] error occured in liger unable to find an inherited method for function ‘scCluster’ for signature ‘"try-error"’
+ERROR [2021-04-24 07:21:52] error occured in liger unable to find an inherited method for function ‘scCluster’ for signature ‘"try-error"’
+ERROR [2021-04-24 07:21:52] error occured in liger unable to find an inherited method for function ‘scCluster’ for signature ‘"try-error"’
+ERROR [2021-04-24 07:21:52] error occured in liger unable to find an inherited method for function ‘scCluster’ for signature ‘"try-error"’
+ERROR [2021-04-24 07:22:23] error occured in cidr unable to find an inherited method for function ‘scCluster’ for signature ‘"try-error"’
+ERROR [2021-04-24 07:23:02] error occured in cidr argument is of length zero
+ERROR [2021-04-24 07:23:29] error occured in cidr argument is of length zero
+ERROR [2021-04-24 07:23:29] error occured in liger unable to find an inherited method for function ‘scCluster’ for signature ‘"try-error"’
+ERROR [2021-04-24 07:23:29] error occured in liger unable to find an inherited method for function ‘scCluster’ for signature ‘"try-error"’
+ERROR [2021-04-24 07:23:29] error occured in liger unable to find an inherited method for function ‘scCluster’ for signature ‘"try-error"’
+ERROR [2021-04-24 07:23:29] error occured in liger unable to find an inherited method for function ‘scCluster’ for signature ‘"try-error"’
+ERROR [2021-04-24 07:23:29] error occured in liger unable to find an inherited method for function ‘scCluster’ for signature ‘"try-error"’
+ERROR [2021-04-24 07:25:09] error occured in cidr unable to find an inherited method for function ‘scCluster’ for signature ‘"try-error"’
+ERROR [2021-04-24 07:26:09] error occured in cidr argument is of length zero
+ERROR [2021-04-24 07:26:46] error occured in cidr argument is of length zero
+ERROR [2021-04-24 07:28:01] error occured in cidr argument is of length zero
+ERROR [2021-04-24 07:36:02] error occured in cidr argument is of length zero

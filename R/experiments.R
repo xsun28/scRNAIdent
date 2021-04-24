@@ -10,7 +10,6 @@ tf$constant("Tensorflow test")
 source("R/dataset_config.R")
 source("R/experiments_config.R")
 source("R/experiments_analysis.R")
-source("R/output_config.R")
 source("R/utils.R")
 source("R/data_constructor.R")
 source("R/methods.R")
@@ -310,7 +309,7 @@ experiments.cell_number <- function(experiment){
     combined_raw_results <- bind_rows(combined_raw_results)
     final_results <- bind_rows(combined_assign_results,combined_cluster_results)
     output.sink(experiment,combined_raw_results,final_results,exp_config)
-    plot.plot(experiment,final_results,combined_raw_results)
+    plot.plot(experiment,final_results,combined_raw_results,exp_config)
     utils.clean_marker_files()
     final_results
     print(str_glue("{experiment} train_dataset={train_dataset}, test_dataset={test_datast}"))
@@ -566,7 +565,7 @@ experiments.run_assign <- function(methods, train_data, test_data=NULL, exp_conf
       m_result <- utils.try_catch_method_error(run_assign_methods(m,train_data,test_data,exp_config))
       if(inherits(m_result,"try-error")){
         print(str_glue("error occurs in {m}:{m_result}"))
-        error(logger, str_glue("error occurs in {output.dataset_name[[experiment]]}, {m}:{m_result}"))
+        error(logger, str_glue("error occurs in train={experiments.assign.data$train_dataset[[experiment]]}, test={experiments.assign.data$test_dataset[[experiment]]},{m}:{m_result}"))
         # results <- dplyr::select(results,-m)
       }else{
         print(str_glue("{m} finished correctly"))
@@ -591,7 +590,7 @@ experiments.run_marker_gene_assign <- function(methods,data,exp_config){
     m_result <- utils.try_catch_method_error(run_assign_methods(m,data,NULL,exp_config))
     if(inherits(m_result,"try-error")){
       print(str_glue("error occurs in {m}:{m_result}"))
-      error(logger, str_glue("error occurs in {output.dataset_name[[experiment]]}, {m}:{m_result}"))
+      error(logger, str_glue("error occurs in train={experiments.assign.data$train_dataset[[experiment]]}, test={experiments.assign.data$test_dataset[[experiment]]}, {m}:{m_result}"))
       # results <- dplyr::select(results,-m)
     }else{
       print(str_glue("{m} finished correctly"))
@@ -616,7 +615,7 @@ experiments.run_cluster <- function(methods,data,exp_config){
     m_result <- utils.try_catch_method_error(run_cluster_methods(m,data,exp_config))
     if(inherits(m_result,"try-error")){
       print(str_glue("error occurs in {m}:{m_result}"))
-      error(logger, str_glue("error occurs in {output.dataset_name[[experiment]]}, {m}:{m_result}"))
+      error(logger, str_glue("error occurs in train={experiments.assign.data$train_dataset[[experiment]]}, test={experiments.assign.data$test_dataset[[experiment]]}, {m}:{m_result}"))
       # results <- dplyr::select(results,-m)
     }else{
       print(str_glue("{m} finished correctly"))
