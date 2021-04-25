@@ -3,6 +3,19 @@
 source("R/config.R")
 source("R/utils.R")
 source("R/dataset_config.R")
+
+preprocesss.datasets <- list(PBMC=list("PBMC_AllCells_withLabels.RDS","GSE96583_batch1_3_samples.RDS","GSE96583_8_Stim_Pats.RDS","GSE96583_8_Ctrl_Pats.RDS"),
+                 pancreas=list(muraro="Muraro_pancreas_clean.RDS",
+                               seger="Segerstolpe_pancreas_clean.RDS",
+                               xin="Xin_pancreas_clean.RDS"
+                                ),
+                 ADASD=list(AD="ADASD_AD.RDS",autism="ADASD_autism.RDS"),
+                 midbrain=list(human="midbrain_human.RDS",mouse="midbrain_mouse.RDS"),
+                 cellbench=list(tenx="cellbench_10x.RDS",CELseq2="cellbench_CELseq2.RDS",Dropseq="cellbench_Dropseq.RDS")
+                )
+
+
+
 preprocess_dataset <- function(dataset=c("PBMC","pancreas","midbrain","ADASD","cellbench")) {
   switch(dataset,
          PBMC = preprocess_PBMC(dataset),
@@ -36,14 +49,14 @@ preprocess_PBMC <- function(dataset){
   rowData(data)$EnsembleId <- purrr::map_chr(rownames(data),~str_split(.,"\\t")[[1]][[1]])
   rowData(data)$geneName <- purrr::map_chr(rownames(data), ~str_split(.,"\\t")[[1]][[2]])
   rownames(data) <- rowData(data)$geneName
-  new_dataset_path <- utils.get_dataset_paths(data_home,datasets[[dataset]][[1]])
+  new_dataset_path <- utils.get_dataset_paths(data_home,preprocesss.datasets[[dataset]][[1]])
   write_rds(data,new_dataset_path)
   
   ##load GSE96583_batch1_3_samples.RData
   map_path <- str_glue("{type_home}/{dataset.properties$GSE96583_batch1_3_samples$cell_type_map}")
   type_map <- read_csv(map_path)
   dataset_names <- load(dataset_paths[[2]])
-  sces <- map(map(dataset_names,~eval(as.name(.))), ~{
+  sces <- purrr::map(purrr::map(dataset_names,~eval(as.name(.))), ~{
                                                     colData(.)$sampleId <- rownames(colData(.))
                                                     colData(.)$label <- utils.convertCellTypes(colData(.)$cell.type,type_map)
                                                     counts(.) <- as(counts(.),'sparseMatrix')
@@ -51,45 +64,45 @@ preprocess_PBMC <- function(dataset){
   # sces <- purrr::map(sces,addPerCellQC)
   colData_cols <- colnames(colData(sces[[1]]))
   sces <- utils.combine_SCEdatasets(sces,if_combined=T,colData_cols)
-  sces <- sces[,-quickPerCellQC(sces)$discard]
+  sces <- sces[,which(!quickPerCellQC(sces)$discard)]
   metadata(sces) <- list(study='PBMC', study_name="GSE96583_batch1_3_samples")
   rowData(sces)$geneName <- rownames(sces)
   rowData(sces)$EnsembleId <- utils.convert2EnsemblIDs(rownames(sces))
-  new_dataset_path <- utils.get_dataset_paths(data_home,datasets[[dataset]][[2]])
+  new_dataset_path <- utils.get_dataset_paths(data_home,preprocesss.datasets[[dataset]][[2]])
   write_rds(sces,new_dataset_path)
   
   ###load GSE96583_8_Stim_Pats.RData
   map_path <- str_glue("{type_home}/{dataset.properties$GSE96583_8_Stim_Pats$cell_type_map}")
   type_map <- read_csv(map_path)
   dataset_names <- load(dataset_paths[[3]])
-  sces <- map(eval(as.name(dataset_names[[1]])), ~{colData(.)$sampleId <- rownames(colData(.))
+  sces <- purrr::map(eval(as.name(dataset_names[[1]])), ~{colData(.)$sampleId <- rownames(colData(.))
                                                    colData(.)$label <- utils.convertCellTypes(colData(.)$cell,type_map)
                                                    counts(.) <- as(counts(.),'sparseMatrix')
                                                    return(.)})
   colData_cols <- colnames(colData(sces[[1]]))
   sces <- utils.combine_SCEdatasets(sces,if_combined=T,colData_cols)
-  sces <- sces[,-quickPerCellQC(sces)$discard]
+  sces <- sces[,which(!quickPerCellQC(sces)$discard)]
   metadata(sces) <- list(study='PBMC', study_name="GSE96583_8_Stim_Pats")
   rowData(sces)$geneName <- rownames(sces)
   rowData(sces)$EnsembleId <- utils.convert2EnsemblIDs(rownames(sces))
-  new_dataset_path <- utils.get_dataset_paths(data_home,datasets[[dataset]][[3]])
+  new_dataset_path <- utils.get_dataset_paths(data_home,preprocesss.datasets[[dataset]][[3]])
   write_rds(sces,new_dataset_path)
   
   ###load GSE96583_8_Ctrl_Pats.RData
   map_path <- str_glue("{type_home}/{dataset.properties$GSE96583_8_Ctrl_Pats$cell_type_map}")
   type_map <- read_csv(map_path)
   dataset_names <- load(dataset_paths[[4]])
-  sces <- map(eval(as.name(dataset_names[[1]])), ~{colData(.)$sampleId <- rownames(colData(.))
+  sces <- purrr::map(eval(as.name(dataset_names[[1]])), ~{colData(.)$sampleId <- rownames(colData(.))
                                                    colData(.)$label <- utils.convertCellTypes(colData(.)$cell,type_map)
                                                    counts(.) <- as(counts(.),'sparseMatrix')
                                                    return(.)})
   colData_cols <- colnames(colData(sces[[1]]))
   sces <- utils.combine_SCEdatasets(sces,if_combined=T,colData_cols)
-  sces <- sces[,-quickPerCellQC(sces)$discard]
+  sces <- sces[,which(!quickPerCellQC(sces)$discard)]
   metadata(sces) <- list(study='PBMC', study_name="GSE96583_8_Ctrl_Pats")
   rowData(sces)$geneName <- rownames(sces)
   rowData(sces)$EnsembleId <- utils.convert2EnsemblIDs(rownames(sces))
-  new_dataset_path <- utils.get_dataset_paths(data_home,datasets[[dataset]][[4]])
+  new_dataset_path <- utils.get_dataset_paths(data_home,preprocesss.datasets[[dataset]][[4]])
   write_rds(sces,new_dataset_path)
 }
 
@@ -98,7 +111,7 @@ preprocess_pancreas <- function(dataset){
   require(Matrix)
   require(tidyverse)
   dataset_paths <- utils.get_dataset_paths(raw_data_home,raw_datasets[[dataset]])
-  new_dataset_path <- utils.get_dataset_paths(data_home,datasets[[dataset]])
+  new_dataset_path <- utils.get_dataset_paths(data_home,preprocesss.datasets[[dataset]])
   for(i in seq_along(dataset_paths)){
     study_name <- unlist(str_split(raw_datasets[[dataset]][[i]],"\\."))[[1]]
     print(str_glue('Preprocessing {study_name} dataset'))
@@ -157,7 +170,7 @@ preprocess_midbrain <- function(dataset){
   require(tidyverse)
   dataset_paths <- utils.get_dataset_paths(raw_data_home,raw_datasets[[dataset]])
   dataset_names <- load(dataset_paths[[1]])
-  sces <- map(map(dataset_names,~eval(as.name(.))), ~{colData(.)$sampleId <- rownames(colData(.))
+  sces <- purrr::map(purrr::map(dataset_names,~eval(as.name(.))), ~{colData(.)$sampleId <- rownames(colData(.))
                                                       colData(.)$label <- colData(.)$celltypes
                                                       colData(.)$species <- purrr::map_chr(colData(.)$celltypes,~str_sub(.,1,1))
                                                       counts(.) <- as(counts(.),'sparseMatrix')
@@ -169,18 +182,18 @@ preprocess_midbrain <- function(dataset){
   converted_genes$EnsembleId <- utils.convert2EnsemblIDs(converted_genes$human_gene)
   converted_genes$geneName <- converted_genes$human_gene
   new_mouse_sces <- sces[[1]][converted_genes$genes,]
-  new_mouse_sces <- new_mouse_sces[,-quickPerCellQC(new_mouse_sces)$discard]
+  new_mouse_sces <- new_mouse_sces[,which(!quickPerCellQC(new_mouse_sces)$discard)]
   rowData(new_mouse_sces) <- converted_genes
   rowData(new_mouse_sces)$count <- nexprs(new_mouse_sces,byrow=TRUE)
   
-  sces[[2]] <- sces[[2]][,-quickPerCellQC(sces[[2]])$discard]
+  sces[[2]] <- sces[[2]][,which(!quickPerCellQC(sces[[2]])$discard)]
   rowData(sces[[2]])$human_gene <- rowData(sces[[2]])$genes
   rowData(sces[[2]])$EnsembleId <- utils.convert2EnsemblIDs(rowData(sces[[2]])$human_gene)
   rowData(sces[[2]])$geneName <- rowData(sces[[2]])$human_gene
   rowData(sces[[2]])$count <- nexprs(sces[[2]],byrow=TRUE)
   
 
-  new_dataset_path <- utils.get_dataset_paths(data_home,datasets[[dataset]])
+  new_dataset_path <- utils.get_dataset_paths(data_home,preprocesss.datasets[[dataset]])
   metadata(new_mouse_sces) <- list(study="midbrain",study_name="midbrain_mouse")
   metadata(sces[[2]]) <- list(study="midbrain",study_name="midbrain_human")
   write_rds(new_mouse_sces,new_dataset_path[[2]])
@@ -192,17 +205,17 @@ preprocess_cellbench <- function(dataset){
   require(Matrix)
   require(tidyverse)
   dataset_paths <- utils.get_dataset_paths(raw_data_home,raw_datasets[[dataset]])
-  new_dataset_path <- utils.get_dataset_paths(data_home,datasets[[dataset]])
+  new_dataset_path <- utils.get_dataset_paths(data_home,preprocesss.datasets[[dataset]])
   dataset_names <- load(dataset_paths[[1]])
   for(i in seq_along(dataset_names)){
-    study_name <- unlist(str_split(datasets$cellbench[[i]],"[\\.]"))[[1]]
-    protocol <- unlist(str_split(datasets[[dataset]][[i]],"[\\._]"))[[2]]
+    study_name <- unlist(str_split(preprocesss.datasets$cellbench[[i]],"[\\.]"))[[1]]
+    protocol <- unlist(str_split(preprocesss.datasets[[dataset]][[i]],"[\\._]"))[[2]]
     print(str_glue('Preprocessing {protocol} protocol'))
     sce <- eval(as.name(dataset_names[[i]]))
     colData(sce)$sampleId <- rownames(colData(sce))
     colData(sce)$label <- colData(sce)$cell_line_demuxlet
     sce <- addPerCellQC(sce)
-    sce <- sce[,-quickPerCellQC(sce)$discard]
+    sce <- sce[,which(!quickPerCellQC(sce)$discard)]
     counts(sce) <- as(counts(sce),'sparseMatrix')
     metadata(sce) <- list(study='cellbench', study_name=study_name,protocol=protocol)
     rowData(sce)$EnsembleId <- rownames(sce)

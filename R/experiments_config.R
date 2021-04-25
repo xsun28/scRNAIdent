@@ -1,4 +1,4 @@
-experiment <- "batch_effects"
+experiment <- "simple_accuracy"
 
 # experiments.data <- list(simple_accuracy="PBMC_AllCells_withLabels.RDS", 
 #                                  cell_number="ADASD_autism.RDS",

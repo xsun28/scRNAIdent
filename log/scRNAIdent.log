@@ -1,6 +1,0 @@
-ERROR [2021-04-24 10:07:55] error occured 0 (non-NA) cases
-ERROR [2021-04-24 10:07:55] error occurs in train=PBMC_AllCells_withLabels_GSE96583_8_Ctrl_Pats_intersected.RDS, test=GSE96583_8_Ctrl_Pats_PBMC_AllCells_withLabels_intersected.RDS,scmap_cluster:0 (non-NA) cases
-ERROR [2021-04-24 10:07:57] error occured 0 (non-NA) cases
-ERROR [2021-04-24 10:07:57] error occurs in train=PBMC_AllCells_withLabels_GSE96583_8_Ctrl_Pats_intersected.RDS, test=GSE96583_8_Ctrl_Pats_PBMC_AllCells_withLabels_intersected.RDS,scmap_cell:0 (non-NA) cases
-ERROR [2021-04-24 10:47:22] error occured object 'org.Hs.eg.db' not found
-ERROR [2021-04-24 10:47:22] error occurs in train=PBMC_AllCells_withLabels_GSE96583_8_Ctrl_Pats_intersected.RDS, test=GSE96583_8_Ctrl_Pats_PBMC_AllCells_withLabels_intersected.RDS,garnett:object 'org.Hs.eg.db' not found

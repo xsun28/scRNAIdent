@@ -1,6 +1,6 @@
 raw_datasets <- list(PBMC=c("PBMC_AllCells_withLabels.RData","GSE96583_batch1_3_samples.RData","GSE96583_8_Stim_Pats.RData","GSE96583_8_Ctrl_Pats.RData"),
-                     # pancreas=c("Muraro_pancreas.RData","Segerstolpe_pancreas.RData","Xin_pancreas.RData"),
-                     pancreas=c("Muraro_pancreas.RData","Segerstolpe_pancreas.RData"),
+                     pancreas=c("Muraro_pancreas.RData","Segerstolpe_pancreas.RData","Xin_pancreas.RData"),
+                     # pancreas=c("Muraro_pancreas.RData","Segerstolpe_pancreas.RData"),
                      ADASD="AD_autism_data.RData",
                      midbrain="midbrain.RData",
                      cellbench="cellbench.RData")
