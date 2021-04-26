@@ -526,7 +526,8 @@ cluster.liger <- function(data,exp_config){
   }
   liger_data <- ret
   liger_data <- quantileAlignSNF(liger_data,resolution = resolution) #SNF clustering and quantile alignment
-  str_names <- as.character.Array(1:dim(data)[2])
+  names(liger_data@clusters) <- as.integer.Array( names(liger_data@clusters))
+  str_names <- 1:dim(data)[2]
   as.integer(unname(liger_data@clusters[str_names]))
 }
 
