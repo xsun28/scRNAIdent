@@ -1,4 +1,4 @@
-experiment <- "simple_accuracy"
+experiment <- "cell_number"
 
 # experiments.data <- list(simple_accuracy="PBMC_AllCells_withLabels.RDS", 
 #                                  cell_number="ADASD_autism.RDS",

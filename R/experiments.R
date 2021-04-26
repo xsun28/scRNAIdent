@@ -37,6 +37,7 @@ runExperiments <- function(experiment=c("simple_accuracy","cell_number","celltyp
          inter_species = experiments.inter_species(experiment),
          random_noise = experiments.random_noise(experiment),
          inter_protocol = experiments.inter_protocol(experiment),
+         rare_types = experiments.rare_types(experiment),
          stop("Unkown experiments")
          )
 }
@@ -266,6 +267,7 @@ experiments.simple_accuracy <- function(experiment){
     print(str_glue("{experiment} train_dataset={train_dataset}"))
     print(report_results)
   }
+  summarize_experiments(experiment)
 }
 
 
@@ -312,9 +314,10 @@ experiments.cell_number <- function(experiment){
     plot.plot(experiment,final_results,combined_raw_results,exp_config)
     utils.clean_marker_files()
     final_results
-    print(str_glue("{experiment} train_dataset={train_dataset}, test_dataset={test_datast}"))
+    print(str_glue("{experiment} train_dataset={train_dataset}, test_dataset={test_dataset}"))
     print(final_results)
   }
+  summarize_experiments(experiment)
 }
 
 ###cell type number experiment
@@ -365,6 +368,7 @@ experiments.sequencing_depth <- function(experiment){
     print(str_glue("{experiment} train_dataset={train_dataset}, test_dataset={test_dataset}"))
     print(final_results)
   }
+  summarize_experiments(experiment)
 }
 
 
@@ -501,6 +505,7 @@ experiments.batch_effects <- function(experiment){
     utils.clean_marker_files()
     print(str_glue("finished batch effect dataset pair {experiments.assign.data$train_dataset[[experiment]]}-{experiments.assign.data$test_dataset[[experiment]]}"))
   }
+  summarize_experiments(experiment)
 }
 
 
@@ -531,6 +536,15 @@ experiments.inter_diseases <- function(experiment){
     plot.plot(experiment,results,raw_results)
     print(str_glue("finished inter-diseases dataset pair {experiments.assign.data$train_dataset[[experiment]]}-{experiments.assign.data$test_dataset[[experiment]]}"))
   }
+  summarize_experiments(experiment)
+}
+
+
+
+###########
+experiments.rare_types <- function(experiment){
+  exp_config <- experiments.parameters[[experiment]]
+  
 }
 
 
