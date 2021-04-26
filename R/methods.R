@@ -451,10 +451,36 @@ cluster.tscan <- function(data,exp_config) {
     procdata <- preprocess(as.matrix(cnts),minexpr_value = minexpr_value, minexpr_percent =minexpr_percent, cvcutoff=cvcutoff)
   }
   if(!purrr::is_null(m_config[['k']]) )
-    lpsmclust <- exprmclust(procdata, clusternum=m_config[['k']])
+    ret <- tryCatch(exprmclust(procdata, clusternum=m_config[['k']]), error=function(c) {
+                          msg <- conditionMessage(c)
+                          print(str_glue("error occured {msg}"))
+                          error(logger, str_glue("error occured in tscan {msg}"))
+                          structure(msg, class = "try-error")
+                          })
   else
-    lpsmclust <- exprmclust(procdata)
-  as.integer(unname(lpsmclust$clusterid))
+    ret <- tryCatch(exprmclust(procdata), error=function(c) {
+                          msg <- conditionMessage(c)
+                          print(str_glue("error occured {msg}"))
+                          error(logger, str_glue("error occured in tscan {msg}"))
+                          structure(msg, class = "try-error")
+                          })
+  i = 0
+  K = 10
+  while(inherits(ret,"try-error")){ ###most try 10 iterations
+    if(i > 10 && K<=0) return(NULL)
+    i = i+1
+    K = K -2
+    print(str_glue("in tscan:{ret}"))
+    print(str_glue("new k: {K}"))
+    ret <- tryCatch(exprmclust(procdata, clusternum=K), error=function(c) {
+      msg <- conditionMessage(c)
+      print(str_glue("error occured {msg}"))
+      error(logger, str_glue("error occured in tscan {msg}"))
+      structure(msg, class = "try-error")
+    })
+  }
+  
+  as.integer(unname(ret$clusterid))
 }
 
 ### SC3
