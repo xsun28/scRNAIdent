@@ -18,6 +18,7 @@ constructor.data_constructor <- function(data,config,experiment,if_train=TRUE,sa
     inter_species = constructor.inter_species(data,config,if_train,sample_seed),
     random_noise = constructor.random_noise(data,config,if_train,sample_seed),
     inter_protocol = constructor.inter_protocol(data,config,if_train,sample_seed),
+    imbalance_impacts = constructor.imbalance_impacts(data,config,if_train,sample_seed),
     stop("Can't constructor dataset for unkown experiments")
   )
 }
@@ -46,6 +47,59 @@ constructor.simple_accuracy <- function(data,config, if_train,sample_seed=NULL){
 
 constructor.cell_number <- function(data,config, if_train,sample_seed=NULL){
   constructor.base(data,config,if_train,sample_seed)
+}
+
+
+constructor.imbalance_impacts <- function(data,config,if_train,sample_seed=NULL){
+  require(tidyverse)
+  type_pctg_selector <- function(data, types, type_pctg, target_sample_num){
+    data <- data[,colData(data)$label %in%max_types]
+    total_sample <- length(colData(data)$label)
+    if(target_sample_num > total_sample) target_sample_num <- total_sample
+    params <- tibble(type=types,pctg=type_pctg)
+    col_data <- colData(data)
+    sampled <- purrr::pmap(params,function(type,pctg){
+                                                      type_data <- rownames(col_data[(col_data$label==type),])
+                                                      sample_num <- as.integer(pctg*target_sample_num)
+                                                      sample(type_data,sample_num)
+                                                     })
+    data[,unlist(sampled)]
+  }
+  type_pctg <- config$type_pctg
+  type_num <- length(type_pctg)
+  if(if_train){
+    if(config$fixed_train){
+      print("in imbalance impacts, sample fixed train dataset")
+      data <- constructor.base(data,config,if_train,sample_seed)
+    }else{
+      print("in imbalance impacts, sample unfixed train dataset")
+      data <- utils.filter(data)
+      total_types <- length(unique(colData(data)$label))
+      if(type_num > total_types) {
+        type_num <- total_types
+        type_pctg <- type_pctg[1:type_num]
+      }
+      max_types <- (dplyr::group_by(as.data.frame(colData(data)),label) %>% dplyr::summarize(type_number=n()) %>% dplyr::arrange(desc(type_number)))[['label']][1:type_num]
+      
+      data <- type_pctg_selector(data, max_types, type_pctg, config$target_train_num)
+    }
+  }else{
+    if(config$fixed_test){
+      print("in imbalance impacts, sample fixed test dataset")
+      data <- constructor.base(data,config,if_train,sample_seed)
+    }else{
+      print("in imbalance impacts, sample unfixed test dataset")
+      data <- utils.filter(data,filter_gene=FALSE)
+      total_types <- length(unique(colData(data)$label))
+      if(type_num > total_types) {
+        type_num <- total_types
+        type_pctg <- type_pctg[1:type_num]
+      }
+      max_types <- (dplyr::group_by(as.data.frame(colData(data)),label) %>% dplyr::summarize(type_number=n()) %>% dplyr::arrange(desc(type_number)))[['label']][1:type_num]
+      data <- type_pctg_selector(data, max_types, type_pctg, config$target_train_num)
+    }
+  }
+  data[!duplicated(rownames(data)),!duplicated(colnames(data))]
 }
 
 constructor.sequencing_depth <- function(data,config,if_train,sample_seed=NULL){

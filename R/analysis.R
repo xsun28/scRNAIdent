@@ -23,6 +23,31 @@ analysis.run <- function(results,methods,metrics){
   }
   analysis_results
 }
+###Accuracy with macro or micro options
+analysis.assign.accuracy <- function(true,pred,macro=T){
+  unique_label <- unique(true)
+  accuracies <- bind_rows(purrr::map(unique_label,~{
+                          TP <- sum(pred==.)
+                          n <- sum(true==.)
+                          return(list(accuracy=TP/n,n=n))
+                        })
+                        )
+  if(macro){
+    return(mean(accuracies$accuracy))
+  }
+  else{
+    return(sum(accuracies$accuracy*accuracies$n)/length(true))
+  }
+}
+
+
+#######f-beta score
+analysis.cluster.fbeta <- function(true,pred,beta=1,true_label,cluster_num){
+  cluster_labels <- true[pred==cluster_num]
+  precision <- sum(cluster_labels==true_label)/length(cluster_labels)  ##precision of the cluster for the true label type
+  recall <- sum(cluster_labels==true_label)/sum(true==true_label)
+  return(1/(1/precision+beta/recall))
+}
 
 ###Adjusted rand index
 analysis.cluster.ARI <- function(true,pred){

@@ -11,71 +11,51 @@ inter_dataset_properties_list <- c(
 intra_dataset_properties_list <- c("dataset","complexity","entropy","seq_depth_med","seq_depth_IQR",
                                    "cell_types","cell_type_max_pctg","sparsity","sample_num","gene_num")                                             
                                    
-summarize_experiments <- function(experiment){
+summarize_experiments <- function(experiment,exp_config){
   require(reshape2)
   switch(experiment,
-         simple_accuracy = summary.simple_accuracy(),
-         cell_number = summary.cell_number(),
-         sequencing_depth = summary.sequencing_depth(),
-         celltype_structure = summary.celltype_structure(),
-         batch_effects = summary.batch_effects(),
-         inter_diseases = summary.inter_diseases(),
-         celltype_complexity = summary.celltype_complexity(),
-         inter_species = summary.inter_species(),
-         random_noise = summary.random_noise(),
-         inter_protocol = summary.inter_protocol(),
+         simple_accuracy = summary.simple_accuracy(exp_config),
+         cell_number = summary.cell_number(exp_config),
+         sequencing_depth = summary.sequencing_depth(exp_config),
+         celltype_structure = summary.celltype_structure(exp_config),
+         batch_effects = summary.batch_effects(exp_config),
+         inter_diseases = summary.inter_diseases(exp_config),
+         celltype_complexity = summary.celltype_complexity(exp_config),
+         inter_species = summary.inter_species(exp_config),
+         random_noise = summary.random_noise(exp_config),
+         inter_protocol = summary.inter_protocol(exp_config),
          stop("Unkown experiments")
   )
   
 }
 
 
-summary.cell_number <- function(){
+summary.cell_number <- function(exp_config){
   experiment <- "cell_number"
-  exp_config <- experiments.parameters[[experiment]]
-  cell_numbers <- exp_config$sample_num
-  cell_pctgs <- exp_config$sample_pctg
-  sampling_by_pctg <- purrr::is_null(cell_numbers)||length(cell_numbers)==0
-  sample_id_var <- if(sampling_by_pctg) "sample_pctg" else "sample_num"
+  sample_id_var <- "sample_num"
   # exp_config <- experiments.parameters[[experiment]]
   exp_results <- summary.collect_experiment_results(experiment)
   # exp_dataset_props <-summary.read_exp_dataset_properties(experiment, exp_config)
   metric_results <- melt(exp_results,id.vars = c("train_dataset","test_dataset","assigned","methods",sample_id_var),measure.vars=c("ARI")) 
-  if(sampling_by_pctg){
-    metric_results <- dcast(metric_results, train_dataset+test_dataset+assigned+sample_pctg ~ methods)
-    dataset_prop <- bind_rows(group_by(exp_results,train_dataset,test_dataset,sample_pctg,.keep=T) %>% group_map(~{.[1,append(inter_dataset_properties_list,"sample_pctg")]},.keep=T))
-    other_results <- dplyr::filter(exp_results,is.na(assigned),supervised==TRUE) %>% 
-      melt(id.vars = c("train_dataset","test_dataset","methods","sample_pctg"),measure.vars=c("unlabeled_pctg","pred_type_max_pctg"),variable.name="metrics") %>%
-      dcast(train_dataset+test_dataset+metrics+sample_pctg ~ methods)
-    
-    unsup_other_results <- dplyr::filter(exp_results,is.na(assigned),supervised==F) %>% 
-      melt(id.vars = c("train_dataset","test_dataset","methods","sample_pctg"),measure.vars=c("cluster_num","pred_type_max_pctg"),variable.name="metrics") %>%
-      dcast(train_dataset+test_dataset+metrics+sample_pctg ~ methods)
-    
-    combined_prop_metric_results <- left_join(metric_results,dataset_prop,by=c("train_dataset","test_dataset","sample_pctg"))
-    combined_prop_other_results <- left_join(other_results,dataset_prop,by=c("train_dataset","test_dataset","sample_pctg"))
-    combined_prop_unsup_other_results <- left_join(unsup_other_results,dataset_prop,by=c("train_dataset","test_dataset","sample_pctg"))
-  }else{
-    metric_results <- dcast(metric_results, train_dataset+test_dataset+assigned+sample_num ~ methods)
-    dataset_prop <- bind_rows(group_by(exp_results,train_dataset,test_dataset,sample_num,.keep=T) %>% group_map(~{.[1,append(inter_dataset_properties_list,"sample_num")]},.keep=T))
-    other_results <- dplyr::filter(exp_results,is.na(assigned),supervised==TRUE) %>% 
-      melt(id.vars = c("train_dataset","test_dataset","methods","sample_num"),measure.vars=c("unlabeled_pctg","pred_type_max_pctg"),variable.name="metrics") %>%
-      dcast(train_dataset+test_dataset+metrics+sample_num ~ methods)
-    unsup_other_results <- dplyr::filter(exp_results,is.na(assigned),supervised==F) %>% 
-      melt(id.vars = c("train_dataset","test_dataset","methods","sample_num"),measure.vars=c("cluster_num","pred_type_max_pctg"),variable.name="metrics") %>%
-      dcast(train_dataset+test_dataset+metrics+sample_num ~ methods)
-    
-    combined_prop_metric_results <- left_join(metric_results,dataset_prop,by=c("train_dataset","test_dataset","sample_num"))
-    combined_prop_other_results <- left_join(other_results,dataset_prop,by=c("train_dataset","test_dataset","sample_num"))
-    combined_prop_unsup_other_results <- left_join(unsup_other_results,dataset_prop,by=c("train_dataset","test_dataset","sample_num"))
-    
-  }
+
+  metric_results <- dcast(metric_results, train_dataset+test_dataset+assigned+sample_num ~ methods)
+  dataset_prop <- bind_rows(group_by(exp_results,train_dataset,test_dataset,sample_num,.keep=T) %>% group_map(~{.[1,append(inter_dataset_properties_list,"sample_num")]},.keep=T))
+  other_results <- dplyr::filter(exp_results,is.na(assigned),supervised==TRUE) %>% 
+    melt(id.vars = c("train_dataset","test_dataset","methods","sample_num"),measure.vars=c("unlabeled_pctg","pred_type_max_pctg"),variable.name="metrics") %>%
+    dcast(train_dataset+test_dataset+metrics+sample_num ~ methods)
   
+  unsup_other_results <- dplyr::filter(exp_results,is.na(assigned),supervised==F) %>% 
+    melt(id.vars = c("train_dataset","test_dataset","methods","sample_num"),measure.vars=c("cluster_num","pred_type_max_pctg"),variable.name="metrics") %>%
+    dcast(train_dataset+test_dataset+metrics+sample_num ~ methods)
+  
+  combined_prop_metric_results <- left_join(metric_results,dataset_prop,by=c("train_dataset","test_dataset","sample_num"))
+  combined_prop_other_results <- left_join(other_results,dataset_prop,by=c("train_dataset","test_dataset","sample_num"))
+  combined_prop_unsup_other_results <- left_join(unsup_other_results,dataset_prop,by=c("train_dataset","test_dataset","sample_num"))
   summary.output_excel(experiment,combined_prop_metric_results,combined_prop_other_results,combined_prop_unsup_other_results)
   
 }
 
-summary.sequencing_depth <- function(){
+summary.sequencing_depth <- function(exp_config){
   experiment <- "sequencing_depth"
   # exp_config <- experiments.parameters[[experiment]]
   exp_results <- summary.collect_experiment_results(experiment)
@@ -100,7 +80,7 @@ summary.sequencing_depth <- function(){
 }
 
 
-summary.simple_accuracy <- function(){
+summary.simple_accuracy <- function(exp_config){
   
   experiment <- "simple_accuracy"
   exp_results <- summary.collect_experiment_results(experiment)
@@ -124,7 +104,7 @@ summary.simple_accuracy <- function(){
 
 
 
-summary.inter_diseases <- function(){
+summary.inter_diseases <- function(exp_config){
   
   experiment <- "inter_diseases"
   # exp_config <- experiments.parameters[[experiment]]
@@ -148,7 +128,7 @@ summary.inter_diseases <- function(){
   summary.output_excel(experiment,combined_prop_metric_results,combined_prop_other_results,combined_prop_unsup_other_results)
 }
 
-summary.batch_effects <- function(){
+summary.batch_effects <- function(exp_config){
   
   experiment <- "batch_effects"
   # exp_config <- experiments.parameters[[experiment]]

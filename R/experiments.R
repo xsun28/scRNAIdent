@@ -37,7 +37,7 @@ runExperiments <- function(experiment=c("simple_accuracy","cell_number","celltyp
          inter_species = experiments.inter_species(experiment),
          random_noise = experiments.random_noise(experiment),
          inter_protocol = experiments.inter_protocol(experiment),
-         rare_types = experiments.rare_types(experiment),
+         imbalance_impacts = experiments.imbalance_impacts(experiment),
          stop("Unkown experiments")
          )
 }
@@ -242,11 +242,20 @@ experiments.base <- function(experiment, exp_config){
   #####analyze results
   report_results <- experiments.analysis(experiment, assign_results,cluster_results,exp_config)
   #####combine results with dataset properties
-  results_prop <- experiments.base.attach_dataset_props(experiment,exp_config, train_dataset, test_dataset, total_dataset, report_results, combined_results, have_test)
+  if(experiment == "imbalance_impacts"){
+    results_prop <- experiments.base.attach_dataset_props(experiment,exp_config, train_dataset, test_dataset, total_dataset, report_results[names(report_results)!="single_method_result"], combined_results, have_test)
+  }else{
+    results_prop <- experiments.base.attach_dataset_props(experiment,exp_config, train_dataset, test_dataset, total_dataset, report_results, combined_results, have_test)
+  }
   report_results_prop <- results_prop$report_results
   combined_results_pro <- results_prop$combined_results
   debug(logger, str_glue("results methods: {rownames(report_results$all_assign_results)}"))
-  list(pred_results=combined_results_pro,analy_results=report_results_prop)
+  if(experiment == "imbalance_impacts"){
+    return(list(pred_results=combined_results_pro,analy_results=report_results_prop,single_method_result=report_results$single_method_result))
+  }
+  else{
+    return(list(pred_results=combined_results_pro,analy_results=report_results_prop))
+  }
 }
 
 ###simple accuracy experiment
@@ -317,7 +326,7 @@ experiments.cell_number <- function(experiment){
     print(str_glue("{experiment} train_dataset={train_dataset}, test_dataset={test_dataset}"))
     print(final_results)
   }
-  summarize_experiments(experiment)
+  summarize_experiments(experiment,exp_config)
 }
 
 ###cell type number experiment
@@ -540,13 +549,57 @@ experiments.inter_diseases <- function(experiment){
 }
 
 
-
 ###########
-experiments.rare_types <- function(experiment){
+experiments.imbalance_impacts <- function(experiment){
   exp_config <- experiments.parameters[[experiment]]
-  
+  experiments.config.check_config(exp_config)
+  used_dataset <- if(exp_config$use_intra_dataset) exp_config$intra_dataset else exp_config$inter_dataset
+  for(j in seq_along(used_dataset)){
+    if(exp_config$use_intra_dataset){
+      train_dataset <- used_dataset[[j]]
+      test_dataset <- used_dataset[[j]]
+    }else{
+      train_dataset <- used_dataset[[j]]$train_dataset
+      test_dataset <- used_dataset[[j]]$test_dataset
+    }
+    experiments.config.update.train_test_datasets(experiment, train_dataset, test_dataset)
+    type_pctgs <- exp_config$type_pctgs
+    test_num <- length(type_pctgs)
+    combined_cluster_results <- vector('list',test_num)
+    combined_assign_results <- vector('list',test_num)
+    combined_raw_results <- vector('list',test_num)
+    single_method_results <- vector('list',test_num)
+    for(i in 1:test_num){
+      exp_config$current_increment_index <- i-1
+      exp_config <- experiments.config.update(experiment, train_dataset, test_dataset,exp_config)
+      entropy <- round(utils.calc_entropy(type_pctgs[[i]]),2)
+      results_base <- experiments.base(experiment,exp_config)
+      results <- results_base$analy_results %>%
+        purrr::map(~{
+          .$imbl_entropy <- entropy
+          return(.)})
+      raw_results <- results_base$pred_results
+      raw_results$imbl_entropy <- entropy
+      single_method_result <- results_base$single_method_result
+      single_method_result$imbl_entropy <- entropy
+      combined_assign_results[[i]] <- bind_rows(results[grepl(".*_assign_.*",names(results))])
+      combined_cluster_results[[i]] <- bind_rows(results[grepl(".*cluster.*",names(results))])
+      combined_raw_results[[i]] <- raw_results
+      single_method_results[[i]] <- single_method_result
+    }
+    combined_assign_results <- bind_rows(combined_assign_results)
+    combined_cluster_results <- bind_rows(combined_cluster_results)
+    combined_raw_results <- bind_rows(combined_raw_results)
+    combined_single_method_results <- bind_rows(single_method_results)
+    final_results <- bind_rows(combined_assign_results,combined_cluster_results)
+    output.sink(experiment,combined_raw_results,final_results,exp_config,single_method_results=combined_single_method_results)
+    plot.plot(experiment,final_results,combined_raw_results, exp_config,single_method_results=combined_single_method_results)
+    utils.clean_marker_files()
+    print(str_glue("{experiment} train_dataset={train_dataset}, test_dataset={test_dataset}"))
+    print(final_results)
+  }
+  summarize_experiments(experiment)
 }
-
 
 ############
 experiments.inter_species <- function(experiment){

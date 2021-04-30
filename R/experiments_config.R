@@ -1,4 +1,4 @@
-experiment <- "cell_number"
+experiment <- "imbalance_impacts"
 
 # experiments.data <- list(simple_accuracy="PBMC_AllCells_withLabels.RDS", 
 #                                  cell_number="ADASD_autism.RDS",
@@ -44,7 +44,8 @@ experiments.methods <- list(
   celltype_complexity = experiments.methods.base_config,
   inter_species = experiments.methods.base_config,
   random_noise = experiments.methods.base_config, 
-  inter_protocol = experiments.methods.base_config
+  inter_protocol = experiments.methods.base_config,
+  imbalance_impacts = experiments.methods.base_config
 )
 
 
@@ -274,20 +275,18 @@ experiments.parameters <- list(
                                                           dataset.interdatasets$PBMC3,dataset.interdatasets$PBMC5,
                                                           dataset.interdatasets$PBMC6,dataset.interdatasets$PBMC8,
                                                           dataset.interdatasets$pancreas1,dataset.interdatasets$pancreas2,
-                                                          dataset.interdatasets$pancreas5,dataset.interdatasets$ADASD2,
-                                                          dataset.interdatasets$midbrain2
+                                                          dataset.interdatasets$pancreas5,dataset.interdatasets$ADASD2
                                                           )),
 
   
   sequencing_depth=list(cv=F,cv_fold=5,metrics=c('ARI','AMI','FMI'),fixed_train=T,fixed_test=F,
-                        marker_gene_file=NULL,batch_free=F,target_train_num=1200, target_test_num=800,test_num=4,
+                        marker_gene_file=NULL,batch_free=F,target_train_num=1200, target_test_num=800,test_num=5,
                         use_intra_dataset=F,intra_dataset=list(),
                         use_inter_dataset=T,inter_dataset=list(dataset.interdatasets$PBMC1,dataset.interdatasets$PBMC2,
                                                                dataset.interdatasets$PBMC3,dataset.interdatasets$PBMC5,
                                                                dataset.interdatasets$PBMC6,dataset.interdatasets$PBMC8,
                                                                dataset.interdatasets$pancreas1,dataset.interdatasets$pancreas2,
-                                                               dataset.interdatasets$pancreas5,dataset.interdatasets$ADASD2,
-                                                               dataset.interdatasets$midbrain2)),
+                                                               dataset.interdatasets$pancreas5,dataset.interdatasets$ADASD2)),
   
   # celltype_structure=list(train_sample_pctg=experiments.parameters.celltype_structure[[experiments.assign.data$train_dataset$celltype_structure]]$train_sample_pctg,
   #                         train_sample_num=experiments.parameters.celltype_structure[[experiments.assign.data$train_dataset$celltype_structure]]$train_sample_num,
@@ -302,6 +301,19 @@ experiments.parameters <- list(
                                                             dataset.interdatasets$pancreas1,dataset.interdatasets$pancreas2,
                                                             dataset.interdatasets$pancreas3,dataset.interdatasets$pancreas4,
                                                             dataset.interdatasets$pancreas5,dataset.interdatasets$pancreas6)),
+  
+  imbalance_impacts = list(batch_free=F,target_train_num=1200, target_test_num=1000,fixed_train=T,fixed_test=F,
+                           type_pctgs = list(list(0.2,0.2,0.2,0.2,0.2),
+                                             list(0.4,0.3,0.15,0.1,0.05),
+                                             list(0.6,0.2,0.1,0.05,0.05),
+                                             list(0.8,0.1,0.05,0.03,0.02),
+                                             list(0.9,0.04,0.03,0.02,0.01)),
+                            cv=FALSE,metrics=c('ARI','AMI','FMI'),marker_gene_file=NULL,use_intra_dataset=F,intra_dataset=list(),
+                            use_inter_dataset=T,inter_dataset=list(dataset.interdatasets$PBMC1,dataset.interdatasets$PBMC2,
+                                                                   dataset.interdatasets$PBMC3,dataset.interdatasets$PBMC5,
+                                                                   dataset.interdatasets$PBMC6,dataset.interdatasets$PBMC8,
+                                                                   dataset.interdatasets$pancreas1,dataset.interdatasets$pancreas2,
+                                                                   dataset.interdatasets$pancreas5,dataset.interdatasets$ADASD2)),
   
   inter_diseases = list(batch_free=F,target_train_num=1200, target_test_num=800,
                         cv=FALSE,metrics=c('ARI','AMI','FMI'),marker_gene_file=NULL,use_intra_dataset=F,intra_dataset=list(),
@@ -330,6 +342,7 @@ experiments.config.update <- function(experiment, train_dataset, test_dataset=NU
          inter_species = experiments.config.update.inter_species(train_dataset, test_dataset, exp_config),
          random_noise = experiments.config.update.random_noise(train_dataset, test_dataset, exp_config),
          inter_protocol = experiments.config.update.inter_protocol(train_dataset, test_dataset, exp_config),
+         imbalance_impacts = experiments.config.update.imbalance_impacts(train_dataset, test_dataset, exp_config),
          stop("Unkown experiments")
          )
 }
@@ -339,9 +352,9 @@ experiments.config.update.simple_accuracy <-function(train_dataset, test_dataset
   # train_test_sample_pctgs <- utils.calculate_sampling_pctg(train_dataset, test_dataset,exp_config)
   # train_sample_pctg <- train_test_pctgs[[1]]
   # test_sample_pctg <- train_test_pctgs[[2]]
-  exp_config$train_sample_pctg <- experiments.parameters.simple_accuracy[[train_dataset]]$train_sample_pctg
-  exp_config$test_sample_pctg <- experiments.parameters.simple_accuracy[[test_dataset]]$test_sample_pctg
-  exp_config
+  # exp_config$train_sample_pctg <- experiments.parameters.simple_accuracy[[train_dataset]]$train_sample_pctg
+  # exp_config$test_sample_pctg <- experiments.parameters.simple_accuracy[[test_dataset]]$test_sample_pctg
+  # exp_config
 }
 
 experiments.config.update.cell_number <-function(train_dataset, test_dataset=NULL, exp_config){
@@ -408,8 +421,8 @@ experiments.config.update.sequencing_depth <-function(train_dataset, test_datase
     increment <- calculate_increment(train_dataset_name, exp_config$train_sample_increment, exp_config, if_train=T)
     print("train dataset={train_dataset_name}")
   }
-  exp_config$high_quantile <- exp_config$current_increment_index*(1/(exp_config$test_num+1))+increment
-  exp_config$low_quantile <- exp_config$current_increment_index*(1/(exp_config$test_num+1))
+  exp_config$high_quantile <- exp_config$current_increment_index*(1/(exp_config$test_num))+increment
+  exp_config$low_quantile <- exp_config$current_increment_index*(1/(exp_config$test_num))
   print(str_glue("high quantile is {exp_config$high_quantile}"))
   print(str_glue("low quantile is {exp_config$low_quantile}"))
   exp_config
@@ -417,17 +430,23 @@ experiments.config.update.sequencing_depth <-function(train_dataset, test_datase
 
 
 experiments.config.update.batch_effects <- function(train_dataset, test_dataset=NULL,exp_config){
-  exp_config$train_sample_pctg <- experiments.parameters.batch_effects[[train_dataset]]$train_sample_pctg
-  exp_config$test_sample_pctg <- experiments.parameters.batch_effects[[test_dataset]]$test_sample_pctg
-  exp_config
+  # exp_config$train_sample_pctg <- experiments.parameters.batch_effects[[train_dataset]]$train_sample_pctg
+  # exp_config$test_sample_pctg <- experiments.parameters.batch_effects[[test_dataset]]$test_sample_pctg
+  # exp_config
 }
 
 
 experiments.config.update.inter_diseases <- function(train_dataset, test_dataset=NULL, exp_config){
-  exp_config$train_sample_pctg <- experiments.parameters.inter_diseases[[train_dataset]]$train_sample_pctg
-  exp_config$test_sample_pctg <- experiments.parameters.inter_diseases[[test_dataset]]$test_sample_pctg
+  # exp_config$train_sample_pctg <- experiments.parameters.inter_diseases[[train_dataset]]$train_sample_pctg
+  # exp_config$test_sample_pctg <- experiments.parameters.inter_diseases[[test_dataset]]$test_sample_pctg
+  # exp_config
+}
+
+experiments.config.update.imbalance_impacts <- function(train_dataset, test_dataset=NULL, exp_config){
+  exp_config$type_pctg <- exp_config$type_pctgs[[exp_config$current_increment_index+1]]
   exp_config
 }
+
 
 experiments.config.update.train_test_datasets <- function(experiment, train_dataset, test_dataset){
   experiments.assign.data$train_dataset[[experiment]] <<- train_dataset

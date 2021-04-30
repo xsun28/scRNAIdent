@@ -487,3 +487,9 @@ utils.calculate_sampling_pctg <- function(dataset, target_num, exp_config, if_tr
   }
   target_sampling_pctg
 }
+
+
+utils.calc_entropy <- function(probs){
+  entropy <- sum(map_dbl(probs,~{-log(.)*.}))
+  entropy
+}

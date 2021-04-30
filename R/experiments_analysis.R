@@ -12,6 +12,7 @@ experiments.analysis <- function(experiment, assign_results,cluster_results,exp_
          inter_species = experiments.analysis.inter_species(assign_results,cluster_results,exp_config),
          random_noise = experiments.analysis.random_noise(assign_results,cluster_results,exp_config),
          inter_protocol = experiments.analysis.inter_protocol(assign_results,cluster_results,exp_config),
+         imbalance_impacts = experiments.analysis.imbalance_impacts(assign_results,cluster_results,exp_config),
          stop("Wrong experiment")
   )
 }
@@ -102,4 +103,46 @@ experiments.analysis.batch_effects <- function(assign_results,cluster_results,ex
 
 experiments.analysis.inter_diseases <- function(assign_results,cluster_results,exp_config){
   return(experiments.analysis.base(assign_results,cluster_results,exp_config))
+}
+
+experiments.analysis.imbalance_impacts <- function(assign_results,cluster_results,exp_config){
+  require(tidyverse)
+
+  
+  
+  base_results <- experiments.analysis.base(assign_results,cluster_results,exp_config)
+  combined_results <- bind_cols(assign_results,dplyr::select(cluster_results,-label))
+  type_pctg <- dplyr::group_by(combined_results, label) %>% dplyr::summarize(type_pctg=round(n()/length(combined_results$label),2))
+  cell_types <- type_pctg$label
+  methods <- colnames(combined_results)[colnames(combined_results)!="label"]
+  supervised_methods <- colnames(assign_results)[colnames(assign_results)!="label"]
+  unsupervised_methods <- colnames(cluster_results)[colnames(cluster_results)!="label"]
+  single_method_result <- bind_rows(purrr::map(methods, function(method){
+                                                                      if(method %in% unsupervised_methods){
+                                                                        type_accuracy <- purrr::map_dbl(cell_types, function(type){ method_pred_true <- dplyr::select(combined_results,method,label) 
+                                                                                                                                                type_pred_true <- dplyr::filter(method_pred_true,label==type)
+                                                                                                                                                unique_clusters <- unique(type_pred_true[[method]])                                                
+                                                                                                                                                cluster_f_betas <- purrr::map(unique_clusters,function(cluster_num){ 
+                                                                                                                                                analysis.cluster.fbeta(method_pred_true$label,method_pred_true[[method]],0.5,type,cluster_num)
+                                                                                                                                              })
+                                                                                                                                              max_fscore_cluster <- unique_clusters[[which.max(cluster_f_betas)]]
+                                                                                                                                              sum(type_pred_true[[method]]==max_fscore_cluster)/nrow(type_pred_true)
+                                                                                                                                                  })
+                                                                        type_unassigned_pctg <- NA
+                                                                        supervised <- F
+                                                                      }else if(method %in% supervised_methods){
+                                                                        type_unassigned_pctg <- purrr::map_dbl(cell_types, function(type){ type_pred_true <- dplyr::select(combined_results,method,label) %>% dplyr::filter(label==type)
+                                                                                                    analysis.assign.unlabeled_pctg(type_pred_true$label,type_pred_true[[method]])
+                                                                                                    })
+                                                                        type_accuracy <- purrr::map_dbl(cell_types, function(type){ type_pred_true <- dplyr::select(combined_results,method,label) %>% dplyr::filter(label==type)
+                                                                                                    analysis.assign.accuracy(type_pred_true$label,type_pred_true[[method]])
+                                                                                                    })
+                                                                        supervised <- T
+                                                                      }else{
+                                                                        stop(str_glue("unkown method={method}"))
+                                                                      }
+                                                                      tibble(method=method,type=type_pctg$label,type_pctg=type_pctg$type_pctg,unlabeled_pctg=type_unassigned_pctg, type_accuracy=type_accuracy, supervised=supervised)
+                                                                          }))
+  base_results$single_method_result <- single_method_result
+  base_results
 }
