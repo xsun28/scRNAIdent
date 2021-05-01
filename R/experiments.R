@@ -601,6 +601,55 @@ experiments.imbalance_impacts <- function(experiment){
   summarize_experiments(experiment)
 }
 
+
+###cell type number experiment
+experiments.celltype_number <- function(xperiment){
+  exp_config <- experiments.parameters[[experiment]]
+  experiments.config.check_config(exp_config)
+  used_dataset <- if(exp_config$use_intra_dataset) exp_config$intra_dataset else exp_config$inter_dataset
+  for(j in seq_along(used_dataset)){
+    exp_config <- experiments.parameters[[experiment]]
+    if(exp_config$use_intra_dataset){
+      train_dataset <- used_dataset[[j]]
+      test_dataset <- used_dataset[[j]]
+    }else{
+      train_dataset <- used_dataset[[j]]$train_dataset
+      test_dataset <- used_dataset[[j]]$test_dataset
+    }
+    experiments.config.update.train_test_datasets(experiment, train_dataset, test_dataset)
+    test_num <- exp_config$test_num
+    combined_cluster_results <- vector('list',test_num)
+    combined_assign_results <- vector('list',test_num)
+    combined_raw_results <- vector('list',test_num)
+    for(i in 1:test_num){
+      exp_config$current_increment_index <- i
+      exp_config <- experiments.config.update(experiment, train_dataset, test_dataset,exp_config)
+      val <- exp_config$type_num
+      print(str_glue('type sample num={val}'))
+      base_results <- experiments.base(experiment,exp_config)
+      results <- base_results$analy_results%>% 
+        purrr::map(~{
+          .$type_num <- val
+          return(.)})
+      raw_results <- base_results$pred_results
+      raw_results$type_num <- val
+      combined_assign_results[[i]] <- bind_rows(results[grepl(".*_assign_.*",names(results))])
+      combined_cluster_results[[i]] <- bind_rows(results[grepl(".*cluster.*",names(results))])
+      combined_raw_results[[i]] <- raw_results
+    }
+    combined_assign_results <- bind_rows(combined_assign_results)
+    combined_cluster_results <- bind_rows(combined_cluster_results)
+    combined_raw_results <- bind_rows(combined_raw_results)
+    final_results <- bind_rows(combined_assign_results,combined_cluster_results)
+    output.sink(experiment,combined_raw_results,final_results,exp_config)
+    plot.plot(experiment,final_results,combined_raw_results,exp_config)
+    utils.clean_marker_files()
+    print(str_glue("{experiment} train_dataset={train_dataset}, test_dataset={test_dataset}"))
+    print(final_results)
+  }
+  summarize_experiments(experiment)
+}
+
 ############
 experiments.inter_species <- function(experiment){
   

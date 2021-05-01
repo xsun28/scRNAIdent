@@ -9,6 +9,7 @@ output.sink <- function(experiment,raw_results,results,exp_config=NULL,...){
   switch(experiment,
          simple_accuracy = output.simple_accuracy(raw_results,results,output_dir),
          cell_number = output.cell_number(raw_results,results,output_dir),
+         celltype_number = output.celltype_number(raw_results,results,output_dir),
          sequencing_depth = output.sequencing_depth(raw_results,results,output_dir),
          celltype_structure = output.celltype_structure(raw_results,results,output_dir),
          batch_effects = output.batch_effects(raw_results,results,output_dir),
@@ -30,6 +31,11 @@ output.simple_accuracy <- function(raw_results,results,output_dir){
 output.cell_number <- function(raw_results,results,output_dir){
   print(str_glue('start writing {experiment} results to {output_dir}'))
   output.write_results(raw_results=raw_results,results=results,output_dir=output_dir)
+}
+
+output.celltype_number <- function(raw_results,results,output_dir){
+  print(str_glue('start writing {experiment} results to {output_dir}'))
+  output.write_results(raw_results,results,output_dir)
 }
 
 output.sequencing_depth <- function(raw_results,results, output_dir){

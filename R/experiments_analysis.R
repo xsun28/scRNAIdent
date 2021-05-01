@@ -93,6 +93,10 @@ experiments.analysis.cell_number <- function(assign_results,cluster_results,exp_
   return(experiments.analysis.base(assign_results,cluster_results,exp_config))
 }
 
+experiments.analysis.celltype_number <- function(assign_results,cluster_results,exp_config){
+  return(experiments.analysis.base(assign_results,cluster_results,exp_config))
+}
+
 experiments.analysis.sequencing_depth <- function(assign_results,cluster_results,exp_config){
   return(experiments.analysis.base(assign_results,cluster_results,exp_config))
 }

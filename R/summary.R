@@ -16,6 +16,8 @@ summarize_experiments <- function(experiment,exp_config){
   switch(experiment,
          simple_accuracy = summary.simple_accuracy(exp_config),
          cell_number = summary.cell_number(exp_config),
+         celltype_number = summary.celltype_number(exp_config),
+         imbalance_impacts = summary.imbalance_impacts(exp_config),
          sequencing_depth = summary.sequencing_depth(exp_config),
          celltype_structure = summary.celltype_structure(exp_config),
          batch_effects = summary.batch_effects(exp_config),
@@ -152,6 +154,34 @@ summary.batch_effects <- function(exp_config){
   summary.output_excel(experiment,combined_prop_metric_results,combined_prop_other_results,combined_prop_unsup_other_results)
 }
 
+summary.imbalance_impacts <- function(experiment){
+  
+}
+
+summary.celltype_number <- function(){
+  experiment <- "celltype_number"
+  exp_config <- experiments.parameters[[experiment]]
+  type_pctgs <- exp_config$type_pctg
+  exp_results <- summary.collect_experiment_results(experiment)
+  metric_results <- melt(exp_results,id.vars = c("dataset","assigned","methods"),measure.vars=c("ARI"),type_pctgs) 
+  
+  metric_results <- dcast(metric_results, dataset+assigned+type_pctgs ~ methods)
+  dataset_prop <- bind_rows(group_by(exp_results,dataset,dataset,type_pctgs,.keep=T) %>% group_map(~{.[1,append(inter_dataset_properties_list,"type_pctgs")]},.keep=T))
+  other_results <- dplyr::filter(exp_results,is.na(assigned),supervised==TRUE) %>% 
+    melt(id.vars = c("dataset","methods","type_pctgs"),measure.vars=c("unlabeled_pctg","pred_type_max_pctg"),variable.name="metrics") %>%
+    dcast(dataset+metrics+type_pctgs ~ methods)
+  
+  unsup_other_results <- dplyr::filter(exp_results,is.na(assigned),supervised==F) %>% 
+    melt(id.vars = c("dataset","methods","type_pctgs"),measure.vars=c("cluster_num","pred_type_max_pctg"),variable.name="metrics") %>%
+    dcast(dataset+metrics+sample_pctg ~ methods)
+  
+  combined_prop_metric_results <- left_join(metric_results,dataset_prop,by=c("dataset","methods","type_pctgs"))
+  combined_prop_other_results <- left_join(other_results,dataset_prop,by=c("dataset","methods","type_pctgs"))
+  combined_prop_unsup_other_results <- left_join(unsup_other_results,dataset_prop,by=c("dataset","methods","type_pctgs"))
+  
+  summary.output_excel(experiment,combined_prop_metric_results,combined_prop_other_results,combined_prop_unsup_other_results)
+  
+}
 
 
 
