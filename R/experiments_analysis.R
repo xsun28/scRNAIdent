@@ -119,15 +119,17 @@ experiments.analysis.imbalance_impacts <- function(assign_results,cluster_result
   unsupervised_methods <- colnames(cluster_results)[colnames(cluster_results)!="label"]
   single_method_result <- bind_rows(purrr::map(methods, function(method){
                                                                       if(method %in% unsupervised_methods){
-                                                                        type_accuracy <- purrr::map_dbl(cell_types, function(type){ method_pred_true <- dplyr::select(combined_results,method,label) 
+                                                                        type_accuracy_f1 <- bind_rows(purrr::map(cell_types, function(type){ method_pred_true <- dplyr::select(combined_results,method,label) 
                                                                                                                                                 type_pred_true <- dplyr::filter(method_pred_true,label==type)
                                                                                                                                                 unique_clusters <- unique(type_pred_true[[method]])                                                
                                                                                                                                                 cluster_f_betas <- purrr::map(unique_clusters,function(cluster_num){ 
-                                                                                                                                                analysis.cluster.fbeta(method_pred_true$label,method_pred_true[[method]],0.5,type,cluster_num)
+                                                                                                                                                analysis.cluster.fbeta(method_pred_true$label,method_pred_true[[method]],1,type,cluster_num)
                                                                                                                                               })
                                                                                                                                               max_fscore_cluster <- unique_clusters[[which.max(cluster_f_betas)]]
-                                                                                                                                              sum(type_pred_true[[method]]==max_fscore_cluster)/nrow(type_pred_true)
-                                                                                                                                                  })
+                                                                                                                                              list(f1=max(unlist(cluster_f_betas)),acc=sum(type_pred_true[[method]]==max_fscore_cluster)/nrow(type_pred_true))
+                                                                                                                                                  }))
+                                                                        type_accuracy <- type_accuracy_f1$acc
+                                                                        type_f1 <- type_accuracy_f1$f1
                                                                         type_unassigned_pctg <- NA
                                                                         supervised <- F
                                                                       }else if(method %in% supervised_methods){
@@ -137,11 +139,16 @@ experiments.analysis.imbalance_impacts <- function(assign_results,cluster_result
                                                                         type_accuracy <- purrr::map_dbl(cell_types, function(type){ type_pred_true <- dplyr::select(combined_results,method,label) %>% dplyr::filter(label==type)
                                                                                                     analysis.assign.accuracy(type_pred_true$label,type_pred_true[[method]])
                                                                                                     })
+                                                                        type_f1 <- purrr::map_dbl(cell_types, function(type){ method_pred_true <- dplyr::select(combined_results,method,label) 
+                                                                                                                              type_pred_true <- dplyr::filter(method_pred_true,label==type)
+                                                                                                    analysis.cluster.fbeta(method_pred_true$label,method_pred_true[[method]],1,type,type)
+                                                                                                    })
+                                                                          
                                                                         supervised <- T
                                                                       }else{
                                                                         stop(str_glue("unkown method={method}"))
                                                                       }
-                                                                      tibble(method=method,type=type_pctg$label,type_pctg=type_pctg$type_pctg,unlabeled_pctg=type_unassigned_pctg, type_accuracy=type_accuracy, supervised=supervised)
+                                                                      tibble(method=method,type=type_pctg$label,type_pctg=type_pctg$type_pctg,unlabeled_pctg=type_unassigned_pctg, type_accuracy=type_accuracy,type_f1=type_f1, supervised=supervised)
                                                                           }))
   base_results$single_method_result <- single_method_result
   base_results
