@@ -154,55 +154,6 @@ experiments.base.cluster <- function(experiment, exp_config,data){
 }
 
 
-
-####attached train and test dataset properties to experiment results
-experiments.base.attach_dataset_props <- function(experiment,exp_config, train_dataset, test_dataset, total_dataset, report_results, combined_results, have_test){
-  if(have_test){
-    if(experiment %in% c("batch_effects")) batch_effects_quant = analysis.dataset.batch_effects(train_dataset, test_dataset)
-    train_data_props <- analysis.dataset.properties(train_dataset)
-    test_data_props <- analysis.dataset.properties(test_dataset)
-    train_test_corr <- analysis.interdata.correlation(train_dataset,test_dataset)
-    total_data_props <- analysis.dataset.properties(total_dataset) %>% 
-                          purrr::list_modify("dataset"=NULL)
-    for(prop in names(train_data_props)){
-      report_results <- purrr::map(report_results,~{.[[str_glue("train_{prop}")]]=train_data_props[[prop]]
-      return(.)
-      })
-    }
-    for(prop in names(test_data_props)){
-      report_results <- purrr::map(report_results,~{.[[str_glue("test_{prop}")]]=test_data_props[[prop]]
-      return(.)
-      })
-    }
-    for(prop in names(total_data_props)){
-      report_results <- purrr::map(report_results,~{.[[str_glue("total_{prop}")]]=total_data_props[[prop]]
-      return(.)
-      })
-    }
-    
-    report_results <- purrr::map(report_results,~{.$train_test_correlation=train_test_corr
-    return(.)
-    })
-    if(experiment %in% c("batch_effects")){
-      report_results <- purrr::map(report_results,~{.$batch_effects_amount=batch_effects_quant
-      return(.)
-      }) 
-    }
-    combined_results[["train_dataset"]] <- train_data_props[["dataset"]]
-    combined_results[["test_dataset"]] <- test_data_props[["dataset"]]
-    
-  }else{
-    data_props <- analysis.dataset.properties(train_dataset)
-    for(prop in names(data_props)){
-      report_results <- purrr::map(report_results,~{.[[prop]]=data_props[[prop]]
-      return(.)
-      })
-    }
-    combined_results[["dataset"]] <- data_props[["dataset"]] 
-  }
-  list(combined_results=combined_results,report_results=report_results)
-}
-
 ###base function for all experiments except batch effects
 experiments.base <- function(experiment, exp_config){
   methods <- experiments.methods[[experiment]]
@@ -233,29 +184,15 @@ experiments.base <- function(experiment, exp_config){
   cluster_results <- if(experiment %in% c("batch_effects")) experiments.base.cluster(experiment,exp_config,total_dataset) else experiments.base.cluster(experiment,exp_config,test_dataset)
   if(experiment %in% c("batch_effects")) cluster_results <- cluster_results[test_samples,]
   cluster_results <- utils.label_unassigned(cluster_results,F)
-  if("label" %in% colnames(cluster_results))
-    combined_results <- bind_cols(assign_results,dplyr::select(cluster_results,-label))
   if(experiment %in% c("celltype_structure")){
     current_celltype_hierarchy <<- utils.createCellTypeHierarchy(total_dataset,colData(total_dataset)$label)
     current_celltype_weights <<- utils.createCellTypeWeights(total_dataset,colData(total_dataset)$label)
   }
   #####analyze results
-  report_results <- experiments.analysis(experiment, assign_results,cluster_results,exp_config)
-  #####combine results with dataset properties
-  if(experiment == "imbalance_impacts"){
-    results_prop <- experiments.base.attach_dataset_props(experiment,exp_config, train_dataset, test_dataset, total_dataset, report_results[names(report_results)!="single_method_result"], combined_results, have_test)
-  }else{
-    results_prop <- experiments.base.attach_dataset_props(experiment,exp_config, train_dataset, test_dataset, total_dataset, report_results, combined_results, have_test)
-  }
-  report_results_prop <- results_prop$report_results
-  combined_results_pro <- results_prop$combined_results
-  debug(logger, str_glue("results methods: {rownames(report_results$all_assign_results)}"))
-  if(experiment == "imbalance_impacts"){
-    return(list(pred_results=combined_results_pro,analy_results=report_results_prop,single_method_result=report_results$single_method_result))
-  }
-  else{
-    return(list(pred_results=combined_results_pro,analy_results=report_results_prop))
-  }
+  report_results <- experiments.analysis(experiment, assign_results,cluster_results,exp_config, 
+                                         train_dataset=train_dataset, test_dataset=test_dataset, 
+                                         total_dataset=total_dataset, have_test=have_test)
+  return(report_results)
 }
 
 ###simple accuracy experiment

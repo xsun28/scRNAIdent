@@ -53,8 +53,9 @@ summary.cell_number <- function(exp_config){
   combined_prop_metric_results <- left_join(metric_results,dataset_prop,by=c("train_dataset","test_dataset","sample_num"))
   combined_prop_other_results <- left_join(other_results,dataset_prop,by=c("train_dataset","test_dataset","sample_num"))
   combined_prop_unsup_other_results <- left_join(unsup_other_results,dataset_prop,by=c("train_dataset","test_dataset","sample_num"))
-  summary.output_excel(experiment,combined_prop_metric_results,combined_prop_other_results,combined_prop_unsup_other_results)
-  
+  summary.output_excel(experiment,combined_prop_metric_results=combined_prop_metric_results,
+                       combined_prop_unlabeled_pctg_results=combined_prop_other_results,
+                       combined_prop_unsup_other_results=combined_prop_unsup_other_results)
 }
 
 summary.sequencing_depth <- function(exp_config){
@@ -77,8 +78,9 @@ summary.sequencing_depth <- function(exp_config){
   combined_prop_metric_results <- left_join(metric_results,dataset_prop,by=c("dataset","quantile"))
   combined_prop_other_results <- left_join(other_results,dataset_prop,by=c("dataset","quantile"))
   combined_prop_unsup_other_results <- left_join(unsupervised_other_results,dataset_prop,by=c("dataset","quantile"))
-  summary.output_excel(experiment,combined_prop_metric_results,combined_prop_other_results,combined_prop_unsup_other_results)
-  
+  summary.output_excel(experiment,combined_prop_metric_results=combined_prop_metric_results,
+                       combined_prop_unlabeled_pctg_results=combined_prop_other_results,
+                       combined_prop_unsup_other_results=combined_prop_unsup_other_results)
 }
 
 
@@ -101,7 +103,9 @@ summary.simple_accuracy <- function(exp_config){
   combined_prop_metric_results <- left_join(metric_results,dataset_prop,by=c("dataset"))
   combined_prop_sup_other_results <- left_join(supervised_other_results,dataset_prop,by=c("dataset"))
   combined_prop_unsup_other_results <- left_join(unsupervised_other_results,dataset_prop,by=c("dataset"))
-  summary.output_excel(experiment,combined_prop_metric_results,combined_prop_sup_other_results,combined_prop_unsup_other_results)
+  summary.output_excel(experiment,combined_prop_metric_results=combined_prop_metric_results,
+                       combined_prop_unlabeled_pctg_results=combined_prop_sup_other_results,
+                       combined_prop_unsup_other_results=combined_prop_unsup_other_results)
 }
 
 
@@ -127,7 +131,9 @@ summary.inter_diseases <- function(exp_config){
   combined_prop_metric_results <- left_join(metric_results,dataset_prop,by=c("train_dataset","test_dataset"))
   combined_prop_other_results <- left_join(other_results,dataset_prop,by=c("train_dataset","test_dataset"))
   combined_prop_unsup_other_results <- left_join(unsup_other_results,dataset_prop,by=c("train_dataset","test_dataset"))
-  summary.output_excel(experiment,combined_prop_metric_results,combined_prop_other_results,combined_prop_unsup_other_results)
+  summary.output_excel(experiment,combined_prop_metric_results=combined_prop_metric_results,
+                       combined_prop_unlabeled_pctg_results=combined_prop_other_results,
+                       combined_prop_unsup_other_results=combined_prop_unsup_other_results)
 }
 
 summary.batch_effects <- function(exp_config){
@@ -151,10 +157,43 @@ summary.batch_effects <- function(exp_config){
   combined_prop_metric_results <- left_join(metric_results,dataset_prop,by=c("train_dataset","test_dataset","batch_effects_removed"))
   combined_prop_other_results <- left_join(other_results,dataset_prop,by=c("train_dataset","test_dataset","batch_effects_removed"))
   combined_prop_unsup_other_results <- left_join(unsup_other_results,dataset_prop,by=c("train_dataset","test_dataset","batch_effects_removed"))
-  summary.output_excel(experiment,combined_prop_metric_results,combined_prop_other_results,combined_prop_unsup_other_results)
+  summary.output_excel(experiment,combined_prop_metric_results=combined_prop_metric_results,
+                       combined_prop_unlabeled_pctg_results=combined_prop_other_results,
+                       combined_prop_unsup_other_results=combined_prop_unsup_other_results)
 }
 
 summary.imbalance_impacts <- function(experiment){
+  experiment <- "imbalance_impacts"
+  sample_id_var <- "imbl_entropy"
+  # exp_config <- experiments.parameters[[experiment]]
+  exp_results <- summary.collect_experiment_results(experiment)
+  # exp_dataset_props <-summary.read_exp_dataset_properties(experiment, exp_config)
+  metric_results <- melt(exp_results,id.vars = c("train_dataset","test_dataset","assigned","methods",sample_id_var),measure.vars=c("ARI")) 
+  
+  metric_results <- dcast(metric_results, train_dataset+test_dataset+assigned+imbl_entropy ~ methods)
+  dataset_prop <- bind_rows(group_by(exp_results,train_dataset,test_dataset,imbl_entropy,.keep=T) %>% group_map(~{.[1,append(inter_dataset_properties_list,"imbl_entropy")]},.keep=T))
+  other_results <- dplyr::filter(exp_results,is.na(assigned),supervised==TRUE) %>% 
+    melt(id.vars = c("train_dataset","test_dataset","methods","imbl_entropy"),measure.vars=c("unlabeled_pctg","pred_type_max_pctg"),variable.name="metrics") %>%
+    dcast(train_dataset+test_dataset+metrics+imbl_entropy ~ methods)
+  
+  unsup_other_results <- dplyr::filter(exp_results,is.na(assigned),supervised==F) %>% 
+    melt(id.vars = c("train_dataset","test_dataset","methods","imbl_entropy"),measure.vars=c("cluster_num","pred_type_max_pctg"),variable.name="metrics") %>%
+    dcast(train_dataset+test_dataset+metrics+imbl_entropy ~ methods)
+  
+  combined_prop_metric_results <- left_join(metric_results,dataset_prop,by=c("train_dataset","test_dataset","imbl_entropy"))
+  combined_prop_other_results <- left_join(other_results,dataset_prop,by=c("train_dataset","test_dataset","imbl_entropy"))
+  combined_prop_unsup_other_results <- left_join(unsup_other_results,dataset_prop,by=c("train_dataset","test_dataset","imbl_entropy"))
+  single_type_results <- summary.collect_experiment_results(experiment,"single_method_results.rds") %>% dplyr::select(-methods)
+  if("train_dataset" %in% colnames(single_type_results)){
+    single_type_results <- melt(single_type_results, id.vars=c("train_dataset","test_dataset","method","type","type_pctg","supervised","imbl_entropy"))
+  }else{
+    single_type_results <- melt(single_type_results, id.vars=c("dataset","method","type","type_pctg","supervised","imbl_entropy"))
+  }
+  
+  summary.output_excel(experiment,combined_prop_metric_results=combined_prop_metric_results,
+                       combined_prop_unlabeled_pctg_results=combined_prop_other_results,
+                       combined_prop_unsup_other_results=combined_prop_unsup_other_results,
+                       single_type_results=single_type_results)
   
 }
 
@@ -179,16 +218,17 @@ summary.celltype_number <- function(){
   combined_prop_other_results <- left_join(other_results,dataset_prop,by=c("dataset","methods","type_pctgs"))
   combined_prop_unsup_other_results <- left_join(unsup_other_results,dataset_prop,by=c("dataset","methods","type_pctgs"))
   
-  summary.output_excel(experiment,combined_prop_metric_results,combined_prop_other_results,combined_prop_unsup_other_results)
-  
+  summary.output_excel(experiment,combined_prop_metric_results=combined_prop_metric_results,
+                       combined_prop_unlabeled_pctg_results=combined_prop_other_results,
+                       combined_prop_unsup_other_results=combined_prop_unsup_other_results)
 }
 
 
 
 
-summary.collect_experiment_results <- function(experiment){
+summary.collect_experiment_results <- function(experiment,file_name="results.rds"){
   exp_results_dir <- str_glue({"{result_home}{experiment}"})
-  exp_results <- summary.read_results_from_dir(exp_results_dir) %>% utils.get_methods()
+  exp_results <- summary.read_results_from_dir(exp_results_dir,file_name) %>% utils.get_methods()
   exp_results
 }
 
@@ -232,24 +272,30 @@ summary.collect_experiment_results <- function(experiment){
 #   }
 # }
 
-summary.read_results_from_dir <- function(current_dir){
+summary.read_results_from_dir <- function(current_dir,file_name="results.rds"){
   files <- list.files(current_dir,recursive = F)
-  if("results.rds" %in% files){
-    return(read_rds(str_glue("{current_dir}/results.rds")))
+  if(file_name %in% files){
+    return(read_rds(str_glue("{current_dir}/{file_name}")))
   }else{
     sub_dirs <- list.dirs(current_dir,recursive = F)
     sub_results <- vector("list",length=length(sub_dirs))
     for(i in seq_along(sub_dirs)){
-      sub_results[[i]] <- summary.read_results_from_dir(sub_dirs[[i]])
+      sub_results[[i]] <- summary.read_results_from_dir(sub_dirs[[i]],file_name)
     }
     return(bind_rows(purrr::map(sub_results,bind_rows)))
   }
 }
 
-summary.output_excel <- function(experiment,combined_prop_metric_results,combined_prop_unlabeled_pctg_results,combined_prop_unsup_other_results){
+
+summary.output_excel <- function(experiment,...){
   require(xlsx)
+  require(pivottabler)
+  results <- list(...)
+  combined_prop_metric_results <- results$combined_prop_metric_results
+  combined_prop_unlabeled_pctg_results <- results$combined_prop_unlabeled_pctg_results
+  combined_prop_unsup_other_results <- results$combined_prop_unsup_other_results
   excel_file_name <- str_glue("{result_home}{experiment}/{experiment}_summarized_results.xlsx")
-  wb <- createWorkbook()
+  wb <- xlsx::createWorkbook()
   title_style <- CellStyle(wb) +
     Font(wb, heightInPoints = 16,
          isBold = TRUE)
@@ -313,8 +359,7 @@ summary.output_excel <- function(experiment,combined_prop_metric_results,combine
                rownamesStyle = rowname_style,
                row.names = FALSE)
   setColumnWidth(sheet = unlabeled_pctg_ws, colIndex = 1:dim(combined_prop_unlabeled_pctg_results)[[2]], colWidth = colWidth)
-  saveWorkbook(wb, file = excel_file_name)
-  
+
   ######unsupervised methods other metrics
   unsupervised_other_ws <- createSheet(wb, sheetName = "Unsupervised methods other metrics(cluster number...)")
   rows <- createRow(unsupervised_other_ws, rowIndex = 1)
@@ -326,7 +371,33 @@ summary.output_excel <- function(experiment,combined_prop_metric_results,combine
                rownamesStyle = rowname_style,
                row.names = FALSE)
   setColumnWidth(sheet = unsupervised_other_ws, colIndex = 1:dim(combined_prop_unsup_other_results)[[2]], colWidth = colWidth)
-  saveWorkbook(wb, file = excel_file_name)
+  xlsx::saveWorkbook(wb, file = excel_file_name)
   
+  if(experiment %in% c("imbalance_impacts")){
+    require(openxlsx)
+    wb1 <- openxlsx::createWorkbook()
+    openxlsx::addWorksheet(wb1,str_glue("Single type performance metrics"))
+    single_type_results <- results$single_type_results
+    pt <- PivotTable$new()
+    pt$addData(single_type_results)
+    pt$addRowDataGroups("variable",addTotal=FALSE,header = "metric")
+    pt$addRowDataGroups("type",addTotal=FALSE,header = "cell type")
+    if("train_dataset" %in% colnames(single_type_results)){
+      pt$addRowDataGroups("train_dataset",addTotal=FALSE,header="train dataset")
+      pt$addRowDataGroups("test_dataset",addTotal=FALSE,header="test dataset")
+    }else{
+      pt$addRowDataGroups("dataset",addTotal=FALSE,header="dataset")
+    }
+    pt$addColumnDataGroups("imbl_entropy", addTotal=FALSE,caption = "Entropy={value}",dataSortOrder="desc")
+    pt$defineCalculation(calculationName = "type_pctg", caption = "type_pctg",type="value",valueName="type_pctg")
+    pt$addColumnDataGroups("supervised", addTotal=FALSE,caption = "Supervised={value}")
+    pt$addColumnDataGroups("method", addTotal=FALSE)
+    pt$defineCalculation(calculationName = "value", caption = "metric",type="value",valueName="value",format="%.2f",cellStyleDeclarations=list("xl-value-format"="##0.0"))
+    pt$evaluatePivot()
+    pt$writeToExcelWorksheet(wb=wb1, topRowNumber = 2, leftMostColumnNumber = 1, wsName =  str_glue("Single type performance metrics"),outputValuesAs="rawValue",
+                             applyStyles=TRUE, mapStylesFromCSS=TRUE)
+  }
+  excel_file_name <- str_glue("{result_home}{experiment}/{experiment}_summarized_single_type_results.xlsx")
+  openxlsx::saveWorkbook(wb1, file = excel_file_name,overwrite = T)
 }
 

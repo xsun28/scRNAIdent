@@ -60,7 +60,7 @@ constructor.imbalance_impacts <- function(data,config,if_train,sample_seed=NULL)
     col_data <- colData(data)
     sampled <- purrr::pmap(params,function(type,pctg){
                                                       type_data <- rownames(col_data[(col_data$label==type),])
-                                                      sample_num <- as.integer(pctg*target_sample_num)
+                                                      sample_num <- min(as.integer(pctg*target_sample_num),length(type_data))
                                                       sample(type_data,sample_num)
                                                      })
     data[,unlist(sampled)]
@@ -96,7 +96,7 @@ constructor.imbalance_impacts <- function(data,config,if_train,sample_seed=NULL)
         type_pctg <- type_pctg[1:type_num]
       }
       max_types <- (dplyr::group_by(as.data.frame(colData(data)),label) %>% dplyr::summarize(type_number=n()) %>% dplyr::arrange(desc(type_number)))[['label']][1:type_num]
-      data <- type_pctg_selector(data, max_types, type_pctg, config$target_train_num)
+      data <- type_pctg_selector(data, max_types, type_pctg, config$target_test_num)
     }
   }
   data[!duplicated(rownames(data)),!duplicated(colnames(data))]

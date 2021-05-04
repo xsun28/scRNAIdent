@@ -1,16 +1,21 @@
 
 plot.plot <- function(experiment,results,raw_results, exp_config,...){
+  require(forcats)
   dataset <- unique(results$dataset)
   train_dataset <- unique(results$train_dataset)
   test_dataset <- unique(results$test_dataset)
   fig_path <- output.generate_output_path(experiment, dataset, train_dataset, test_dataset, exp_config)
+  if(!dir.exists(fig_path)){
+    dir.create(fig_path,recursive=T)
+  }
   if(purrr::is_null(results)){
     results <- read_rds(str_glue("{fig_path}/results.rds"))
   }
   if(purrr::is_null(raw_results)){
     raw_results <- read_rds(str_glue("{fig_path}/raw_results.rds"))
   }
-  
+  results <- utils.get_methods(results) %>% dplyr::arrange(supervised,methods)
+  results$methods <- factor(results$methods) %>% forcats::fct_inorder()
   switch(experiment,
     simple_accuracy = plot.simple_accuracy(results,raw_results,fig_path),
     cell_number = plot.cell_number(results,raw_results,fig_path),
@@ -30,14 +35,6 @@ plot.plot <- function(experiment,results,raw_results, exp_config,...){
 
 plot.simple_accuracy <- function(results,raw_results,fig_path){
   require(data.table)
-  # fig_path <- str_glue("{result_home}{experiment}/{dataset}/")
-  if(!dir.exists(fig_path)){
-    dir.create(fig_path,recursive=T)
-  }
-  # figure_all_name <- str_glue("simple_accuracy_{dataset}_all")
-  # figure_assigned_name <- str_glue("simple_accuracy_{dataset}_assigned")
-  # figure_unassigned_name <- str_glue("simple_accuracy_{dataset}_unassigned")
-  results <- utils.get_methods(results)
   all_results <- dplyr::select(dplyr::filter(results,is.na(assigned)),c(ARI,AMI,FMI,methods,supervised)) %>%
     gather("metric","value",-c(methods,supervised))
   
@@ -104,12 +101,6 @@ plot.simple_accuracy <- function(results,raw_results,fig_path){
 
 
 plot.cell_number <- function(results,raw_results,fig_path){
-  if(!dir.exists(fig_path)){
-    dir.create(fig_path,recursive=T)
-  }
-  
-  results <- utils.get_methods(results)
-
   all_results <- dplyr::select(dplyr::filter(results,is.na(assigned)),c(ARI,AMI,FMI,methods,sample_num,supervised)) %>%
     gather("metric","value",-c(methods,sample_num,supervised))
   
@@ -190,12 +181,6 @@ plot.cell_number <- function(results,raw_results,fig_path){
 ###celltype_number
 plot.celltype_number <- function(results,raw_results,fig_path){
   require(data.table)
-  # fig_path <- str_glue("{result_home}{experiment}/{dataset}/")
-  if(!dir.exists(fig_path)){
-    dir.create(fig_path,recursive=T)
-  }
-  
-  results <- utils.get_methods(results)
   all_results <- dplyr::select(dplyr::filter(results,is.na(assigned)),c(ARI,AMI,FMI,methods,type_num,supervised)) %>%
     gather("metric","value",-c(methods,type_num,supervised))
   
@@ -260,15 +245,11 @@ plot.celltype_number <- function(results,raw_results,fig_path){
 
 
 plot.imbalance_impacts <- function(results,raw_results,fig_path,...){
-  if(!dir.exists(fig_path)){
-    dir.create(fig_path,recursive=T)
-  }
   single_method_results <- list(...)$single_method_results
   
   if(purrr::is_null(single_method_results)){
     single_method_results <- read_rds(str_glue("{fig_path}/single_method_results.rds"))
   }
-  results <- utils.get_methods(results)
   
   all_results <- dplyr::select(dplyr::filter(results,is.na(assigned)),c(ARI,AMI,FMI,methods,imbl_entropy,supervised)) %>%
     gather("metric","value",-c(methods,imbl_entropy,supervised))
@@ -343,31 +324,49 @@ plot.imbalance_impacts <- function(results,raw_results,fig_path,...){
     
     plot.sankey_plot(raw_results1,sankey_plot_params,fig_path,str_glue("sankey_imbl_entropy_{e}.pdf"))
   }
-  ######single method performance F1 score vs cell type pctg
-  for(i in seq_along(unique_entropy)){
-    en <- unique_entropy[[i]]
-    single_method_result_en <- dplyr::filter(single_method_results,imbl_entropy==en)
-    single_method_result_en$facet_var <- purrr::map_chr(1:length(single_method_result_en$type),~{paste(single_method_result_en[.,]$type,single_method_result_en[.,]$type_pctg)})
-    ####f1 score
-    single_method_result_en$label <- round(single_method_result_en$type_f1,2)
-    plot_params <- list(x="method",y="type_f1",fill="supervised",xlabel="methods", ylabel="F1 score",label="label",
-                        facet_wrap=T,dodged=T,facet_var='facet_var',width=10,height=7,nrow=length(unique(single_method_result_en$type)))
-    plot.bar_plot(single_method_result_en,plot_params,fig_path,str_glue("type_pctg_F1_entropy_{en}.pdf"))
-    
-    ###accuracy
-    single_method_result_en$label <- round(single_method_result_en$type_accuracy,2)
-    plot_params <- list(x="method",y="type_accuracy",fill="supervised",xlabel="methods", ylabel="Accuracy",label="label",
-                        facet_wrap=T,dodged=T,facet_var='facet_var',width=10,height=7,nrow=length(unique(single_method_result_en$type)))
-    
-    plot.bar_plot(single_method_result_en,plot_params,fig_path,str_glue("type_pctg_accuracy_entropy_{en}.pdf"))
   
-    ####unlabeled pctg
-    single_method_result_en_supervised <- dplyr::filter(single_method_result_en, supervised)
-    single_method_result_en_supervised$label <- round(single_method_result_en_supervised$unlabeled_pctg,2)
-    plot_params <- list(x="method",y="unlabeled_pctg",xlabel="methods", ylabel="Unlabeled Pctg",label="label",
-                        facet_wrap=T,dodged=T,facet_var='facet_var',width=10,height=7,nrow=length(unique(single_method_result_en$type)))
-    plot.bar_plot(single_method_result_en_supervised,plot_params,fig_path,"type_pctg_unlabeled_entropy_{en}.pdf")
-  }
+  
+  ##########
+ 
+  single_method_results$xlabel <- purrr::map2_chr(single_method_results$type,single_method_results$type_pctg,function(x,y){paste(x,y)})
+  plot_params <- list(x="xlabel",y="type_f1",fill="supervised",xlabel="cell type", ylabel="F1 score",
+                      facet_wrap=T,dodged=T,facet_var='imbl_entropy',width=10,height=7,nrow=length(unique(single_method_results$imbl_entropy)))
+  plot.box_plot(single_method_results,plot_params,fig_path,str_glue("type_pctg_F1_score.pdf"))
+  plot_params$y <- "type_accuracy"
+  plot_params$ylabel <- "Accuracy"
+  plot.box_plot(single_method_results,plot_params,fig_path,str_glue("type_pctg_accuracy.pdf"))
+  
+  
+  single_method_result_supervised <- dplyr::filter(single_method_results, supervised)
+  plot_params <- list(x="xlabel",y="unlabeled_pctg",xlabel="cell type", ylabel="Unlabeled Pctg",fill="type",
+                      facet_wrap=T,dodged=F,facet_var='imbl_entropy',width=10,height=7,nrow=length(unique(single_method_result_supervised$imbl_entropy)))
+  plot.box_plot(single_method_result_supervised,plot_params,fig_path,str_glue("type_pctg_unlabeled.pdf"))
+  
+  ######single method performance F1 score vs cell type pctg
+  # for(i in seq_along(unique_entropy)){
+  #   # en <- unique_entropy[[i]]
+  #   # single_method_result_en <- dplyr::filter(single_method_results,imbl_entropy==en)
+  #   # single_method_result_en$facet_var <- purrr::map_chr(1:length(single_method_result_en$type),~{paste(single_method_result_en[.,]$type,single_method_result_en[.,]$type_pctg)})
+  #   # ####f1 score
+  #   # single_method_result_en$label <- round(single_method_result_en$type_f1,2)
+  #   # plot_params <- list(x="method",y="type_f1",fill="supervised",xlabel="methods", ylabel="F1 score",label="label",
+  #   #                     facet_wrap=T,dodged=T,facet_var='facet_var',width=10,height=7,nrow=length(unique(single_method_result_en$type)))
+  #   # plot.bar_plot(single_method_result_en,plot_params,fig_path,str_glue("type_pctg_F1_entropy_{en}.pdf"))
+  #   
+  #   ###accuracy
+  #   # single_method_result_en$label <- round(single_method_result_en$type_accuracy,2)
+  #   # plot_params <- list(x="method",y="type_accuracy",fill="supervised",xlabel="methods", ylabel="Accuracy",label="label",
+  #   #                     facet_wrap=T,dodged=T,facet_var='facet_var',width=10,height=7,nrow=length(unique(single_method_result_en$type)))
+  #   # 
+  #   # plot.bar_plot(single_method_result_en,plot_params,fig_path,str_glue("type_pctg_accuracy_entropy_{en}.pdf"))
+  # 
+  #   ####unlabeled pctg
+  #   single_method_result_en_supervised <- dplyr::filter(single_method_result_en, supervised)
+  #   single_method_result_en_supervised$label <- round(single_method_result_en_supervised$unlabeled_pctg,2)
+  #   plot_params <- list(x="method",y="unlabeled_pctg",xlabel="methods", ylabel="Unlabeled Pctg",label="label",
+  #                       facet_wrap=T,dodged=T,facet_var='facet_var',width=10,height=7,nrow=length(unique(single_method_result_en$type)))
+  #   plot.bar_plot(single_method_result_en_supervised,plot_params,fig_path,str_glue("type_pctg_unlabeled_entropy_{en}.pdf"))
+  # }
 
 }
 
@@ -376,14 +375,7 @@ plot.imbalance_impacts <- function(results,raw_results,fig_path,...){
 
 
 plot.celltype_structure <- function(results,raw_results,fig_path){
-  if(!dir.exists(fig_path)){
-    dir.create(fig_path,recursive=T)
-  }
-  # figure_all_name <- str_glue("celtype_structure_{dataset}_all")
-  # figure_assigned_name <- str_glue("celltype_structure_{dataset}_assigned")
-  # figure_unassigned_name <- str_glue("celltype_structure_{dataset}_unassigned")
-  
-  results <- utils.get_methods(results)
+
   all_results <- dplyr::select(dplyr::filter(results,is.na(assigned)),-c(unlabeled_pctg,assigned)) %>%
     gather("metric","value",-c(methods,level,supervised))
   all_results$level <- factor(all_results$level)
@@ -436,14 +428,8 @@ plot.celltype_structure <- function(results,raw_results,fig_path){
 
 plot.sequencing_depth <- function(results,raw_results,fig_path){
   
-  results <- utils.get_methods(results)
   results$quantile <- factor(results$quantile)
   
-  #######
-
-  if(!dir.exists(fig_path)){
-    dir.create(fig_path,recursive=T)
-  }
   
   # figure_all_name <- str_glue("sequencing_depth_{dataset}_all")
   # figure_assigned_name <- str_glue("sequencing_depth_{dataset}_assigned")
@@ -534,14 +520,6 @@ plot.sequencing_depth <- function(results,raw_results,fig_path){
 
 plot.batch_effects <- function(results,raw_results,fig_path){
   require(data.table)
-  results <- utils.get_methods(results)
-  # figure_all_name <- str_glue("batch_effects_{dataset}_all")
-  # figure_assigned_name <- str_glue("batch_effects_{dataset}_assigned")
-  # figure_unassigned_name <- str_glue("batch_effects_{dataset}_unassigned")
-
-  if(!dir.exists(fig_path)){
-    dir.create(fig_path,recursive=T)
-  }
   print(str_glue("Generating figures for batch effect pairs {fig_path}"))
   
   all_results <- dplyr::select(dplyr::filter(results,is.na(assigned)),-c(unlabeled_pctg,assigned)) %>%
@@ -614,10 +592,6 @@ plot.batch_effects <- function(results,raw_results,fig_path){
 plot.inter_diseases <- function(results,raw_results,fig_path){
     
   require(data.table)
-  results <- utils.get_methods(results)
-  if(!dir.exists(fig_path)){
-    dir.create(fig_path,recursive=T)
-  }
   print(str_glue("Generating figures for inter diseases pairs {fig_path}"))
     
     # figure_all_name <- str_glue("inter_diseases_{dataset}_all")
@@ -712,8 +686,6 @@ plot.random_noise <- function(results,raw_results,dataset){
 plot.inter_protocol <- function(results,raw_results,dataset){
   
 }
-
-plot.bar_plot(single_method_results,plot_params,fig_path,"type_pctg_FMI.pdf")
 
 plot.bar_plot <- function(results,params,fig_path,fig_name){
   x <- params$x
@@ -854,4 +826,45 @@ plot.heatmap_plot <- function(results,params,fig_path,fig_name){
     units = "in"
   )
 }
+
+plot.box_plot <- function(results,params,fig_path,fig_name){
+  require(ggplot2)
+  x <- params$x
+  y <- params$y
+  plot_str <- "ggplot(results,aes_string(x= x,y = y,fill = {params$fill})) +
+  geom_boxplot(outlier.colour = NULL,
+               outlier.shape = NULL, outlier.size = NULL) +
+  geom_dotplot(binaxis='y', stackdir='center'"
+  if(params$dodged){
+    plot_str <- str_glue("{plot_str} ,position=position_dodge(1)")
+  }
+
+  plot_str <- str_glue("{plot_str})+
+                        labs(x=\"{params$xlabel}\",y = \"{params$ylabel}\") +
+                        scale_x_discrete(guide = guide_axis(n.dodge=3))")
+  if(!is_null(params$facet_wrap)&&params$facet_wrap){
+    plot_str <- str_glue("{plot_str} + 
+                          facet_wrap(~ {params$facet_var},nrow={params$nrow},labeller = label_both,scales='free')")
+  }
+  
+  if(!is_null(params$facet_grid)&&params$facet_grid){
+    plot_str <- str_glue("{plot_str} + 
+                          facet_grid({params$facet_grid_x} ~ {params$facet_grid_y},labeller = label_both,scales='free')")
+  }
+  plot_str <- str_glue("{plot_str} +
+                        scale_fill_brewer(palette = 'Set1') +
+                        theme(legend.position='right')")
+  
+  eval(parse(text = plot_str))
+  ggsave(
+    fig_name,
+    plot = last_plot(),
+    device = 'pdf',
+    path = fig_path,
+    width = params$width,
+    height = params$height,
+    units = "in"
+  )
+}
+
 
