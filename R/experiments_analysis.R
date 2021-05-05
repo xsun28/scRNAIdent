@@ -133,7 +133,10 @@ experiments.analysis.imbalance_impacts <- function(assign_results,cluster_result
   unsupervised_methods <- colnames(cluster_results)[colnames(cluster_results)!="label"]
   single_method_result <- bind_rows(purrr::map(methods, function(method){
                                                                       if(method %in% unsupervised_methods){
-                                                                        type_accuracy_f1 <- bind_rows(purrr::map(cell_types, function(type){ method_pred_true <- dplyr::select(combined_results,method,label) 
+                                                                        type_accuracy_f1 <- bind_rows(purrr::map(cell_types, function(type){ method_pred_true <- dplyr::select(combined_results,method,label)
+                                                                                                                                              if(all(sapply(method_pred_true[[method]],function(x){is_null(x)||is.na(x)}))){
+                                                                                                                                                return(list(f1=NA,acc=NA))
+                                                                                                                                              }
                                                                                                                                                 type_pred_true <- dplyr::filter(method_pred_true,label==type)
                                                                                                                                                 unique_clusters <- unique(type_pred_true[[method]])                                                
                                                                                                                                                 cluster_f_betas <- purrr::map(unique_clusters,function(cluster_num){ 

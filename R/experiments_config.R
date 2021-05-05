@@ -332,6 +332,15 @@ experiments.parameters <- list(
                                                                dataset.interdatasets$pancreas5,dataset.interdatasets$ADASD2,
                                                                dataset.interdatasets$midbrain2)
                         ),
+  celltype_detection=list( cv=F,cv_fold=NULL, metrics=c('ARI','AMI','FMI'), batch_free=F,fixed_train=T,fixed_test=F,
+                           marker_gene_file=NULL,trained=F,target_train_num=1200, target_test_num=800,
+                           test_num=4, use_intra_dataset=F,intra_dataset=list(),
+                           use_inter_dataset=T,inter_dataset=list(dataset.interdatasets$PBMC1,dataset.interdatasets$PBMC2,
+                                                                  dataset.interdatasets$PBMC3,dataset.interdatasets$PBMC4,
+                                                                  dataset.interdatasets$PBMC7,dataset.interdatasets$PBMC10,
+                                                                  dataset.interdatasets$pancreas1,dataset.interdatasets$pancreas2,
+                                                                  dataset.interdatasets$pancreas5)
+                          ),
   celltype_complexity = list(),
   inter_species = list(),
   random_noise = list(),
@@ -502,6 +511,27 @@ experiments.config.update.celltype_number <-function(train_dataset, test_dataset
 }
 
 
+experiments.config.update.celltype_detection <-function(train_dataset, test_dataset=NULL, exp_config){
+  exp_config$trained <- F
+  train_data <- utils.load_datasets(train_dataset) 
+  train_type <- unique(colData(train_data)$label)
+  test_data <- utils.load_datasets(test_dataset)
+  test_type <- unique(colData(test_data)$label)
+  
+  if(exp_config$fixed_train){
+    exp_config$trained <- T
+    test_dataset_name <- str_split(test_dataset,"\\.")[[1]][[1]]
+    print("test dataset={test_dataset_name}")
+  }
+  if(exp_config$fixed_test){
+    train_dataset_name <- str_split(train_dataset,"\\.")[[1]][[1]]
+    increment <- calculate_type_increment(train_dataset, exp_config, if_train=T)
+    print("train dataset={train_dataset_name}")
+  }
+  unknown_type <- setdiff(test_type,train_type)
+  exp_config$unknown_type <- unknown_type[!is.na(unknown_type)]
+  exp_config
+}
 
 
 experiments.config.update.train_test_datasets <- function(experiment, train_dataset, test_dataset){

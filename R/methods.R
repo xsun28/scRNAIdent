@@ -565,8 +565,31 @@ cluster.cidr <- function(data,exp_config) {
   stopifnot(is(data,"SingleCellExperiment"))
   
   sData <- scDataConstructor(as.matrix(counts(data)))
-  sData <- determineDropoutCandidates(sData)
-  sData <- wThreshold(sData)
+  min2 <- if(purrr::is_null(m_config$min2)) 8 else m_config$min2
+  
+  ret <- tryCatch(determineDropoutCandidates(sData,min2=min2), error=function(c) {
+    msg <- conditionMessage(c)
+    print(str_glue("error occured in cidr: {msg}"))
+    error(logger, str_glue("error occured in cidr {msg}"))
+    structure(msg, class = "try-error")
+  })
+  
+  i = 0
+  while(inherits(ret,"try-error")){
+    if(i > 10||min2 <= 0) return(NULL)
+    i = i+1
+    print(str_glue("in cidr:{ret}"))
+    min2 = min2 -2
+    print(str_glue("new min2: {min2}"))
+    ret <- tryCatch(determineDropoutCandidates(sData,min2=min2), error=function(c) {
+      msg <- conditionMessage(c)
+      print(str_glue("error occured in cidr: {msg}"))
+      error(logger, str_glue("error occured in cidr {msg}"))
+      structure(msg, class = "try-error")
+    })
+  }
+  
+  sData <- wThreshold(ret)
   sData <- scDissim(sData)
   sData <- scPCA(sData, plotPC=FALSE)
   sData <- nPC(sData)

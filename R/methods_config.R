@@ -7,7 +7,7 @@ methods.config.cellassign <- list(learning_rate=1e-2,shrinkage=TRUE,marker_gene_
 methods.config.liger <- list(suggestK=F,k.suggest=20,lambda=NULL,resolution=NULL,thresh=NULL)
 methods.config.singlecellnet <- list(cross_species=FALSE,common_gene_file=NULL,ncells=50,nRand=70,nTrees=1000,nTopGenes=10,nTopGenePairs=25)
 methods.config.singleR <- list()
-methods.config.cidr <- list(K=8)
+methods.config.cidr <- list(K=8,min2=8)
 methods.config.monocle3 <- list(num_dim=100)
 methods.config.pcaReduce <- list(K=10)
 methods.config.garnett <- list(PBMC_AllCells_withLabels=list(marker_file_path=str_glue("Garnett_PBMC_AllCells_withLabels_marker_{dataset.properties$PBMC_AllCells_withLabels$gene_name_type}.txt"),
