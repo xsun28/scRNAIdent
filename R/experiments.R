@@ -181,7 +181,9 @@ experiments.base <- function(experiment, exp_config){
   }
   assign_results <- utils.label_unassigned(assign_results,T)
   ####cluster methods
-  cluster_results <- if(experiment %in% c("batch_effects")) experiments.base.cluster(experiment,exp_config,total_dataset) else experiments.base.cluster(experiment,exp_config,test_dataset)
+  if(exp_config$fixed_test&&exp_config$clustered)
+    cluster_results <- if(experiment %in% c("batch_effects")) experiments.base.cluster(experiment,exp_config,total_dataset) else experiments.base.cluster(experiment,exp_config,test_dataset)
+      
   if(experiment %in% c("batch_effects")) cluster_results <- cluster_results[test_samples,]
   cluster_results <- utils.label_unassigned(cluster_results,F)
   if(experiment %in% c("celltype_structure")){
@@ -540,7 +542,8 @@ experiments.imbalance_impacts <- function(experiment){
 
 
 ###cell type number experiment
-experiments.celltype_number <- function(xperiment){
+
+experiments.celltype_number <- function(experiment){
   exp_config <- experiments.parameters[[experiment]]
   experiments.config.check_config(exp_config)
   used_dataset <- if(exp_config$use_intra_dataset) exp_config$intra_dataset else exp_config$inter_dataset
@@ -581,11 +584,14 @@ experiments.celltype_number <- function(xperiment){
     output.sink(experiment,combined_raw_results,final_results,exp_config)
     plot.plot(experiment,final_results,combined_raw_results,exp_config)
     utils.clean_marker_files()
+    final_results
     print(str_glue("{experiment} train_dataset={train_dataset}, test_dataset={test_dataset}"))
     print(final_results)
   }
   summarize_experiments(experiment)
 }
+
+
 ##############
 experiments.unknown_types <- function(experiment){
   exp_config <- experiments.parameters[[experiment]]

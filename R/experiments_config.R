@@ -1,4 +1,4 @@
-experiment <- "imbalance_impacts"
+experiment <- "cell_number"
 
 # experiments.data <- list(simple_accuracy="PBMC_AllCells_withLabels.RDS", 
 #                                  cell_number="ADASD_autism.RDS",
@@ -326,12 +326,12 @@ experiments.parameters <- list(
                         marker_gene_file=NULL,trained=F,target_train_num=1200, target_test_num=800,
                         test_num=4, use_intra_dataset=F,intra_dataset=list(),
                         use_inter_dataset=T,inter_dataset=list(dataset.interdatasets$PBMC1,dataset.interdatasets$PBMC2,
-                                                               dataset.interdatasets$PBMC3,dataset.interdatasets$PBMC5,
-                                                               dataset.interdatasets$PBMC6,dataset.interdatasets$PBMC8,
-                                                               dataset.interdatasets$pancreas1,dataset.interdatasets$pancreas2,
-                                                               dataset.interdatasets$pancreas5,dataset.interdatasets$ADASD2,
-                                                               dataset.interdatasets$midbrain2)
+                                                               dataset.interdatasets$PBMC3,dataset.interdatasets$PBMC4,
+                                                               dataset.interdatasets$PBMC7,dataset.interdatasets$PBMC10,
+                                                               dataset.interdatasets$pancreas3,dataset.interdatasets$pancreas4)
+  
                         ),
+
   celltype_detection=list( cv=F,cv_fold=NULL, metrics=c('ARI','AMI','FMI'), batch_free=F,fixed_train=T,fixed_test=F,
                            marker_gene_file=NULL,trained=F,target_train_num=1200, target_test_num=800,
                            test_num=4, use_intra_dataset=F,intra_dataset=list(),
@@ -406,6 +406,7 @@ experiments.config.update.cell_number <-function(train_dataset, test_dataset=NUL
     exp_config$target_test_num <- exp_config$test_sample_start + exp_config$current_increment_index*exp_config$increment
   }
   if(exp_config$fixed_test){
+    exp_config$clustered <- if(exp_config$current_increment_index==0) F else T
     train_dataset_name <- str_split(train_dataset,"\\.")[[1]][[1]]
     if(purrr::is_null(exp_config$increment)){
       exp_config$increment <- calculate_increment(train_dataset_name, exp_config$train_sample_increment, exp_config, if_train=T)
@@ -442,6 +443,7 @@ experiments.config.update.sequencing_depth <-function(train_dataset, test_datase
     print("test dataset={test_dataset_name}")
   }
   if(exp_config$fixed_test){
+    exp_config$clustered <- if(exp_config$current_increment_index==0) F else T
     train_dataset_name <- str_split(train_dataset,"\\.")[[1]][[1]]
     if(purrr::is_null(exp_config$increment)){
       exp_config$increment <- calculate_increment(train_dataset_name, exp_config$train_sample_increment, exp_config, if_train=T)
@@ -471,6 +473,14 @@ experiments.config.update.inter_diseases <- function(train_dataset, test_dataset
 
 experiments.config.update.imbalance_impacts <- function(train_dataset, test_dataset=NULL, exp_config){
   exp_config$type_pctg <- exp_config$type_pctgs[[exp_config$current_increment_index+1]]
+  exp_config$trained <- F
+  if(exp_config$fixed_train){
+    exp_config$trained <- if(exp_config$current_increment_index==0) F else T
+  }
+  if(exp_config$fixed_test){
+    exp_config$clustered <- if(exp_config$current_increment_index==0) F else T
+  }
+
   exp_config
 }
 
@@ -483,32 +493,42 @@ experiments.config.update.celltype_number <-function(train_dataset, test_dataset
     celltype_order
   }
   
-  calculate_type_increment <- function(data, exp_config, if_train){
-    type_length <- length(unique(colData(data)$label))
-    floor(1/exp_config$test_num*type_length)
+  train_data <- utils.load_datasets(train_dataset) 
+  test_data <- utils.load_datasets(test_dataset) 
+  train_type <- unique(colData(train_data)$label)
+  common_type <- unique(intersect(colData(train_data)$label,colData(test_data)$label))
+  
+  calculate_type_increment <- function(train_dataset,test_dataset, exp_config, if_train){
+    if(exp_config$fixed_train) increment <- length(common_type)/5
+    if(exp_config$fixed_test){
+      increment <- ifelse(train_dataset %in% "Segerstolpe_pancreas_clean.RDS",round((length(train_type)-length(common_type))/4),length(common_type)/5)
+    } 
+    return(increment)
   }
   
   exp_config$trained <- F
   if(exp_config$fixed_train){
     exp_config$trained <- if(exp_config$current_increment_index==0) F else T
     test_dataset_name <- str_split(test_dataset,"\\.")[[1]][[1]]
-    data <- utils.load_datasets(test_dataset) 
     if(purrr::is_null(exp_config$increment)){
-      exp_config$increment <- calculate_type_increment(test_dataset, exp_config, if_train=F)
+      increment <- calculate_type_increment(train_dataset,test_dataset, exp_config, if_train=F)
     }
+    exp_config$type_num <- floor(exp_config$current_increment_index*increment)+round(length(common_type)*0.2)
+    celltype_order <- intersect(get_type_order(test_data),common_type)
+    exp_config$sample_type <- celltype_order[1:(exp_config$type_num)]  
     print("test dataset={test_dataset_name}")
   }
   if(exp_config$fixed_test){
     train_dataset_name <- str_split(train_dataset,"\\.")[[1]][[1]]
-    data <- utils.load_datasets(train_dataset) 
-    increment <- calculate_type_increment(data, exp_config, if_train=T)
+    increment <- calculate_type_increment(train_dataset,test_dataset, exp_config, if_train=T)
+    type_num <- (exp_config$current_increment_index-1)*increment
+    exp_config$type_num <- type_num+length(common_type)
+    exp_config$sample_type <- c(setdiff(train_type,common_type)[0:type_num],common_type) 
     print("train dataset={train_dataset_name}")
   }
-  celltype_order <- get_type_order(data)
-  exp_config$type_num <- exp_config$current_increment_index*increment
-  exp_config$sample_type <- celltype_order[1:(exp_config$type_num)]
   exp_config
 }
+
 
 
 experiments.config.update.celltype_detection <-function(train_dataset, test_dataset=NULL, exp_config){

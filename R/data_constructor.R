@@ -123,6 +123,7 @@ constructor.celltype_number <- function(data,config,if_train,sample_seed=NULL){
 
 
 
+
 constructor.sequencing_depth <- function(data,config,if_train,sample_seed=NULL){
   low_quantile <- config$low_quantile
   high_quantile <- config$high_quantile 

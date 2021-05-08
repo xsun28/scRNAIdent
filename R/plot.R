@@ -184,6 +184,12 @@ plot.cell_number <- function(results,raw_results,fig_path){
 ###celltype_number
 plot.celltype_number <- function(results,raw_results,fig_path){
   require(data.table)
+  # fig_path <- str_glue("{result_home}{experiment}/{dataset}/")
+  if(!dir.exists(fig_path)){
+    dir.create(fig_path,recursive=T)
+  }
+  
+  results <- utils.get_methods(results)
   all_results <- dplyr::select(dplyr::filter(results,is.na(assigned)),c(ARI,AMI,FMI,methods,type_num,supervised)) %>%
     gather("metric","value",-c(methods,type_num,supervised))
   
@@ -225,27 +231,24 @@ plot.celltype_number <- function(results,raw_results,fig_path){
   plot.line_plot(results_unlabeled_pctg,plot_params,fig_path,"unlabeled_pctg.pdf")
   
   ###sankey_plot
-
-  unique_celltype_num <- unique(results$type_num)
-  for(i in unique_celltype_num){
+  celltype_num <- "celltype_num"
+  celltype_num1 <- unique(results$type_num)
+  for(i in celltype_num1){
     raw_results1 <- raw_results[raw_results$type_num==i,]
     methods <- colnames(dplyr::select(raw_results1,-c(label,type_num)))
     
-    if("train_dataset" %in% colnames(raw_results1)){
-      raw_results1 <- gather(raw_results1,"methods","pred",-c(label,sample_num,train_dataset,test_dataset))
-    }else{
-      raw_results1 <- gather(raw_results1,"methods","pred",-c(label,sample_num,dataset))
-    }  
-    raw_results1 <- group_by(raw_results1, methods,label,pred) %>%
+    raw_results1 <- gather(raw_results1,"methods","pred",-c(label,type_num,train_dataset,test_dataset)) %>%
+      group_by(methods,label,pred) %>%
       summarize(freq=n()) %>%
       filter(freq>0)
     
     sankey_plot_params <- list(y="freq", axis1="label",axis2="pred",fill="label",label="label",xlabel="methods",
                                scale_x_discrete_limits="c(\"label\",\"value\")",facet_var="methods",facet_wrap=T,width=10,height=7,nrow=1,limitsize = FALSE)
     
-    plot.sankey_plot(raw_results1,sankey_plot_params,fig_path,str_glue("sankey_celltype_num_{i}.pdf"))
+    plot.sankey_plot(raw_results1,sankey_plot_params,fig_path,str_glue("sankey_{celltype_num}_{i}.pdf"))
   }
 }
+
 
 
 
