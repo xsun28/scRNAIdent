@@ -1,4 +1,4 @@
-experiment <- "cell_number"
+experiment <- "imbalance_impacts"
 
 # experiments.data <- list(simple_accuracy="PBMC_AllCells_withLabels.RDS", 
 #                                  cell_number="ADASD_autism.RDS",
@@ -302,7 +302,7 @@ experiments.parameters <- list(
                                                             dataset.interdatasets$pancreas3,dataset.interdatasets$pancreas4,
                                                             dataset.interdatasets$pancreas5,dataset.interdatasets$pancreas6)),
   
-  imbalance_impacts = list(batch_free=F,target_train_num=1200, target_test_num=1000,fixed_train=T,fixed_test=F,
+  imbalance_impacts = list(batch_free=F,target_train_num=1200, target_test_num=1000,fixed_train=F,fixed_test=T,
                            type_pctgs = list(list(0.2,0.2,0.2,0.2,0.2),
                                              list(0.4,0.3,0.15,0.1,0.05),
                                              list(0.6,0.2,0.1,0.05,0.05),
@@ -315,7 +315,7 @@ experiments.parameters <- list(
                                                                    dataset.interdatasets$pancreas1,dataset.interdatasets$pancreas2,
                                                                    dataset.interdatasets$pancreas5,dataset.interdatasets$ADASD2)),
   
-  inter_diseases = list(batch_free=F,target_train_num=1200, target_test_num=800,
+  inter_diseases = list(batch_free=F,target_train_num=1200, target_test_num=800,fixed_train=F,fixed_test=F,
                         cv=FALSE,metrics=c('ARI','AMI','FMI'),marker_gene_file=NULL,use_intra_dataset=F,intra_dataset=list(),
                         use_inter_dataset=T,inter_dataset=list(dataset.interdatasets$PBMC5,dataset.interdatasets$PBMC6,
                                                                dataset.interdatasets$PBMC8,dataset.interdatasets$PBMC9,

@@ -181,20 +181,15 @@ experiments.base <- function(experiment, exp_config){
   }
   assign_results <- utils.label_unassigned(assign_results,T)
   ####cluster methods
-  if(exp_config$fixed_test&&exp_config$clustered)
+  if((!exp_config$fixed_test)||(!exp_config$clustered)){
     cluster_results <- if(experiment %in% c("batch_effects")) experiments.base.cluster(experiment,exp_config,total_dataset) else experiments.base.cluster(experiment,exp_config,test_dataset)
-      
-  if(experiment %in% c("batch_effects")) cluster_results <- cluster_results[test_samples,]
-  cluster_results <- utils.label_unassigned(cluster_results,F)
-  if(experiment %in% c("celltype_structure")){
-    current_celltype_hierarchy <<- utils.createCellTypeHierarchy(total_dataset,colData(total_dataset)$label)
-    current_celltype_weights <<- utils.createCellTypeWeights(total_dataset,colData(total_dataset)$label)
+    if(experiment %in% c("batch_effects")) cluster_results <- cluster_results[test_samples,]
+    cluster_results <- utils.label_unassigned(cluster_results,F)
+  }else{
+    print("test dataset is fixed and cluster results already generated")
+    cluster_results <- NULL
   }
-  #####analyze results
-  report_results <- experiments.analysis(experiment, assign_results,cluster_results,exp_config, 
-                                         train_dataset=train_dataset, test_dataset=test_dataset, 
-                                         total_dataset=total_dataset, have_test=have_test)
-  return(report_results)
+  return(list(experiment=experiment,assign_results=assign_results,cluster_results=cluster_results,exp_config=exp_config,train_dataset=train_dataset,test_dataset=test_dataset,total_dataset=total_dataset,have_test=have_test))
 }
 
 ###simple accuracy experiment
@@ -207,13 +202,14 @@ experiments.simple_accuracy <- function(experiment){
     experiments.config.update.train_test_datasets(experiment, train_dataset, test_dataset)
     # exp_config <- experiments.config.update(experiment, train_dataset, test_dataset,exp_config)
     base_results <- experiments.base(experiment,exp_config)
-    report_results <- bind_rows(base_results$analy_results)
-    pred_results <- bind_rows(base_results$pred_results)
-    output.sink(experiment,pred_results,report_results,exp_config)
-    plot.plot(experiment,report_results,pred_results,exp_config)
+    report_results <- do.call(experiments.analysis,base_results)
+    analy_results <- bind_rows(report_results$analy_results)
+    pred_results <- bind_rows(report_results$pred_results)
+    output.sink(experiment,pred_results,analy_results,exp_config)
+    plot.plot(experiment,analy_results,pred_results,exp_config)
     utils.clean_marker_files()
     print(str_glue("{experiment} train_dataset={train_dataset}"))
-    print(report_results)
+    print(analy_results)
   }
   summarize_experiments(experiment)
 }
@@ -244,11 +240,19 @@ experiments.cell_number <- function(experiment){
       val <- if(exp_config$fixed_train) exp_config$target_test_num else exp_config$target_train_num
       print(str_glue('target sample num={val}'))
       base_results <- experiments.base(experiment,exp_config)
-      results <- base_results$analy_results%>% 
+      if(exp_config$fixed_test){
+        if(!purrr::is_null(base_results$cluster_results)){
+          clustered_results <- base_results$cluster_results
+        }else{
+          base_results$cluster_results <- clustered_results
+        }
+      }
+      report_results <- do.call(experiments.analysis,base_results)
+      results <- report_results$analy_results%>% 
         purrr::map(~{
          .$sample_num <- val
          return(.)})
-      raw_results <- base_results$pred_results
+      raw_results <- report_results$pred_results
       raw_results$sample_num <- val
       combined_assign_results[[i]] <- bind_rows(results[grepl(".*_assign_.*",names(results))])
       combined_cluster_results[[i]] <- bind_rows(results[grepl(".*cluster.*",names(results))])
@@ -295,12 +299,20 @@ experiments.sequencing_depth <- function(experiment){
       exp_config <-  experiments.config.update(experiment, train_dataset, test_dataset,exp_config)
       low_quant <- exp_config$low_quantile
       high_quant <- exp_config$high_quantile
-      results_base <- experiments.base(experiment,exp_config)
-      results <- results_base$analy_results %>%
+      base_results <- experiments.base(experiment,exp_config)
+      if(exp_config$fixed_test){
+        if(!purrr::is_null(base_results$cluster_results)){
+          clustered_results <- base_results$cluster_results
+        }else{
+          base_results$cluster_results <- clustered_results
+        }
+      }
+      report_results <- do.call(experiments.analysis,base_results)
+      results <- report_results$analy_results %>%
         purrr::map(~{
           .$quantile <- str_glue("{round(low_quant,2)}-{round(high_quant,2)}")
           return(.)})
-      raw_results <- results_base$pred_results
+      raw_results <- report_results$pred_results
       raw_results$quantile <- str_glue("{round(low_quant,2)}-{round(high_quant,2)}")
       combined_assign_results[[i]] <- bind_rows(results[grepl(".*_assign_.*",names(results))])
       combined_cluster_results[[i]] <- bind_rows(results[grepl(".*cluster.*",names(results))])
@@ -350,17 +362,21 @@ experiments.celltype_structure <- function(experiment){
     config$level <- level
     config$sample_num <- (length(levels)-i+1)*exp_config$sample_num
     base_results <- experiments.base(experiment,config) 
+    current_celltype_hierarchy <<- utils.createCellTypeHierarchy(base_results$total_dataset,colData(base_results$total_dataset)$label)
+    current_celltype_weights <<- utils.createCellTypeWeights(base_results$total_dataset,colData(base_results$total_dataset)$label)
+    report_results <- do.call(experiments.analysis,base_results)
+    
     if(assign_test_dataset!=assign_train_dataset){
-      results <- base_results$analy_results%>% 
+      results <- report_results$analy_results%>% 
         purrr::map(~{
         .$level<-level
         return(.)})
     }else{
-      results <- base_results$analy_results%>% 
+      results <- report_results$analy_results%>% 
         purrr::map(~{.$level<-level
         return(.)})
     }
-    raw_results <- base_results$pred_results
+    raw_results <- report_results$pred_results
     raw_results$level <- level
     combined_assign_results[[i]] <- bind_rows(results[grepl(".*_assign_.*",names(results))])
     combined_cluster_results[[i]] <- bind_rows(results[grepl(".*cluster.*",names(results))])
@@ -416,11 +432,12 @@ experiments.batch_effects <- function(experiment){
     experiments.config.update.train_test_datasets(experiment, data_intersected[[1]], data_intersected[[2]])
     exp_config$batch_free <- F
     base_results <- experiments.base(experiment,exp_config)
-    results <- base_results$analy_results%>% 
+    report_results <- do.call(experiments.analysis,base_results)
+    results <- report_results$analy_results%>% 
       purrr::map(~{.$batch_effects_removed <- FALSE
       return(.)}
       )
-    raw_results <- base_results$pred_results
+    raw_results <- report_results$pred_results
     # raw_results$train_dataset <- experiments.assign.data$train_dataset[[experiment]]
     # raw_results$test_dataset <- experiments.assign.data$test_dataset[[experiment]]
     raw_results$batch_effects <- T
@@ -432,11 +449,12 @@ experiments.batch_effects <- function(experiment){
       print("in batch effects experiment, starting removing batch effects")
       exp_config$batch_free <- T
       base_results_no_be <- experiments.base(experiment,exp_config)
-      results_no_be <- base_results_no_be$analy_results%>% 
+      report_results_no_be <- do.call(experiments.analysis,base_results_no_be)
+      results_no_be <- report_results_no_be$analy_results%>% 
         purrr::map(~{.$batch_effects_removed <- T
         return(.)}
         )
-      raw_results_no_be <- base_results_no_be$pred_results
+      raw_results_no_be <- report_results_no_be$pred_results
       raw_results_no_be$batch_effects <- F
       utils.clean_marker_files()
       utils.remove_files(unlist(data_intersected))
@@ -475,8 +493,9 @@ experiments.inter_diseases <- function(experiment){
     experiments.config.update.train_test_datasets(experiment, train_dataset, test_dataset)
     # exp_config <-  experiments.config.update(experiment, train_dataset, test_dataset,exp_config)
     base_results <- experiments.base(experiment,exp_config)
-    results <- base_results$analy_results
-    raw_results <- base_results$pred_results
+    report_results <- do.call(experiments.analysis,base_results)
+    results <- report_results$analy_results
+    raw_results <- report_results$pred_results
     utils.clean_marker_files()
     results <- bind_rows(results)
     raw_results <- bind_rows(raw_results)
@@ -512,14 +531,22 @@ experiments.imbalance_impacts <- function(experiment){
       exp_config$current_increment_index <- i-1
       exp_config <- experiments.config.update(experiment, train_dataset, test_dataset,exp_config)
       entropy <- round(utils.calc_entropy(type_pctgs[[i]]),2)
-      results_base <- experiments.base(experiment,exp_config)
-      results <- results_base$analy_results %>%
+      base_results <- experiments.base(experiment,exp_config)
+      if(exp_config$fixed_test){
+        if(!purrr::is_null(base_results$cluster_results)){
+          clustered_results <- base_results$cluster_results
+        }else{
+          base_results$cluster_results <- clustered_results
+        }
+      }
+      report_results <- do.call(experiments.analysis,base_results)
+      results <- report_results$analy_results %>%
         purrr::map(~{
           .$imbl_entropy <- entropy
           return(.)})
-      raw_results <- results_base$pred_results
+      raw_results <- report_results$pred_results
       raw_results$imbl_entropy <- entropy
-      single_method_result <- results_base$single_method_result
+      single_method_result <- report_results$single_method_result
       single_method_result$imbl_entropy <- entropy
       combined_assign_results[[i]] <- bind_rows(results[grepl(".*_assign_.*",names(results))])
       combined_cluster_results[[i]] <- bind_rows(results[grepl(".*cluster.*",names(results))])

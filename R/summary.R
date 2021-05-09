@@ -53,7 +53,7 @@ summary.cell_number <- function(exp_config){
   combined_prop_metric_results <- left_join(metric_results,dataset_prop,by=c("train_dataset","test_dataset","sample_num"))
   combined_prop_other_results <- left_join(other_results,dataset_prop,by=c("train_dataset","test_dataset","sample_num"))
   combined_prop_unsup_other_results <- left_join(unsup_other_results,dataset_prop,by=c("train_dataset","test_dataset","sample_num"))
-  summary.output_excel(experiment,combined_prop_metric_results=combined_prop_metric_results,
+  summary.output_excel(experiment,exp_config,combined_prop_metric_results=combined_prop_metric_results,
                        combined_prop_unlabeled_pctg_results=combined_prop_other_results,
                        combined_prop_unsup_other_results=combined_prop_unsup_other_results)
 }
@@ -78,7 +78,7 @@ summary.sequencing_depth <- function(exp_config){
   combined_prop_metric_results <- left_join(metric_results,dataset_prop,by=c("dataset","quantile"))
   combined_prop_other_results <- left_join(other_results,dataset_prop,by=c("dataset","quantile"))
   combined_prop_unsup_other_results <- left_join(unsupervised_other_results,dataset_prop,by=c("dataset","quantile"))
-  summary.output_excel(experiment,combined_prop_metric_results=combined_prop_metric_results,
+  summary.output_excel(experiment,exp_config,combined_prop_metric_results=combined_prop_metric_results,
                        combined_prop_unlabeled_pctg_results=combined_prop_other_results,
                        combined_prop_unsup_other_results=combined_prop_unsup_other_results)
 }
@@ -103,7 +103,7 @@ summary.simple_accuracy <- function(exp_config){
   combined_prop_metric_results <- left_join(metric_results,dataset_prop,by=c("dataset"))
   combined_prop_sup_other_results <- left_join(supervised_other_results,dataset_prop,by=c("dataset"))
   combined_prop_unsup_other_results <- left_join(unsupervised_other_results,dataset_prop,by=c("dataset"))
-  summary.output_excel(experiment,combined_prop_metric_results=combined_prop_metric_results,
+  summary.output_excel(experiment,exp_config,combined_prop_metric_results=combined_prop_metric_results,
                        combined_prop_unlabeled_pctg_results=combined_prop_sup_other_results,
                        combined_prop_unsup_other_results=combined_prop_unsup_other_results)
 }
@@ -131,7 +131,7 @@ summary.inter_diseases <- function(exp_config){
   combined_prop_metric_results <- left_join(metric_results,dataset_prop,by=c("train_dataset","test_dataset"))
   combined_prop_other_results <- left_join(other_results,dataset_prop,by=c("train_dataset","test_dataset"))
   combined_prop_unsup_other_results <- left_join(unsup_other_results,dataset_prop,by=c("train_dataset","test_dataset"))
-  summary.output_excel(experiment,combined_prop_metric_results=combined_prop_metric_results,
+  summary.output_excel(experiment,exp_config,combined_prop_metric_results=combined_prop_metric_results,
                        combined_prop_unlabeled_pctg_results=combined_prop_other_results,
                        combined_prop_unsup_other_results=combined_prop_unsup_other_results)
 }
@@ -157,7 +157,7 @@ summary.batch_effects <- function(exp_config){
   combined_prop_metric_results <- left_join(metric_results,dataset_prop,by=c("train_dataset","test_dataset","batch_effects_removed"))
   combined_prop_other_results <- left_join(other_results,dataset_prop,by=c("train_dataset","test_dataset","batch_effects_removed"))
   combined_prop_unsup_other_results <- left_join(unsup_other_results,dataset_prop,by=c("train_dataset","test_dataset","batch_effects_removed"))
-  summary.output_excel(experiment,combined_prop_metric_results=combined_prop_metric_results,
+  summary.output_excel(experiment,exp_config,combined_prop_metric_results=combined_prop_metric_results,
                        combined_prop_unlabeled_pctg_results=combined_prop_other_results,
                        combined_prop_unsup_other_results=combined_prop_unsup_other_results)
 }
@@ -190,7 +190,7 @@ summary.imbalance_impacts <- function(experiment){
     single_type_results <- melt(single_type_results, id.vars=c("dataset","method","type","type_pctg","supervised","imbl_entropy"))
   }
   
-  summary.output_excel(experiment,combined_prop_metric_results=combined_prop_metric_results,
+  summary.output_excel(experiment,exp_config,combined_prop_metric_results=combined_prop_metric_results,
                        combined_prop_unlabeled_pctg_results=combined_prop_other_results,
                        combined_prop_unsup_other_results=combined_prop_unsup_other_results,
                        single_type_results=single_type_results)
@@ -287,14 +287,22 @@ summary.read_results_from_dir <- function(current_dir,file_name="results.rds"){
 }
 
 
-summary.output_excel <- function(experiment,...){
+summary.output_excel <- function(experiment,exp_config,...){
   require(xlsx)
   require(pivottabler)
   results <- list(...)
   combined_prop_metric_results <- results$combined_prop_metric_results
   combined_prop_unlabeled_pctg_results <- results$combined_prop_unlabeled_pctg_results
   combined_prop_unsup_other_results <- results$combined_prop_unsup_other_results
-  excel_file_name <- str_glue("{result_home}{experiment}/{experiment}_summarized_results.xlsx")
+  if(exp_config$fixed_train&&(!exp_config$fixed_test)){
+    suffix <- "_train_fixed"
+  }else if(exp_config$fixed_test&&(!exp_config$fixed_train)){
+    suffix <- "_test_fixed"
+  }else{
+    suffix <- ""
+  }
+  
+  excel_file_name <- str_glue("{result_home}{experiment}/{experiment}{suffix}_summarized_results.xlsx")
   wb <- xlsx::createWorkbook()
   title_style <- CellStyle(wb) +
     Font(wb, heightInPoints = 16,
