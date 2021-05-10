@@ -5,7 +5,7 @@ run_assign_methods <- function(method,train_data, test_data,exp_config){
          scmap_cluster = assign.scmap_cluster(train_data, test_data, exp_config),
          scmap_cell = assign.scmap_cell(train_data, test_data, exp_config),
          chetah = assign.chetah(train_data, test_data),
-         cellassign = assign.cellassign(train_data,exp_config),
+         cellassign = assign.cellassign(train_data,test_data,exp_config),
          garnett = assign.garnett(train_data,test_data,exp_config),
          singlecellnet = assign.singlecellnet(train_data,test_data, exp_config),
          singleR = assign.singleR(train_data,test_data, exp_config),
@@ -298,14 +298,15 @@ assign.garnett.generate_marker_file <- function(markers_mat,marker_file_path,gen
 
 
 ###assigning using cellassign
-assign.cellassign <- function(data,exp_config){
+assign.cellassign <- function(train_data,test_data,exp_config){
   require(tensorflow)
   require(cellassign)
   require(scran)
-  stopifnot(is(data,"SingleCellExperiment"))
+  stopifnot(is(train_data,"SingleCellExperiment"))
+  stopifnot(is(test_data,"SingleCellExperiment"))
   m_config <- if(purrr::is_null(exp_config$batch_free) || !exp_config$batch_free || !exists("methods.config.cellassign.batch_free")) methods.config.cellassign else methods.config.cellassign.batch_free
   marker_gene_file <- exp_config$marker_gene_file
-  study_name <- metadata(data)$study_name[[1]]
+  study_name <- metadata(train_data)$study_name[[1]]
   gene_name_type <- dataset.properties[[study_name]]$gene_name_type
   
   if(experiment %in% c("celltype_structure")){
@@ -315,16 +316,16 @@ assign.cellassign <- function(data,exp_config){
     generated_marker_gene_file <- str_glue("{study_name}_markergene_{m_config$marker_gene_method}_{gene_name_type}")
   }
   marker_gene_method <- m_config$marker_gene_method
-  check_results <- utils.check_marker_genes(data,marker_gene_file, generated_marker_gene_file,marker_gene_method) 
+  check_results <- utils.check_marker_genes(train_data,marker_gene_file, generated_marker_gene_file,marker_gene_method) 
   markers_mat <- check_results$markers_mat
   if(length(markers_mat)==0) throw("markers_mat failed to generate in cellassign")
   matchidx <- check_results$matchidx
-  counts(data) <- as.matrix(counts(data))
-  data$celltypes <- colData(data)$label
-  s <- computeSumFactors(data) %>% 
+  counts(test_data) <- as.matrix(counts(test_data))
+  test_data$celltypes <- colData(test_data)$label
+  s <- computeSumFactors(test_data) %>% 
     sizeFactors()
   
-  fit <- cellassign(exprs_obj = data[na.omit(matchidx),], 
+  fit <- cellassign(exprs_obj = test_data[na.omit(matchidx),], 
                     marker_gene_info = markers_mat, 
                     s = s, 
                     learning_rate = m_config$learning_rate, 

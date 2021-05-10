@@ -344,12 +344,12 @@ utils.update_batch_effects_free_config <- function(experiment){
   }
   
   # experiments.methods[[experiment]]$marker_gene_assign <<- experiments.methods[[experiment]]$marker_gene_assign_batch_free
-  print(str_glue("batch effects free marker gene methods are: {experiments.methods[[experiment]]$marker_gene_assign}"))
-  for(m in experiments.methods[[experiment]]$marker_gene_assign){
-    if(exists(str_glue("methods.config.{m}.batch_free"))){
-      assign(str_glue("methods.config.{m}"),get(str_glue("methods.config.{m}.batch_free")),envir = .GlobalEnv)
-    }
-  }
+  # print(str_glue("batch effects free marker gene methods are: {experiments.methods[[experiment]]$marker_gene_assign}"))
+  # for(m in experiments.methods[[experiment]]$marker_gene_assign){
+  #   if(exists(str_glue("methods.config.{m}.batch_free"))){
+  #     assign(str_glue("methods.config.{m}"),get(str_glue("methods.config.{m}.batch_free")),envir = .GlobalEnv)
+  #   }
+  # }
 }
 
 utils.try_catch_method_error <- function(code, silent=FALSE){

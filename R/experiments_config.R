@@ -31,7 +31,7 @@ experiments.assign.data <- list(
   )
   
 ##for batch effects removed, scmap and singlecellnet doesn't work
-experiments.methods.base_config <- list(cluster=c('seurat','tscan','sc3','liger','cidr','monocle3','pcaReduce'),assign=c('scmap_cluster','scmap_cell','chetah','singlecellnet','garnett','singleR'),marker_gene_assign=c("cellassign"))
+experiments.methods.base_config <- list(cluster=c('seurat','tscan','sc3','liger','cidr','monocle3','pcaReduce'),assign=c("cellassign",'scmap_cluster','scmap_cell','chetah','singlecellnet','garnett','singleR'))
 experiments.methods <- list(
   simple_accuracy=experiments.methods.base_config, 
   cell_number=experiments.methods.base_config,
@@ -377,6 +377,8 @@ experiments.config.update.simple_accuracy <-function(train_dataset, test_dataset
   # exp_config$train_sample_pctg <- experiments.parameters.simple_accuracy[[train_dataset]]$train_sample_pctg
   # exp_config$test_sample_pctg <- experiments.parameters.simple_accuracy[[test_dataset]]$test_sample_pctg
   # exp_config
+  exp_config$have_test <- if(exp_config$cv) F else T
+  exp_config
 }
 
 experiments.config.update.cell_number <-function(train_dataset, test_dataset=NULL, exp_config){
@@ -399,7 +401,9 @@ experiments.config.update.cell_number <-function(train_dataset, test_dataset=NUL
     }
     increment
   }
+  exp_config$have_test <- if(exp_config$cv) F else T
   exp_config$trained <- F
+  exp_config$clustered <- F
   if(exp_config$fixed_train){
     exp_config$trained <- if(exp_config$current_increment_index==0) F else T
     test_dataset_name <- str_split(test_dataset,"\\.")[[1]][[1]]
@@ -436,7 +440,9 @@ experiments.config.update.sequencing_depth <-function(train_dataset, test_datase
     }
     increment
   }
+  exp_config$have_test <- if(exp_config$cv) F else T
   exp_config$trained <- F
+  exp_config$clustered <- F
   if(exp_config$fixed_train){
     exp_config$trained <- if(exp_config$current_increment_index==0) F else T
     test_dataset_name <- str_split(test_dataset,"\\.")[[1]][[1]]
@@ -465,6 +471,8 @@ experiments.config.update.batch_effects <- function(train_dataset, test_dataset=
   # exp_config$train_sample_pctg <- experiments.parameters.batch_effects[[train_dataset]]$train_sample_pctg
   # exp_config$test_sample_pctg <- experiments.parameters.batch_effects[[test_dataset]]$test_sample_pctg
   # exp_config
+  exp_config$have_test <- if(exp_config$cv) F else T
+  exp_config
 }
 
 
@@ -472,11 +480,15 @@ experiments.config.update.inter_diseases <- function(train_dataset, test_dataset
   # exp_config$train_sample_pctg <- experiments.parameters.inter_diseases[[train_dataset]]$train_sample_pctg
   # exp_config$test_sample_pctg <- experiments.parameters.inter_diseases[[test_dataset]]$test_sample_pctg
   # exp_config
+  exp_config$have_test <- if(exp_config$cv) F else T
+  exp_config
 }
 
 experiments.config.update.imbalance_impacts <- function(train_dataset, test_dataset=NULL, exp_config){
+  exp_config$have_test <- if(exp_config$cv) F else T
   exp_config$type_pctg <- exp_config$type_pctgs[[exp_config$current_increment_index+1]]
   exp_config$trained <- F
+  exp_config$clustered <- F
   if(exp_config$fixed_train){
     exp_config$trained <- if(exp_config$current_increment_index==0) F else T
   }
@@ -542,6 +554,7 @@ experiments.config.update.unknown_types <-function(train_dataset, test_dataset=N
   dataset.properties$Segerstolpe_pancreas$cell_types <<- c('beta','alpha','delta','epsilon','mast','MHC class II',
                                                       'acinar','ductal','gamma','mesenchymal','PSC',
                                                       'endothelial')
+  exp_config$have_test <- if(exp_config$cv) F else T
   exp_config$trained <- F
   exp_config$clustered <- F
   if(!purr::is_null(dataset.propertie[[train_dataset]]$cell_types)){
