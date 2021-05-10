@@ -45,7 +45,8 @@ experiments.methods <- list(
   inter_species = experiments.methods.base_config,
   random_noise = experiments.methods.base_config, 
   inter_protocol = experiments.methods.base_config,
-  imbalance_impacts = experiments.methods.base_config
+  imbalance_impacts = experiments.methods.base_config,
+  unknown_types = experiments.methods.base_config
 )
 
 
@@ -332,15 +333,16 @@ experiments.parameters <- list(
   
                         ),
 
-  celltype_detection=list( cv=F,cv_fold=NULL, metrics=c('ARI','AMI','FMI'), batch_free=F,fixed_train=T,fixed_test=F,
+  unknown_types=list( cv=F,cv_fold=NULL, metrics=c('ARI','AMI','FMI'), batch_free=F,fixed_train=T,fixed_test=F,
                            marker_gene_file=NULL,trained=F,target_train_num=1200, target_test_num=800,
                            test_num=4, use_intra_dataset=F,intra_dataset=list(),
                            use_inter_dataset=T,inter_dataset=list(dataset.interdatasets$PBMC1,dataset.interdatasets$PBMC2,
                                                                   dataset.interdatasets$PBMC3,dataset.interdatasets$PBMC4,
                                                                   dataset.interdatasets$PBMC7,dataset.interdatasets$PBMC10,
                                                                   dataset.interdatasets$pancreas1,dataset.interdatasets$pancreas2,
-                                                                  dataset.interdatasets$pancreas5)
-                          ),
+                                                                  dataset.interdatasets$pancreas5,dataset.interdatasets$ADASD2,
+                                                                  dataset.interdatasets$midbrain2)
+                           ),
   celltype_complexity = list(),
   inter_species = list(),
   random_noise = list(),
@@ -362,6 +364,7 @@ experiments.config.update <- function(experiment, train_dataset, test_dataset=NU
          random_noise = experiments.config.update.random_noise(train_dataset, test_dataset, exp_config),
          inter_protocol = experiments.config.update.inter_protocol(train_dataset, test_dataset, exp_config),
          imbalance_impacts = experiments.config.update.imbalance_impacts(train_dataset, test_dataset, exp_config),
+         unknown_types = experiments.config.update.unknown_types(train_dataset, test_dataset, exp_config),
          stop("Unkown experiments")
          )
 }
@@ -531,27 +534,52 @@ experiments.config.update.celltype_number <-function(train_dataset, test_dataset
 
 
 
-experiments.config.update.celltype_detection <-function(train_dataset, test_dataset=NULL, exp_config){
-  exp_config$trained <- F
-  train_data <- utils.load_datasets(train_dataset) 
-  train_type <- unique(colData(train_data)$label)
-  test_data <- utils.load_datasets(test_dataset)
-  test_type <- unique(colData(test_data)$label)
+experiments.config.update.unknown_types <-function(train_dataset, test_dataset=NULL, exp_config){
   
+  dataset.properties$Muraro_pancreas$cell_types <<- c('beta','alpha','delta','epsilon',
+                                                      'acinar','ductal','gamma','mesenchymal',
+                                                        'endothelial')
+  dataset.properties$Segerstolpe_pancreas$cell_types <<- c('beta','alpha','delta','epsilon','mast','MHC class II',
+                                                      'acinar','ductal','gamma','mesenchymal','PSC',
+                                                      'endothelial')
+  exp_config$trained <- F
+  exp_config$clustered <- F
+  if(!purr::is_null(dataset.propertie[[train_dataset]]$cell_types)){
+    train_type <- as.list(dataset.propertie[[train_dataset]]$cell_types)
+  }else{
+    train_data <- utils.load_datasets(train_dataset)
+    train_type <- unique(colData(train_data)$label) 
+  }
+  
+  if(!purr::is_null(dataset.propertie[[test_dataset]]$cell_types)){
+    test_type <- as.list(dataset.propertie[[test_dataset]]$cell_types)
+  }else{
+    test_data <- utils.load_datasets(test_dataset)
+    test_type <- unique(colData(test_data)$label) 
+  }
+  
+  common_type <- intersect(train_type,test_type)
   if(exp_config$fixed_train){
-    exp_config$trained <- T
+    exp_config$trained <- if(exp_config$current_increment_index==1) F else T
     test_dataset_name <- str_split(test_dataset,"\\.")[[1]][[1]]
+    diff_type <- setdiff(test_type,common_type)
+    if(purrr::is_null(exp_config$increment)){
+      exp_config$increment <- floor(length(diff_type)/exp_config$test_num)
+      while(exp_config$increment==0){  
+        exp_config$test_num <- exp_config$test_num-1
+        stopifnot(exp_config$test_num>=2)
+        exp_config$increment <- floor(length(diff_type)/exp_config$test_num)
+      }
+    }
+    exp_config$unknown_num <- floor(exp_config$current_increment_index*increment)
+    exp_config$sample_type <- c(diff_type[1:(exp_config$unknown_num)],common_type) 
+    exp_config$train_type <- train_type
+    exp_config$unknown_type <- diff_type[1:(exp_config$unknown_num)]
     print("test dataset={test_dataset_name}")
   }
-  if(exp_config$fixed_test){
-    train_dataset_name <- str_split(train_dataset,"\\.")[[1]][[1]]
-    increment <- calculate_type_increment(train_dataset, exp_config, if_train=T)
-    print("train dataset={train_dataset_name}")
-  }
-  unknown_type <- setdiff(test_type,train_type)
-  exp_config$unknown_type <- unknown_type[!is.na(unknown_type)]
   exp_config
 }
+
 
 
 experiments.config.update.train_test_datasets <- function(experiment, train_dataset, test_dataset){

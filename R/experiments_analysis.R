@@ -13,6 +13,7 @@ experiments.analysis <- function(experiment, assign_results,cluster_results,exp_
          random_noise = experiments.analysis.random_noise(assign_results,cluster_results,exp_config,...),
          inter_protocol = experiments.analysis.inter_protocol(assign_results,cluster_results,exp_config,...),
          imbalance_impacts = experiments.analysis.imbalance_impacts(assign_results,cluster_results,exp_config,...),
+         unknown_types = experiments.analysis.unknown_types(assign_results,cluster_results,exp_config,...),
          stop("Wrong experiment")
   )
 }
@@ -123,10 +124,17 @@ experiments.analysis.inter_diseases <- function(assign_results,cluster_results,e
 
 experiments.analysis.imbalance_impacts <- function(assign_results,cluster_results,exp_config,...){
   require(tidyverse)
+  extra_args <- list(...)
+  train_dataset <- extra_args$train_dataset
+  test_dataset <- extra_args$test_dataset
   
   report_results <- experiments.analysis.base(assign_results,cluster_results,exp_config)
   combined_results <- bind_cols(assign_results,dplyr::select(cluster_results,-label))
-  type_pctg <- dplyr::group_by(combined_results, label) %>% dplyr::summarize(type_pctg=round(n()/length(combined_results$label),2))
+  if(exp_config$fixed_train){
+    type_pctg <- dplyr::group_by(as.data.frame(colData(test_dataset)), label) %>% dplyr::summarize(type_pctg=round(n()/length(colnames(test_dataset)),2))
+  }else{
+    type_pctg <- dplyr::group_by(as.data.frame(colData(train_dataset)), label) %>% dplyr::summarize(type_pctg=round(n()/length(colnames(train_dataset)),2))
+  }
   cell_types <- type_pctg$label
   methods <- colnames(combined_results)[colnames(combined_results)!="label"]
   supervised_methods <- colnames(assign_results)[colnames(assign_results)!="label"]
@@ -176,6 +184,61 @@ experiments.analysis.imbalance_impacts <- function(assign_results,cluster_result
 
 
 
+experiments.analysis.unknown_types <- function(assign_results,cluster_results,exp_config,...){
+  require(tidyverse)
+  
+  report_results <- experiments.analysis.base(assign_results,cluster_results,exp_config)
+  combined_results <- bind_cols(assign_results,dplyr::select(cluster_results,-label))
+  unknown_type <- exp_config$unknown_type
+  methods <- colnames(combined_results)[colnames(combined_results)!="label"]
+  supervised_methods <- colnames(assign_results)[colnames(assign_results)!="label"]
+  unsupervised_methods <- colnames(cluster_results)[colnames(cluster_results)!="label"]
+  single_method_result <- bind_rows(purrr::map(methods, function(method){
+    if(method %in% unsupervised_methods){
+      type_accuracy_f1 <- bind_rows(purrr::map(unknown_type, function(type){ method_pred_true <- dplyr::select(combined_results,method,label) 
+      type_pred_true <- dplyr::filter(method_pred_true,label==type)
+      unique_clusters <- unique(type_pred_true[[method]])                                                
+      cluster_f_betas <- purrr::map(unique_clusters,function(cluster_num){ 
+        analysis.cluster.fbeta(method_pred_true$label,method_pred_true[[method]],1,type,cluster_num)
+      })
+      max_fscore_cluster <- unique_clusters[[which.max(cluster_f_betas)]]
+      list(f1=max(unlist(cluster_f_betas)),acc=sum(type_pred_true[[method]]==max_fscore_cluster)/nrow(type_pred_true))
+      }))
+      type_accuracy <- mean(type_accuracy_f1$acc)
+      type_f1 <- mean(type_accuracy_f1$f1)
+      type_unassigned_pctg <- NA
+      supervised <- F
+    }else if(method %in% supervised_methods){
+      type_unassigned_pctg <- mean(purrr::map_dbl(unknown_type, function(type){ type_pred_true <- dplyr::select(combined_results,method,label) %>% dplyr::filter(label==type)
+                                                                                 analysis.assign.unlabeled_pctg(type_pred_true$label,type_pred_true[[method]])
+                                                                               }
+                                                  )
+                                   )
+      
+      type_accuracy <- mean(purrr::map_dbl(unknown_type, function(type){ type_pred <- dplyr::select(combined_results,method,label) %>% dplyr::filter(label==type) 
+                                                                         type_pred.unassigned <- type_pred[which(type_pred[,1]=="unassigned"),] 
+                                                                         type_pred.unassigned[,1] <- type_pred.unassigned[,2]
+                                                                         type_pred.label.T <- type_pred[which(type_pred[,1]==type_pred[,2]),] 
+                                                                         type_pred.label.T[,1] <- rep("unassigned",length(type_pred.label.T[,1]))
+                                                                         type_pred.label.F <- type_pred[which(type_pred[,1]!=type_pred[,2] & type_pred[,1] !="unassigned"),] 
+                                                                         type_pred_true <- rbind(type_pred.unassigned,type_pred.label.T,type_pred.label.F)
+                                                                         analysis.assign.accuracy(type_pred_true$label,type_pred_true[[method]])
+                                                                        }
+                                           )
+                            )
+      type_f1 <- NA
+      supervised <- T
+    }else{
+      stop(str_glue("unkown method={method}"))
+    }
+    tibble(method=method,unknown_celltype=unknown_type,unlabeled_pctg=type_unassigned_pctg, type_accuracy=type_accuracy,type_f1=type_f1, supervised=supervised)
+  }))
+  experiments.analysis.attach_dataset_props("celltype_detection",exp_config,report_results=report_results,
+                                            combined_results=combined_results,
+                                            single_method_result=single_method_result,...)
+}
+
+
 ######calculate dataset properties and attach to results
 ####attached train and test dataset properties to experiment results
 experiments.analysis.attach_dataset_props <- function(experiment,exp_config,...){
@@ -186,7 +249,7 @@ experiments.analysis.attach_dataset_props <- function(experiment,exp_config,...)
   have_test <- extra_args$have_test
   report_results <- extra_args$report_results
   combined_results <- extra_args$combined_results
-  if(experiment %in% c("imbalance_impacts")) single_method_result <-  extra_args$single_method_result
+  if(experiment %in% c("imbalance_impacts","celltype_detection")) single_method_result <-  extra_args$single_method_result
   if(have_test){
     if(experiment %in% c("batch_effects")) batch_effects_quant = analysis.dataset.batch_effects(train_dataset, test_dataset)
     train_data_props <- analysis.dataset.properties(train_dataset)
@@ -232,7 +295,7 @@ experiments.analysis.attach_dataset_props <- function(experiment,exp_config,...)
       })
     }
     combined_results[["dataset"]] <- data_props[["dataset"]]
-    if(experiment %in% c("imbalance_impacts")){
+    if(experiment %in% c("imbalance_impacts","celltype_detection")){
       single_method_result[["dataset"]] <- data_props[["dataset"]]
     }
   }
@@ -241,4 +304,6 @@ experiments.analysis.attach_dataset_props <- function(experiment,exp_config,...)
   }else{
     return(list(pred_results=combined_results,analy_results=report_results))
   }
-}
+}  
+  
+  

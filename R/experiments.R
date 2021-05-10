@@ -38,6 +38,7 @@ runExperiments <- function(experiment=c("simple_accuracy","cell_number","celltyp
          random_noise = experiments.random_noise(experiment),
          inter_protocol = experiments.inter_protocol(experiment),
          imbalance_impacts = experiments.imbalance_impacts(experiment),
+         unknown_types = experiments.unknown_types(experiment),
          stop("Unkown experiments")
          )
 }
@@ -624,41 +625,62 @@ experiments.unknown_types <- function(experiment){
   exp_config <- experiments.parameters[[experiment]]
   experiments.config.check_config(exp_config)
   used_dataset <- if(exp_config$use_intra_dataset) exp_config$intra_dataset else exp_config$inter_dataset
-  for(i in seq_along(used_dataset)){
+  for(j in seq_along(used_dataset)){
     exp_config <- experiments.parameters[[experiment]]
     if(exp_config$use_intra_dataset){
-      train_dataset <- used_dataset[[i]]
-      test_dataset <- used_dataset[[i]]
+      train_dataset <- used_dataset[[j]]
+      test_dataset <- used_dataset[[j]]
     }else{
-      train_dataset <- used_dataset[[i]]$train_dataset
-      test_dataset <- used_dataset[[i]]$test_dataset
+      train_dataset <- used_dataset[[j]]$train_dataset
+      test_dataset <- used_dataset[[j]]$test_dataset
     }
     experiments.config.update.train_test_datasets(experiment, train_dataset, test_dataset)
     test_num <- exp_config$test_num
     combined_cluster_results <- vector('list',test_num)
     combined_assign_results <- vector('list',test_num)
     combined_raw_results <- vector('list',test_num)
-    
-    exp_config <- experiments.config.update(experiment, train_dataset, test_dataset,exp_config)
-    base_results <- experiments.base(experiment,exp_config)
-    results <- base_results$analy_results %>%
-      purrr::map(~{
-        .$unknown_num <- length(exp_config$unknown_type)
-        return(.)})
-    combined_assign_results <- bind_rows(results[grepl(".*_assign_.*",names(results))])
-    combined_cluster_results <- bind_rows(results[grepl(".*cluster.*",names(results))])
-    single_method_results <- base_results$single_method_result
-    single_method_results$unknown_num <- length(exp_config$unknown_type)
-    combined_raw_results <- bind_rows(base_results$pred_results)
-    combined_raw_results$unknown_num <- length(exp_config$unknown_type)
+    single_method_results <- vector('list',test_num)
+    for(i in 1:test_num){
+      exp_config$current_increment_index <- i
+      exp_config <- experiments.config.update(experiment, train_dataset, test_dataset,exp_config)
+      if(i > exp_config$test_num) break
+      val <- exp_config$unknown_num
+      print(str_glue('type sample num={val}'))
+      base_results <- experiments.base(experiment,exp_config)
+      if(exp_config$fixed_test){
+        if(!purrr::is_null(base_results$cluster_results)){
+          clustered_results <- base_results$cluster_results
+        }else{
+          base_results$cluster_results <- clustered_results
+        }
+      }
+      report_results <- do.call(experiments.analysis,base_results)
+      results <- report_results$analy_results%>% 
+        purrr::map(~{
+          .$unknown_num <- val
+          return(.)})
+      raw_results <- report_results$pred_results
+      raw_results$unknown_num <- val
+      single_method_result <- report_results$single_method_result
+      single_method_result$unknown_num <- val
+      combined_assign_results[[i]] <- bind_rows(results[grepl(".*_assign_.*",names(results))])
+      combined_cluster_results[[i]] <- bind_rows(results[grepl(".*cluster.*",names(results))])
+      combined_raw_results[[i]] <- raw_results
+      single_method_results[[i]] <- single_method_result
+    }
+    combined_assign_results <- bind_rows(combined_assign_results)
+    combined_cluster_results <- bind_rows(combined_cluster_results)
+    combined_raw_results <- bind_rows(combined_raw_results)
+    combined_single_method_results <- bind_rows(single_method_results)
     final_results <- bind_rows(combined_assign_results,combined_cluster_results)
-    output.sink(experiment,combined_raw_results,final_results,exp_config,single_method_results=single_method_results)
-    plot.plot(experiment,final_results,combined_raw_results, exp_config,single_method_results)
+    output.sink(experiment,combined_raw_results,final_results,exp_config,single_method_results=combined_single_method_results)
+    plot.plot(experiment,final_results,combined_raw_results, exp_config,single_method_results=combined_single_method_results)
     utils.clean_marker_files()
     print(str_glue("{experiment} train_dataset={train_dataset}, test_dataset={test_dataset}"))
     print(final_results)
   }
   summarize_experiments(experiment)
+  
 }
 
 

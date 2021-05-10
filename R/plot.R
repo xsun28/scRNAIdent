@@ -325,9 +325,9 @@ plot.imbalance_impacts <- function(results,raw_results,fig_path,...){
     methods <- colnames(dplyr::select(raw_results1,-c(label,imbl_entropy)))
     
     if("train_dataset" %in% colnames(raw_results1)){
-      raw_results1 <- gather(raw_results1,"methods","pred",-c(label,sample_num,train_dataset,test_dataset))
+      raw_results1 <- gather(raw_results1,"methods","pred",-c(label,imbl_entropy,train_dataset,test_dataset))
     }else{
-      raw_results1 <- gather(raw_results1,"methods","pred",-c(label,sample_num,dataset))
+      raw_results1 <- gather(raw_results1,"methods","pred",-c(label,imbl_entropy,dataset))
     }  
     raw_results1 <- group_by(raw_results1, methods,label,pred) %>%
       summarize(freq=n()) %>%
@@ -520,9 +520,9 @@ plot.sequencing_depth <- function(results,raw_results,fig_path){
     raw_results1 <- raw_results[raw_results$quantile==quantile,]
     methods <- colnames(dplyr::select(raw_results1,-c("label","quantile")))
     if("train_dataset" %in% colnames(raw_results1)){
-      raw_results1 <- gather(raw_results1,"methods","pred",-c(label,sample_num,train_dataset,test_dataset))
+      raw_results1 <- gather(raw_results1,"methods","pred",-c(label,quantile,train_dataset,test_dataset))
     }else{
-      raw_results1 <- gather(raw_results1,"methods","pred",-c(label,sample_num,dataset))
+      raw_results1 <- gather(raw_results1,"methods","pred",-c(label,quantile,dataset))
     }  
     raw_results1 <- group_by(raw_results1, methods,label,pred) %>%
       summarize(freq=n()) %>%

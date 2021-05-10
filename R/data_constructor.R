@@ -19,6 +19,7 @@ constructor.data_constructor <- function(data,config,experiment,if_train=TRUE,sa
     random_noise = constructor.random_noise(data,config,if_train,sample_seed),
     inter_protocol = constructor.inter_protocol(data,config,if_train,sample_seed),
     imbalance_impacts = constructor.imbalance_impacts(data,config,if_train,sample_seed),
+    unknown_types = constructor.unknown_types(data,config,if_train,sample_seed),
     stop("Can't constructor dataset for unkown experiments")
   )
 }
@@ -190,6 +191,24 @@ constructor.type_architecturer <- function(config,dataset){
 constructor.inter_diseases <- function(data,config,if_train,sample_seed=NULL){
   constructor.base(data,config,if_train,sample_seed)
 }
+
+constructor.unknown_types <- function(data,config,if_train,sample_seed=NULL){
+  if(if_train){
+    train_sample_pctg <- if(purrr::is_null(config$train_sample_pctg)) utils.calculate_sampling_pctg(data, config$target_train_num,config, if_train) else config$train_sample_pctg
+    print(str_glue("start sampling train data: {train_sample_pctg} percentage per cell type"))
+    if(!purrr::is_null(sample_seed)) print(str_glue("sample_seed is {sample_seed}"))
+    data <- utils.sampler(data, sample_pctg = train_sample_pctg, types=config$train_type, sample_seed=sample_seed)
+    
+  }else{
+    test_sample_pctg <- if(purrr::is_null(config$test_sample_pctg)) utils.calculate_sampling_pctg(data, config$target_test_num,config, if_train) else config$test_sample_pctg
+    print(str_glue("start sampling test data: {test_sample_pctg} percentage per cell type"))
+    if(!purrr::is_null(sample_seed)) print(str_glue("sample_seed is {sample_seed}"))
+    data <- utils.sampler(data,  sample_pctg = test_sample_pctg, types=config$sample_type, sample_seed=sample_seed)
+  }
+  data <- data[!duplicated(rownames(data)),!duplicated(colnames(data))]
+}
+
+
 
 constructor.celltype_complexity <- function(data,config,if_train,sample_seed=NULL){
   
