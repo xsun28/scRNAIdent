@@ -26,14 +26,14 @@ constructor.data_constructor <- function(data,config,experiment,if_train=TRUE,sa
 
 constructor.base <- function(data,config,if_train,sample_seed=NULL){
   if(if_train){
-    data <- utils.filter(data)
+    data <- utils.filter(data,kept_cell_types=config$train_kept_types)
     train_sample_pctg <- if(purrr::is_null(config$train_sample_pctg)) utils.calculate_sampling_pctg(data, config$target_train_num,config, if_train) else config$train_sample_pctg
     print(str_glue("start sampling train data: {train_sample_pctg} percentage per cell type"))
     if(!purrr::is_null(sample_seed)) print(str_glue("sample_seed is {sample_seed}"))
     data <- utils.sampler(data, sample_pctg = train_sample_pctg, types=unique(colData(data)$label), sample_seed=sample_seed)
   
   }else{
-    data <- utils.filter(data,filter_gene=FALSE)
+    data <- utils.filter(data,filter_gene=FALSE,kept_cell_types=config$test_kept_types)
     test_sample_pctg <- if(purrr::is_null(config$test_sample_pctg)) utils.calculate_sampling_pctg(data, config$target_test_num,config, if_train) else config$test_sample_pctg
     print(str_glue("start sampling test data: {test_sample_pctg} percentage per cell type"))
     if(!purrr::is_null(sample_seed)) print(str_glue("sample_seed is {sample_seed}"))
@@ -54,7 +54,7 @@ constructor.cell_number <- function(data,config, if_train,sample_seed=NULL){
 constructor.imbalance_impacts <- function(data,config,if_train,sample_seed=NULL){
   require(tidyverse)
   type_pctg_selector <- function(data, types, type_pctg, target_sample_num){
-    data <- data[,colData(data)$label %in%max_types]
+    data <- data[,colData(data)$label %in% types]
     total_sample <- length(colData(data)$label)
     if(target_sample_num > total_sample) target_sample_num <- total_sample
     params <- tibble(type=types,pctg=type_pctg)
@@ -74,15 +74,8 @@ constructor.imbalance_impacts <- function(data,config,if_train,sample_seed=NULL)
       data <- constructor.base(data,config,if_train,sample_seed)
     }else{
       print("in imbalance impacts, sample unfixed train dataset")
-      data <- utils.filter(data)
-      total_types <- length(unique(colData(data)$label))
-      if(type_num > total_types) {
-        type_num <- total_types
-        type_pctg <- type_pctg[1:type_num]
-      }
-      max_types <- (dplyr::group_by(as.data.frame(colData(data)),label) %>% dplyr::summarize(type_number=n()) %>% dplyr::arrange(desc(type_number)))[['label']][1:type_num]
-      
-      data <- type_pctg_selector(data, max_types, type_pctg, config$target_train_num)
+      data <- utils.filter(data,kept_cell_types=config$train_kept_types)
+      data <- type_pctg_selector(data, config$train_kept_types, type_pctg, config$target_train_num)
     }
   }else{
     if(config$fixed_test){
@@ -90,14 +83,8 @@ constructor.imbalance_impacts <- function(data,config,if_train,sample_seed=NULL)
       data <- constructor.base(data,config,if_train,sample_seed)
     }else{
       print("in imbalance impacts, sample unfixed test dataset")
-      data <- utils.filter(data,filter_gene=FALSE)
-      total_types <- length(unique(colData(data)$label))
-      if(type_num > total_types) {
-        type_num <- total_types
-        type_pctg <- type_pctg[1:type_num]
-      }
-      max_types <- (dplyr::group_by(as.data.frame(colData(data)),label) %>% dplyr::summarize(type_number=n()) %>% dplyr::arrange(desc(type_number)))[['label']][1:type_num]
-      data <- type_pctg_selector(data, max_types, type_pctg, config$target_test_num)
+      data <- utils.filter(data,filter_gene=FALSE,kept_cell_types=config$test_kept_types)
+      data <- type_pctg_selector(data, config$test_kept_types, type_pctg, config$target_test_num)
     }
   }
   data[!duplicated(rownames(data)),!duplicated(colnames(data))]
@@ -194,13 +181,13 @@ constructor.inter_diseases <- function(data,config,if_train,sample_seed=NULL){
 
 constructor.unknown_types <- function(data,config,if_train,sample_seed=NULL){
   if(if_train){
-    train_sample_pctg <- if(purrr::is_null(config$train_sample_pctg)) utils.calculate_sampling_pctg(data, config$target_train_num,config, if_train) else config$train_sample_pctg
+    train_sample_pctg <- if(purrr::is_null(config$train_sample_pctg)) utils.calculate_sampling_pctg(data[,colData(data)$label %in% config$train_type], config$target_train_num,config, if_train) else config$train_sample_pctg
     print(str_glue("start sampling train data: {train_sample_pctg} percentage per cell type"))
     if(!purrr::is_null(sample_seed)) print(str_glue("sample_seed is {sample_seed}"))
     data <- utils.sampler(data, sample_pctg = train_sample_pctg, types=config$train_type, sample_seed=sample_seed)
     
   }else{
-    test_sample_pctg <- if(purrr::is_null(config$test_sample_pctg)) utils.calculate_sampling_pctg(data, config$target_test_num,config, if_train) else config$test_sample_pctg
+    test_sample_pctg <- if(purrr::is_null(config$test_sample_pctg)) utils.calculate_sampling_pctg(data[,colData(data)$label %in% config$sample_type], config$target_test_num,config, if_train) else config$test_sample_pctg
     print(str_glue("start sampling test data: {test_sample_pctg} percentage per cell type"))
     if(!purrr::is_null(sample_seed)) print(str_glue("sample_seed is {sample_seed}"))
     data <- utils.sampler(data,  sample_pctg = test_sample_pctg, types=config$sample_type, sample_seed=sample_seed)

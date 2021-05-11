@@ -69,16 +69,20 @@ utils.get_dataset_paths <- function(data_home,dataset_names){
 }
 
 ###filter out cells with all 0s reads and genes with all 0s reads
-utils.filter <- function(data,filter_gene=TRUE, filter_cells=TRUE, filter_cell_type=TRUE){
+utils.filter <- function(data,filter_gene=TRUE, filter_cells=TRUE, filter_cell_type=TRUE,kept_cell_types=NULL){
   require(SingleCellExperiment)
   stopifnot(is(data,"SingleCellExperiment"))
   study_name <- metadata(data)$study_name[[1]]
   properties <- dataset.properties[[study_name]]
   threshold <- properties$sample_threshold
-  if(!is_null(properties$cell_types)){
+  if(!purrr::is_null(kept_cell_types)){
+    print(str_glue("only keep cell types with marker genes: {kept_cell_types}"))
+    data <- data[,colData(data)$label %in% kept_cell_types] ###if only keeps cell types with marker gene files
+  }else if(!is_null(properties$cell_types)){
     print(str_glue("only keep cell types with marker genes: {properties$cell_types}"))
     data <- data[,colData(data)$label %in% properties$cell_types] ###if only keeps cell types with marker gene files
   }
+  
   if(filter_cell_type){
     cell_type_num <- table(colData(data)$label)
     cell_types_kept <- names(cell_type_num[cell_type_num>threshold])
@@ -493,3 +497,21 @@ utils.calc_entropy <- function(probs){
   entropy <- sum(map_dbl(probs,~{-log(.)*.}))
   entropy
 }
+
+utils.get_train_test_types <- function(train_dataset,test_dataset){
+  if(!purrr::is_null(dataset.properties[[train_dataset]]$cell_types)){
+    train_type <- as.list(dataset.properties[[train_dataset]]$cell_types)
+  }else{
+    train_data <- utils.load_datasets(train_dataset)
+    train_type <- unique(colData(train_data)$label) 
+  }
+  
+  if(!purrr::is_null(dataset.properties[[test_dataset]]$cell_types)){
+    test_type <- as.list(dataset.properties[[test_dataset]]$cell_types)
+  }else{
+    test_data <- utils.load_datasets(test_dataset)
+    test_type <- unique(colData(test_data)$label) 
+  }
+  return(list(train_type=train_type,test_type=test_type))
+}
+

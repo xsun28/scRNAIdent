@@ -125,19 +125,6 @@ experiments.base.assign <- function(experiment, train_dataset, test_dataset, exp
   assign_results
 }
 
-# experiments.base.marker_gene_assign <- function(experiment, exp_config, data){
-#   require(stringr)
-#   require(readr)
-#   if(missing(exp_config)){
-#     stop("missing exp_config in base marker gene assign function")
-#   }
-#   methods <- experiments.methods[[experiment]]
-#   ##clustering methods
-#   maker_gene_assign_methods <- methods$marker_gene_assign
-#   maker_gene_assign_results <- experiments.run_marker_gene_assign(maker_gene_assign_methods,data,exp_config)
-#   print("finish prediction for marker gene assign methods")
-#   maker_gene_assign_results
-# }
   
 ###base function for assigning methods for all experiments
 experiments.base.cluster <- function(experiment, exp_config,data){
@@ -157,7 +144,6 @@ experiments.base.cluster <- function(experiment, exp_config,data){
 
 ###base function for all experiments except batch effects
 experiments.base <- function(experiment, exp_config){
-  methods <- experiments.methods[[experiment]]
   train_test_datasets <- experiments.base.data_constructor(experiment, exp_config)
   train_dataset <- train_test_datasets$train_data
   test_dataset <- train_test_datasets$test_data
@@ -171,15 +157,6 @@ experiments.base <- function(experiment, exp_config){
   }
   ####assign methods
   assign_results <- experiments.base.assign(experiment,train_dataset, test_dataset, exp_config)
-  #####marker gene assign methods
-  # if(length(methods$marker_gene_assign)>=1){
-  #   marker_gene_assign_results <- experiments.base.marker_gene_assign(experiment,exp_config,total_dataset)
-  #   if(exp_config$have_test){
-  #     marker_gene_assign_results <- marker_gene_assign_results[test_samples,]
-  #   }
-  #   if("label" %in% colnames(marker_gene_assign_results))
-  #     assign_results <- bind_cols(assign_results,dplyr::select(marker_gene_assign_results,-label))
-  # }
   assign_results <- utils.label_unassigned(assign_results,T)
   ####cluster methods
   if((!exp_config$fixed_test)||(!exp_config$clustered)){
@@ -195,13 +172,14 @@ experiments.base <- function(experiment, exp_config){
 
 ###simple accuracy experiment
 experiments.simple_accuracy <- function(experiment){
-  exp_config <- experiments.parameters[[experiment]]
-  experiments.config.check_config(exp_config)
+  base_exp_config <- experiments.parameters[[experiment]]
+  experiments.config.check_config(base_exp_config)
   for(i in seq_along(exp_config$intra_dataset)){
     train_dataset <- exp_config$intra_dataset[[i]]
     test_dataset <- exp_config$intra_dataset[[i]]
     experiments.config.update.train_test_datasets(experiment, train_dataset, test_dataset)
-    # exp_config <- experiments.config.update(experiment, train_dataset, test_dataset,exp_config)
+    init_exp_config <- experiments.config.init.simple_accuracy(train_dataset, test_dataset, base_exp_config)
+    exp_config <- experiments.config.update(experiment, train_dataset, test_dataset,init_exp_config)
     base_results <- experiments.base(experiment,exp_config)
     report_results <- do.call(experiments.analysis,base_results)
     analy_results <- bind_rows(report_results$analy_results)
@@ -218,12 +196,11 @@ experiments.simple_accuracy <- function(experiment){
 
 ####experiment with different number of cells per type
 experiments.cell_number <- function(experiment){
-  exp_config <- experiments.parameters[[experiment]]
-  experiments.config.check_config(exp_config)
-  used_dataset <- if(exp_config$use_intra_dataset) exp_config$intra_dataset else exp_config$inter_dataset
+  base_exp_config <- experiments.parameters[[experiment]]
+  experiments.config.check_config(base_exp_config)
+  used_dataset <- if(base_exp_config$use_intra_dataset) base_exp_config$intra_dataset else base_exp_config$inter_dataset
   for(j in seq_along(used_dataset)){
-    exp_config <- experiments.parameters[[experiment]]
-    if(exp_config$use_intra_dataset){
+    if(base_exp_config$use_intra_dataset){
       train_dataset <- used_dataset[[j]]
       test_dataset <- used_dataset[[j]]
     }else{
@@ -231,11 +208,13 @@ experiments.cell_number <- function(experiment){
       test_dataset <- used_dataset[[j]]$test_dataset
     }
     experiments.config.update.train_test_datasets(experiment, train_dataset, test_dataset)
-    test_num <- exp_config$test_num
+    init_exp_config <- experiments.config.init(experiment, train_dataset, test_dataset,base_exp_config)
+    test_num <- init_exp_config$test_num
     combined_cluster_results <- vector('list',test_num)
     combined_assign_results <- vector('list',test_num)
     combined_raw_results <- vector('list',test_num)
     for(i in 1:test_num){
+      exp_config <- init_exp_config
       exp_config$current_increment_index <- i-1
       exp_config <- experiments.config.update(experiment, train_dataset, test_dataset,exp_config)
       val <- if(exp_config$fixed_train) exp_config$target_test_num else exp_config$target_train_num
@@ -279,11 +258,11 @@ experiments.cell_number <- function(experiment){
 
 ###experiments with different sequencing depth
 experiments.sequencing_depth <- function(experiment){
-  exp_config <- experiments.parameters[[experiment]]
-  experiments.config.check_config(exp_config)
-  used_dataset <- if(exp_config$use_intra_dataset) exp_config$intra_dataset else exp_config$inter_dataset
+  base_exp_config <- experiments.parameters[[experiment]]
+  experiments.config.check_config(base_exp_config)
+  used_dataset <- if(base_exp_config$use_intra_dataset) base_exp_config$intra_dataset else base_exp_config$inter_dataset
   for(j in seq_along(used_dataset)){
-    if(exp_config$use_intra_dataset){
+    if(base_exp_config$use_intra_dataset){
       train_dataset <- used_dataset[[j]]
       test_dataset <- used_dataset[[j]]
     }else{
@@ -291,11 +270,13 @@ experiments.sequencing_depth <- function(experiment){
       test_dataset <- used_dataset[[j]]$test_dataset
     }
     experiments.config.update.train_test_datasets(experiment, train_dataset, test_dataset)
-    
-    combined_cluster_results <- vector('list',exp_config$test_num)
-    combined_assign_results <- vector('list',exp_config$test_num)
-    combined_raw_results <- vector('list',exp_config$test_num)
-    for(i in 1:exp_config$test_num){
+    init_exp_config <- experiments.config.init(experiment, train_dataset, test_dataset,base_exp_config)
+    test_num <- init_exp_config$test_num
+    combined_cluster_results <- vector('list',test_num)
+    combined_assign_results <- vector('list',test_num)
+    combined_raw_results <- vector('list',test_num)
+    for(i in 1:test_num){
+      exp_config <- init_exp_config
       exp_config$current_increment_index <- i-1
       exp_config <-  experiments.config.update(experiment, train_dataset, test_dataset,exp_config)
       low_quant <- exp_config$low_quantile
@@ -402,12 +383,12 @@ experiments.celltype_complexity <- function(experiment){
 
 experiments.batch_effects <- function(experiment){
   require(gtools)
-  exp_config <- experiments.parameters[[experiment]]
+  base_exp_config <- experiments.parameters[[experiment]]
   # datasets_perm2 <- gtools::permutations(n=length(experiments.data$batch_effects),r=2,v=unlist(experiments.data$batch_effects),repeats.allowed = F)
-  experiments.config.check_config(exp_config)
-  used_dataset <- if(exp_config$use_intra_dataset) exp_config$intra_dataset else exp_config$inter_dataset
+  experiments.config.check_config(base_exp_config)
+  used_dataset <- if(base_exp_config$use_intra_dataset) base_exp_config$intra_dataset else base_exp_config$inter_dataset
   for(j in seq_along(used_dataset)){
-    if(exp_config$use_intra_dataset){
+    if(base_exp_config$use_intra_dataset){
       train_dataset <- used_dataset[[j]]
       test_dataset <- used_dataset[[j]]
     }else{
@@ -415,7 +396,9 @@ experiments.batch_effects <- function(experiment){
       test_dataset <- used_dataset[[j]]$test_dataset
     }
     experiments.config.update.train_test_datasets(experiment, train_dataset, test_dataset)
-    exp_config <-  experiments.config.update(experiment, train_dataset, test_dataset,exp_config)
+    init_exp_config <- experiments.config.init(experiment, train_dataset, test_dataset,base_exp_config)
+    
+    exp_config <-  experiments.config.update(experiment, train_dataset, test_dataset,init_exp_config)
     # experiments.parameters[[experiment]]$train_sample_num <<- experiments.parameters.batch_effects[[datasets_perm2[i,1]]]$train_sample_num
     # experiments.parameters[[experiment]]$train_sample_pctg <<- experiments.parameters.batch_effects[[datasets_perm2[i,1]]]$train_sample_pctg
     # experiments.parameters[[experiment]]$test_sample_num <<- experiments.parameters.batch_effects[[datasets_perm2[i,2]]]$test_sample_num
@@ -479,12 +462,12 @@ experiments.batch_effects <- function(experiment){
 ############
 experiments.inter_diseases <- function(experiment){
   require(gtools)
-  exp_config <- experiments.parameters[[experiment]]
+  base_exp_config <- experiments.parameters[[experiment]]
   # datasets_perm2 <- gtools::permutations(n=length(experiments.data[[experiment]]),r=2,v=unlist(experiments.data[[experiment]]),repeats.allowed = F)
-  experiments.config.check_config(exp_config)
-  used_dataset <- if(exp_config$use_intra_dataset) exp_config$intra_dataset else exp_config$inter_dataset
+  experiments.config.check_config(base_exp_config)
+  used_dataset <- if(base_exp_config$use_intra_dataset) base_exp_config$intra_dataset else base_exp_config$inter_dataset
   for(j in seq_along(used_dataset)){
-    if(exp_config$use_intra_dataset){
+    if(base_exp_config$use_intra_dataset){
       train_dataset <- used_dataset[[j]]
       test_dataset <- used_dataset[[j]]
     }else{
@@ -492,7 +475,9 @@ experiments.inter_diseases <- function(experiment){
       test_dataset <- used_dataset[[j]]$test_dataset
     }
     experiments.config.update.train_test_datasets(experiment, train_dataset, test_dataset)
-    exp_config <-  experiments.config.update(experiment, train_dataset, test_dataset,exp_config)
+    init_exp_config <- experiments.config.init(experiment, train_dataset, test_dataset,base_exp_config)
+    
+    exp_config <-  experiments.config.update(experiment, train_dataset, test_dataset,init_exp_config)
     base_results <- experiments.base(experiment,exp_config)
     report_results <- do.call(experiments.analysis,base_results)
     results <- report_results$analy_results
@@ -510,11 +495,11 @@ experiments.inter_diseases <- function(experiment){
 
 ###########
 experiments.imbalance_impacts <- function(experiment){
-  exp_config <- experiments.parameters[[experiment]]
-  experiments.config.check_config(exp_config)
-  used_dataset <- if(exp_config$use_intra_dataset) exp_config$intra_dataset else exp_config$inter_dataset
+  base_exp_config <- experiments.parameters[[experiment]]
+  experiments.config.check_config(base_exp_config)
+  used_dataset <- if(base_exp_config$use_intra_dataset) base_exp_config$intra_dataset else base_exp_config$inter_dataset
   for(j in seq_along(used_dataset)){
-    if(exp_config$use_intra_dataset){
+    if(base_exp_config$use_intra_dataset){
       train_dataset <- used_dataset[[j]]
       test_dataset <- used_dataset[[j]]
     }else{
@@ -522,13 +507,15 @@ experiments.imbalance_impacts <- function(experiment){
       test_dataset <- used_dataset[[j]]$test_dataset
     }
     experiments.config.update.train_test_datasets(experiment, train_dataset, test_dataset)
-    type_pctgs <- exp_config$type_pctgs
-    test_num <- length(type_pctgs)
+    init_exp_config <- experiments.config.init(experiment, train_dataset, test_dataset,base_exp_config)
+    type_pctgs <- init_exp_config$type_pctgs
+    test_num <- init_exp_config$test_num
     combined_cluster_results <- vector('list',test_num)
     combined_assign_results <- vector('list',test_num)
     combined_raw_results <- vector('list',test_num)
     single_method_results <- vector('list',test_num)
     for(i in 1:test_num){
+      exp_config <- init_exp_config
       exp_config$current_increment_index <- i-1
       exp_config <- experiments.config.update(experiment, train_dataset, test_dataset,exp_config)
       entropy <- round(utils.calc_entropy(type_pctgs[[i]]),2)
@@ -622,12 +609,11 @@ experiments.celltype_number <- function(experiment){
 
 ##############
 experiments.unknown_types <- function(experiment){
-  exp_config <- experiments.parameters[[experiment]]
-  experiments.config.check_config(exp_config)
-  used_dataset <- if(exp_config$use_intra_dataset) exp_config$intra_dataset else exp_config$inter_dataset
+  base_exp_config <- experiments.parameters[[experiment]]
+  experiments.config.check_config(base_exp_config)
+  used_dataset <- if(base_exp_config$use_intra_dataset) base_exp_config$intra_dataset else base_exp_config$inter_dataset
   for(j in seq_along(used_dataset)){
-    exp_config <- experiments.parameters[[experiment]]
-    if(exp_config$use_intra_dataset){
+    if(base_exp_config$use_intra_dataset){
       train_dataset <- used_dataset[[j]]
       test_dataset <- used_dataset[[j]]
     }else{
@@ -635,12 +621,15 @@ experiments.unknown_types <- function(experiment){
       test_dataset <- used_dataset[[j]]$test_dataset
     }
     experiments.config.update.train_test_datasets(experiment, train_dataset, test_dataset)
-    test_num <- exp_config$test_num
+    init_exp_config <- experiments.config.init(experiment, train_dataset, test_dataset,base_exp_config)
+    
+    test_num <- init_exp_config$test_num
     combined_cluster_results <- vector('list',test_num)
     combined_assign_results <- vector('list',test_num)
     combined_raw_results <- vector('list',test_num)
     single_method_results <- vector('list',test_num)
     for(i in 1:test_num){
+      exp_config <- init_exp_config
       exp_config$current_increment_index <- i
       exp_config <- experiments.config.update(experiment, train_dataset, test_dataset,exp_config)
       if(i > exp_config$test_num) break
@@ -732,29 +721,6 @@ experiments.run_assign <- function(methods, train_data, test_data=NULL, exp_conf
   results
 }
 
-# experiments.run_marker_gene_assign <- function(methods,data,exp_config){
-#   results <- data.frame(matrix(nrow=dim(colData(data))[[1]],ncol=length(methods)))
-#   colnames(results) <- methods
-#   results <- mutate(results,label=as.character(colData(data)$label))
-#   # rownames(results) <- colData(data)$unique_id
-#   rownames(results) <- colnames(data)
-#   for(m in methods){
-#     print(str_glue('start marker gene assign method {m}'))
-#     m_result <- utils.try_catch_method_error(run_assign_methods(m,data,NULL,exp_config))
-#     if(inherits(m_result,"try-error")){
-#       print(str_glue("error occurs in {m}:{m_result}"))
-#       error(logger, str_glue("error occurs in train={experiments.assign.data$train_dataset[[experiment]]}, test={experiments.assign.data$test_dataset[[experiment]]}, {m}:{m_result}"))
-#       # results <- dplyr::select(results,-m)
-#     }else{
-#       print(str_glue("{m} finished correctly"))
-#       if(is.factor(m_result)){
-#         m_result <- as.character(m_result)
-#       }
-#       results[[m]] <- m_result
-#     }
-#   }
-#   results
-# }
 
 experiments.run_cluster <- function(methods,data,exp_config){
   results <- data.frame(matrix(nrow=dim(colData(data))[[1]],ncol=length(methods)))

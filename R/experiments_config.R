@@ -263,6 +263,10 @@ experiments.parameters.inter_diseases <- list(
 )
 
 ##########
+
+
+
+##########
 experiments.parameters <- list(
   simple_accuracy=list(cv=TRUE, cv_fold=5,metrics=c('ARI','AMI','FMI'),batch_free=F,
                        marker_gene_file=NULL,use_intra_dataset=T,intra_dataset=dataset.datasets,
@@ -304,17 +308,31 @@ experiments.parameters <- list(
                                                             dataset.interdatasets$pancreas5,dataset.interdatasets$pancreas6)),
   
   imbalance_impacts = list(batch_free=F,target_train_num=1200, target_test_num=1000,fixed_train=F,fixed_test=T,
-                           type_pctgs = list(list(0.2,0.2,0.2,0.2,0.2),
-                                             list(0.4,0.3,0.15,0.1,0.05),
-                                             list(0.6,0.2,0.1,0.05,0.05),
-                                             list(0.8,0.1,0.05,0.03,0.02),
-                                             list(0.9,0.04,0.03,0.02,0.01)),
+                           all_type_pctgs = list(   "3"=list( list(0.33,0.33,0.34),
+                                                            list(0.5,0.4,0.1),
+                                                            list(0.7,0.25,0.05),
+                                                            list(0.9,0.08,0.02)
+                                                            ),
+                                                    "4"=list( list(0.25,0.25,0.25,0.25),
+                                                            list(0.4,0.3,0.2,0.1),
+                                                            list(0.6,0.25,0.1,0.05),
+                                                            list(0.8,0.1,0.07,0.03),
+                                                            list(0.9,0.05,0.03,0.02)
+                                                            ),
+                                                    "5"=list( list(0.2,0.2,0.2,0.2,0.2),
+                                                            list(0.4,0.3,0.15,0.1,0.05),
+                                                            list(0.6,0.2,0.1,0.05,0.05),
+                                                            list(0.8,0.1,0.05,0.03,0.02),
+                                                            list(0.9,0.04,0.03,0.02,0.01)
+                                                            )
+                                             ),
                             cv=FALSE,metrics=c('ARI','AMI','FMI'),marker_gene_file=NULL,use_intra_dataset=F,intra_dataset=list(),
                             use_inter_dataset=T,inter_dataset=list(dataset.interdatasets$PBMC1,dataset.interdatasets$PBMC2,
                                                                    dataset.interdatasets$PBMC3,dataset.interdatasets$PBMC5,
                                                                    dataset.interdatasets$PBMC6,dataset.interdatasets$PBMC8,
                                                                    dataset.interdatasets$pancreas1,dataset.interdatasets$pancreas2,
-                                                                   dataset.interdatasets$pancreas5,dataset.interdatasets$ADASD2)),
+                                                                   dataset.interdatasets$pancreas5,dataset.interdatasets$ADASD2)
+                           ),
   
   inter_diseases = list(batch_free=F,target_train_num=1200, target_test_num=800,fixed_train=F,fixed_test=F,
                         cv=FALSE,metrics=c('ARI','AMI','FMI'),marker_gene_file=NULL,use_intra_dataset=F,intra_dataset=list(),
@@ -348,8 +366,157 @@ experiments.parameters <- list(
   random_noise = list(),
   inter_protocol = list()
 )
+##########################
+experiments.config.init <- function(experiment, train_dataset, test_dataset=NULL, exp_config){
+  switch(experiment,
+         simple_accuracy=experiments.config.init.simple_accuracy(train_dataset, test_dataset, exp_config),
+         cell_number = experiments.config.init.cell_number(train_dataset, test_dataset, exp_config),
+         celltype_number = experiments.config.init.celltype_number(train_dataset, test_dataset, exp_config),
+         sequencing_depth = experiments.config.init.sequencing_depth(train_dataset, test_dataset, exp_config),
+         celltype_structure = experiments.config.init.celltype_structure(train_dataset, test_dataset, exp_config),
+         batch_effects = experiments.config.init.batch_effects(train_dataset, test_dataset, exp_config),
+         inter_diseases = experiments.config.init.inter_diseases(train_dataset, test_dataset, exp_config),
+         celltype_complexity = experiments.config.init.celltype_complexity(train_dataset, test_dataset, exp_config),
+         inter_species = experiments.config.init.inter_species(train_dataset, test_dataset, exp_config),
+         random_noise = experiments.config.init.random_noise(train_dataset, test_dataset, exp_config),
+         inter_protocol = experiments.config.init.inter_protocol(train_dataset, test_dataset, exp_config),
+         imbalance_impacts = experiments.config.init.imbalance_impacts(train_dataset, test_dataset, exp_config),
+         unknown_types = experiments.config.init.unknown_types(train_dataset, test_dataset, exp_config),
+         stop("Unkown experiments")
+  )
+}
 
+experiments.config.init.simple_accuracy <-function(train_dataset, test_dataset=NULL, exp_config){
+  exp_config$have_test <- if(exp_config$cv) F else T
+  exp_config
+}
 
+experiments.config.init.cell_number <-function(train_dataset, test_dataset=NULL, exp_config){
+  calculate_increment <- function(dataset, increment, exp_config, if_train){
+    total_dataset_num <- dataset.properties[[dataset]]$total_num
+    if(exp_config$use_intra_dataset){
+      print("calculate sampling increment for intra-dataset")
+      if(if_train){
+        increment <- min(increment, 0.3*0.7*total_dataset_num)
+        print(str_glue("{dataset} train sample increment={increment}"))
+      }else{
+        increment <- min(increment, 0.3*0.3*total_dataset_num)
+        print(str_glue("{dataset} test sample increment={increment}"))
+      }
+      
+    }else{
+      print("calculate sampling increment for inter-dataset")
+      increment <- min(increment, 0.3*total_dataset_num)
+      print(str_glue("{dataset} sample increment={increment}"))
+    }
+    increment
+  }
+  exp_config$have_test <- if(exp_config$cv) F else T
+  exp_config$trained <- F
+  exp_config$clustered <- F
+  if(exp_config$fixed_train){
+    if(purrr::is_null(exp_config$increment)){
+      exp_config$increment <- calculate_increment(test_dataset_name, exp_config$test_sample_increment, exp_config, if_train=F)
+    }
+  }
+  
+  if(exp_config$fixed_test){
+    if(purrr::is_null(exp_config$increment)){
+      exp_config$increment <- calculate_increment(train_dataset_name, exp_config$train_sample_increment, exp_config, if_train=T)
+    }
+  }
+  exp_config
+}
+
+experiments.config.init.sequencing_depth <-function(train_dataset, test_dataset=NULL,exp_config){
+  
+  calculate_quantile_increment <- function(dataset, exp_config, if_train){
+    total_dataset_num <- dataset.properties[[dataset]]$total_num
+    print("calculate sampling increment for intra-dataset")
+    if(if_train){
+      target_train_num <- exp_config$target_train_num
+      increment <- min(1/(exp_config$test_num+1), target_train_num/total_dataset_num)
+      print(str_glue("{dataset} train sample quantile increment={increment}"))
+    }else{
+      target_test_num <- exp_config$target_test_num
+      increment <- min(1/(exp_config$test_num+1), target_test_num/total_dataset_num)
+      print(str_glue("{dataset} test sample quantile increment={increment}"))
+    }
+    increment
+  }
+  exp_config$have_test <- if(exp_config$cv) F else T
+  exp_config$trained <- F
+  exp_config$clustered <- F
+  if(exp_config$fixed_train){
+    if(purrr::is_null(exp_config$increment)){
+      exp_config$increment <- calculate_quantile_increment(test_dataset_name, exp_config, if_train=F)
+    }
+  }
+  if(exp_config$fixed_test){
+    if(purrr::is_null(exp_config$increment)){
+      exp_config$increment <- calculate_increment(train_dataset_name, exp_config$train_sample_increment, exp_config, if_train=T)
+    }
+  }
+  exp_config
+}
+
+experiments.config.init.imbalance_impacts <- function(train_dataset, test_dataset=NULL, exp_config){
+  exp_config$have_test <- if(exp_config$cv) F else T
+  exp_config$trained <- F
+  exp_config$clustered <- F
+  train_test_types <- utils.get_train_test_types(train_dataset,test_dataset)
+  train_type <- train_test_types$train_type
+  test_type <- train_test_types$test_type
+  train_test_common_type <- intersect(train_type,test_type)
+  exp_config$train_kept_types <- train_test_common_type
+  exp_config$test_kept_types <- train_test_common_type
+  exp_config$type_pctgs <- exp_config$all_type_pctgs[[as.character(length(train_test_common_type))]]
+  exp_config$test_num <- length(exp_config$type_pctgs)
+  exp_config
+}
+
+experiments.config.init.batch_effects <- function(train_dataset, test_dataset=NULL,exp_config){
+  exp_config$have_test <- if(exp_config$cv) F else T
+  exp_config
+}
+
+experiments.config.init.inter_diseases <- function(train_dataset, test_dataset=NULL, exp_config){
+  exp_config$have_test <- if(exp_config$cv) F else T
+  exp_config
+}
+
+experiments.config.init.unknown_types <-function(train_dataset, test_dataset=NULL, exp_config){
+  
+  dataset.properties$Muraro_pancreas$cell_types <<- c('beta','alpha','delta','epsilon',
+                                                      'acinar','ductal','gamma','mesenchymal',
+                                                      'endothelial')
+  dataset.properties$Segerstolpe_pancreas$cell_types <<- c('beta','alpha','delta','epsilon','mast','MHC class II',
+                                                           'acinar','ductal','gamma','mesenchymal','PSC',
+                                                           'endothelial')
+  exp_config$have_test <- if(exp_config$cv) F else T
+  exp_config$trained <- F
+  exp_config$clustered <- F
+  train_test_types <- utils.get_train_test_types(train_dataset,test_dataset)
+  train_type <- train_test_types$train_type
+  test_type <- train_test_types$test_type
+  exp_config$common_type <- intersect(train_type,test_type)
+  if(exp_config$fixed_train){
+    diff_type <- setdiff(test_type,exp_config$common_type)
+    exp_config$diff_type <- diff_type
+    if(purrr::is_null(exp_config$increment)){
+      exp_config$increment <- floor(length(diff_type)/exp_config$test_num)
+      while(exp_config$increment==0){  
+        exp_config$test_num <- exp_config$test_num-1
+        stopifnot(exp_config$test_num>=2)
+        exp_config$increment <- floor(length(diff_type)/exp_config$test_num)
+      }
+    }
+    exp_config$train_type <- train_type
+  }
+  exp_config
+}
+
+########################
 experiments.config.update <- function(experiment, train_dataset, test_dataset=NULL, exp_config){
   switch(experiment,
          simple_accuracy=experiments.config.update.simple_accuracy(train_dataset, test_dataset, exp_config),
@@ -371,53 +538,18 @@ experiments.config.update <- function(experiment, train_dataset, test_dataset=NU
 
 
 experiments.config.update.simple_accuracy <-function(train_dataset, test_dataset=NULL, exp_config){
-  # train_test_sample_pctgs <- utils.calculate_sampling_pctg(train_dataset, test_dataset,exp_config)
-  # train_sample_pctg <- train_test_pctgs[[1]]
-  # test_sample_pctg <- train_test_pctgs[[2]]
-  # exp_config$train_sample_pctg <- experiments.parameters.simple_accuracy[[train_dataset]]$train_sample_pctg
-  # exp_config$test_sample_pctg <- experiments.parameters.simple_accuracy[[test_dataset]]$test_sample_pctg
-  # exp_config
-  exp_config$have_test <- if(exp_config$cv) F else T
   exp_config
 }
 
 experiments.config.update.cell_number <-function(train_dataset, test_dataset=NULL, exp_config){
-  calculate_increment <- function(dataset, increment, exp_config, if_train){
-    total_dataset_num <- dataset.properties[[dataset]]$total_num
-    if(exp_config$use_intra_dataset){
-      print("calculate sampling increment for intra-dataset")
-      if(if_train){
-        increment <- min(increment, 0.3*0.7*total_dataset_num)
-        print(str_glue("{dataset} train sample increment={increment}"))
-      }else{
-        increment <- min(increment, 0.3*0.3*total_dataset_num)
-        print(str_glue("{dataset} test sample increment={increment}"))
-      }
-    
-    }else{
-      print("calculate sampling increment for inter-dataset")
-      increment <- min(increment, 0.3*total_dataset_num)
-      print(str_glue("{dataset} sample increment={increment}"))
-    }
-    increment
-  }
-  exp_config$have_test <- if(exp_config$cv) F else T
-  exp_config$trained <- F
-  exp_config$clustered <- F
   if(exp_config$fixed_train){
     exp_config$trained <- if(exp_config$current_increment_index==0) F else T
     test_dataset_name <- str_split(test_dataset,"\\.")[[1]][[1]]
-    if(purrr::is_null(exp_config$increment)){
-      exp_config$increment <- calculate_increment(test_dataset_name, exp_config$test_sample_increment, exp_config, if_train=F)
-    }
     exp_config$target_test_num <- exp_config$test_sample_start + exp_config$current_increment_index*exp_config$increment
   }
   if(exp_config$fixed_test){
     exp_config$clustered <- if(exp_config$current_increment_index==0) F else T
     train_dataset_name <- str_split(train_dataset,"\\.")[[1]][[1]]
-    if(purrr::is_null(exp_config$increment)){
-      exp_config$increment <- calculate_increment(train_dataset_name, exp_config$train_sample_increment, exp_config, if_train=T)
-    }
     exp_config$target_train_num <- exp_config$train_sample_start + exp_config$current_increment_index*exp_config$increment
   }
   exp_config
@@ -425,38 +557,14 @@ experiments.config.update.cell_number <-function(train_dataset, test_dataset=NUL
 
 
 experiments.config.update.sequencing_depth <-function(train_dataset, test_dataset=NULL,exp_config){
-  
-  calculate_quantile_increment <- function(dataset, exp_config, if_train){
-    total_dataset_num <- dataset.properties[[dataset]]$total_num
-    print("calculate sampling increment for intra-dataset")
-    if(if_train){
-      target_train_num <- exp_config$target_train_num
-      increment <- min(1/(exp_config$test_num+1), target_train_num/total_dataset_num)
-      print(str_glue("{dataset} train sample quantile increment={increment}"))
-    }else{
-      target_test_num <- exp_config$target_test_num
-      increment <- min(1/(exp_config$test_num+1), target_test_num/total_dataset_num)
-      print(str_glue("{dataset} test sample quantile increment={increment}"))
-    }
-    increment
-  }
-  exp_config$have_test <- if(exp_config$cv) F else T
-  exp_config$trained <- F
-  exp_config$clustered <- F
   if(exp_config$fixed_train){
     exp_config$trained <- if(exp_config$current_increment_index==0) F else T
     test_dataset_name <- str_split(test_dataset,"\\.")[[1]][[1]]
-    if(purrr::is_null(exp_config$increment)){
-      exp_config$increment <- calculate_quantile_increment(test_dataset_name, exp_config, if_train=F)
-    }
     print("test dataset={test_dataset_name}")
   }
   if(exp_config$fixed_test){
     exp_config$clustered <- if(exp_config$current_increment_index==0) F else T
     train_dataset_name <- str_split(train_dataset,"\\.")[[1]][[1]]
-    if(purrr::is_null(exp_config$increment)){
-      exp_config$increment <- calculate_increment(train_dataset_name, exp_config$train_sample_increment, exp_config, if_train=T)
-    }
     print("train dataset={train_dataset_name}")
   }
   exp_config$high_quantile <- exp_config$current_increment_index*(1/(exp_config$test_num))+exp_config$increment
@@ -468,19 +576,11 @@ experiments.config.update.sequencing_depth <-function(train_dataset, test_datase
 
 
 experiments.config.update.batch_effects <- function(train_dataset, test_dataset=NULL,exp_config){
-  # exp_config$train_sample_pctg <- experiments.parameters.batch_effects[[train_dataset]]$train_sample_pctg
-  # exp_config$test_sample_pctg <- experiments.parameters.batch_effects[[test_dataset]]$test_sample_pctg
-  # exp_config
-  exp_config$have_test <- if(exp_config$cv) F else T
   exp_config
 }
 
 
 experiments.config.update.inter_diseases <- function(train_dataset, test_dataset=NULL, exp_config){
-  # exp_config$train_sample_pctg <- experiments.parameters.inter_diseases[[train_dataset]]$train_sample_pctg
-  # exp_config$test_sample_pctg <- experiments.parameters.inter_diseases[[test_dataset]]$test_sample_pctg
-  # exp_config
-  exp_config$have_test <- if(exp_config$cv) F else T
   exp_config
 }
 
@@ -548,46 +648,12 @@ experiments.config.update.celltype_number <-function(train_dataset, test_dataset
 
 experiments.config.update.unknown_types <-function(train_dataset, test_dataset=NULL, exp_config){
   
-  dataset.properties$Muraro_pancreas$cell_types <<- c('beta','alpha','delta','epsilon',
-                                                      'acinar','ductal','gamma','mesenchymal',
-                                                        'endothelial')
-  dataset.properties$Segerstolpe_pancreas$cell_types <<- c('beta','alpha','delta','epsilon','mast','MHC class II',
-                                                      'acinar','ductal','gamma','mesenchymal','PSC',
-                                                      'endothelial')
-  exp_config$have_test <- if(exp_config$cv) F else T
-  exp_config$trained <- F
-  exp_config$clustered <- F
-  if(!purr::is_null(dataset.propertie[[train_dataset]]$cell_types)){
-    train_type <- as.list(dataset.propertie[[train_dataset]]$cell_types)
-  }else{
-    train_data <- utils.load_datasets(train_dataset)
-    train_type <- unique(colData(train_data)$label) 
-  }
-  
-  if(!purr::is_null(dataset.propertie[[test_dataset]]$cell_types)){
-    test_type <- as.list(dataset.propertie[[test_dataset]]$cell_types)
-  }else{
-    test_data <- utils.load_datasets(test_dataset)
-    test_type <- unique(colData(test_data)$label) 
-  }
-  
-  common_type <- intersect(train_type,test_type)
   if(exp_config$fixed_train){
     exp_config$trained <- if(exp_config$current_increment_index==1) F else T
     test_dataset_name <- str_split(test_dataset,"\\.")[[1]][[1]]
-    diff_type <- setdiff(test_type,common_type)
-    if(purrr::is_null(exp_config$increment)){
-      exp_config$increment <- floor(length(diff_type)/exp_config$test_num)
-      while(exp_config$increment==0){  
-        exp_config$test_num <- exp_config$test_num-1
-        stopifnot(exp_config$test_num>=2)
-        exp_config$increment <- floor(length(diff_type)/exp_config$test_num)
-      }
-    }
-    exp_config$unknown_num <- floor(exp_config$current_increment_index*increment)
-    exp_config$sample_type <- c(diff_type[1:(exp_config$unknown_num)],common_type) 
-    exp_config$train_type <- train_type
-    exp_config$unknown_type <- diff_type[1:(exp_config$unknown_num)]
+    exp_config$unknown_num <- floor(exp_config$current_increment_index*exp_config$increment)
+    exp_config$sample_type <- c(exp_config$diff_type[1:(exp_config$unknown_num)],exp_config$common_type) 
+    exp_config$unknown_type <- exp_config$diff_type[1:(exp_config$unknown_num)]
     print("test dataset={test_dataset_name}")
   }
   exp_config

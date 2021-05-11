@@ -216,13 +216,7 @@ experiments.analysis.unknown_types <- function(assign_results,cluster_results,ex
                                    )
       
       type_accuracy <- mean(purrr::map_dbl(unknown_type, function(type){ type_pred <- dplyr::select(combined_results,method,label) %>% dplyr::filter(label==type) 
-                                                                         unassigned <- type_pred[which(type_pred[,1]=="unassigned"),] 
-                                                                         type_pred.unassigned[,1] <- type_pred.unassigned[,2]
-                                                                         type_pred.label.T <- type_pred[which(type_pred[,1]==type_pred[,2]),] 
-                                                                         type_pred.label.T[,1] <- rep("unassigned",length(type_pred.label.T[,1]))
-                                                                         type_pred.label.F <- type_pred[which(type_pred[,1]!=type_pred[,2] & type_pred[,1] !="unassigned"),] 
-                                                                         type_pred_true <- rbind(type_pred.unassigned,type_pred.label.T,type_pred.label.F)
-                                                                         analysis.assign.accuracy(type_pred_true$label,type_pred_true[[method]])
+                                                                         sum(type_pred[,1]=="unassigned")/nrow(type_pred)
                                                                         }
                                            )
                             )
@@ -249,7 +243,7 @@ experiments.analysis.attach_dataset_props <- function(experiment,exp_config,...)
   have_test <- exp_config$have_test
   report_results <- extra_args$report_results
   combined_results <- extra_args$combined_results
-  if(experiment %in% c("imbalance_impacts","celltype_detection")) single_method_result <-  extra_args$single_method_result
+  if(experiment %in% c("imbalance_impacts","unknown_types")) single_method_result <-  extra_args$single_method_result
   if(have_test){
     if(experiment %in% c("batch_effects")) batch_effects_quant = analysis.dataset.batch_effects(train_dataset, test_dataset)
     train_data_props <- analysis.dataset.properties(train_dataset)
@@ -283,7 +277,7 @@ experiments.analysis.attach_dataset_props <- function(experiment,exp_config,...)
     }
     combined_results[["train_dataset"]] <- train_data_props[["dataset"]]
     combined_results[["test_dataset"]] <- test_data_props[["dataset"]]
-    if(experiment %in% c("imbalance_impacts")){
+    if(experiment %in% c("imbalance_impacts","unknown_types")){
       single_method_result[["train_dataset"]] <- train_data_props[["dataset"]]
       single_method_result[["test_dataset"]] <- test_data_props[["dataset"]]
     }
@@ -295,11 +289,11 @@ experiments.analysis.attach_dataset_props <- function(experiment,exp_config,...)
       })
     }
     combined_results[["dataset"]] <- data_props[["dataset"]]
-    if(experiment %in% c("imbalance_impacts","celltype_detection")){
+    if(experiment %in% c("imbalance_impacts","unknown_types")){
       single_method_result[["dataset"]] <- data_props[["dataset"]]
     }
   }
-  if(experiment %in% c("imbalance_impacts")){
+  if(experiment %in% c("imbalance_impacts","unknown_types")){
     return(list(pred_results=combined_results,analy_results=report_results,single_method_result=single_method_result))
   }else{
     return(list(pred_results=combined_results,analy_results=report_results))
