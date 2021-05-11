@@ -206,14 +206,8 @@ experiments.analysis.unknown_types <- function(assign_results,cluster_results,ex
       }))
       type_accuracy <- mean(type_accuracy_f1$acc)
       type_f1 <- mean(type_accuracy_f1$f1)
-      type_unassigned_pctg <- NA
       supervised <- F
     }else if(method %in% supervised_methods){
-      type_unassigned_pctg <- mean(purrr::map_dbl(unknown_type, function(type){ type_pred_true <- dplyr::select(combined_results,method,label) %>% dplyr::filter(label==type)
-                                                                                 analysis.assign.unlabeled_pctg(type_pred_true$label,type_pred_true[[method]])
-                                                                               }
-                                                  )
-                                   )
       
       type_accuracy <- mean(purrr::map_dbl(unknown_type, function(type){ type_pred <- dplyr::select(combined_results,method,label) %>% dplyr::filter(label==type) 
                                                                          sum(type_pred[,1]=="unassigned")/nrow(type_pred)
@@ -225,9 +219,9 @@ experiments.analysis.unknown_types <- function(assign_results,cluster_results,ex
     }else{
       stop(str_glue("unkown method={method}"))
     }
-    tibble(method=method,unknown_celltype=unknown_type,unlabeled_pctg=type_unassigned_pctg, type_accuracy=type_accuracy,type_f1=type_f1, supervised=supervised)
+    tibble(method=method,unknown_celltype=str_c(unknown_type,collapse = "|"),type_accuracy=type_accuracy,type_f1=type_f1, supervised=supervised)
   }))
-  experiments.analysis.attach_dataset_props("celltype_detection",exp_config,report_results=report_results,
+  experiments.analysis.attach_dataset_props("unknown_types",exp_config,report_results=report_results,
                                             combined_results=combined_results,
                                             single_method_result=single_method_result,...)
 }

@@ -224,6 +224,36 @@ summary.celltype_number <- function(){
 }
 
 
+summary.unknown_types <- function(experiment){
+  experiment <- "unknown_types"
+  sample_id_var <- "unknown_num"
+  # exp_config <- experiments.parameters[[experiment]]
+  exp_results <- summary.collect_experiment_results(experiment)
+  # exp_dataset_props <-summary.read_exp_dataset_properties(experiment, exp_config)
+  metric_results <- melt(exp_results,id.vars = c("train_dataset","test_dataset","assigned","methods",sample_id_var),measure.vars=c("ARI")) 
+  
+  metric_results <- dcast(metric_results, train_dataset+test_dataset+assigned+unknown_num ~ methods)
+  dataset_prop <- bind_rows(group_by(exp_results,train_dataset,test_dataset,unknown_num,.keep=T) %>% group_map(~{.[1,append(inter_dataset_properties_list,"unknown_num")]},.keep=T))
+  other_results <- dplyr::filter(exp_results,is.na(assigned),supervised==TRUE) %>% 
+    melt(id.vars = c("train_dataset","test_dataset","methods","unknown_num"),measure.vars=c("unlabeled_pctg","pred_type_max_pctg"),variable.name="metrics") %>%
+    dcast(train_dataset+test_dataset+metrics+unknown_num ~ methods)
+  
+  unsup_other_results <- dplyr::filter(exp_results,is.na(assigned),supervised==F) %>% 
+    melt(id.vars = c("train_dataset","test_dataset","methods","unknown_num"),measure.vars=c("cluster_num","pred_type_max_pctg"),variable.name="metrics") %>%
+    dcast(train_dataset+test_dataset+metrics+unknown_num ~ methods)
+  
+  combined_prop_metric_results <- left_join(metric_results,dataset_prop,by=c("train_dataset","test_dataset","unknown_num"))
+  combined_prop_other_results <- left_join(other_results,dataset_prop,by=c("train_dataset","test_dataset","unknown_num"))
+  combined_prop_unsup_other_results <- left_join(unsup_other_results,dataset_prop,by=c("train_dataset","test_dataset","unknown_num"))
+  single_type_results <- summary.collect_experiment_results(experiment,"single_method_results.rds") %>% dplyr::select(-methods)
+  if("train_dataset" %in% colnames(single_type_results)){
+    single_type_results <- melt(single_type_results, id.vars=c("train_dataset","test_dataset","method","unknown_celltype","supervised","unknown_num"))
+  }else{
+    single_type_results <- melt(single_type_results, id.vars=c("dataset","method","unknown_celltype","supervised","unknown_num"))
+  }
+}
+
+
 
 
 summary.collect_experiment_results <- function(experiment,file_name="results.rds"){
@@ -232,45 +262,6 @@ summary.collect_experiment_results <- function(experiment,file_name="results.rds
   exp_results
 }
 
-
-# summary.read_exp_dataset_properties <- function(experiment,exp_config){
-#   exp_results_dir <- str_glue({"{result_home}{experiment}"})
-#   exp_dataset_props <- summary.read_dataset_prop_from_dir(exp_results_dir,exp_config)
-#   exp_dataset_props
-# }
-# 
-# summary.read_dataset_prop_from_dir <- function(current_dir, exp_config){
-#   sub_dirs <- list.dirs(current_dir,recursive = F)
-#   if(length(sub_dirs)==0){
-#     
-#     if(exp_config$cv){
-#       dataset_prop <- read_rds(str_glue('{current_dir}/alldataset_properties.rds'))
-#       names(dataset_prop)[[1]] <- "dataset"
-#       return(dataset_prop)
-#     }else{
-#       train_dataset_prop <- read_rds(str_glue('{current_dir}/traindataset_properties.rds'))
-#       test_dataset_prop <- read_rds(str_glue('{current_dir}/testdataset_properties.rds'))
-#       combined_prop <- list(train_dataset=train_dataset_prop$name,train_complexity=train_dataset_prop$complexity,
-#                             train_entropy=train_dataset_prop$entropy,train_seq_depth_med=train_dataset_prop$seq_depth_med,
-#                             train_seq_depth_IQR=train_dataset_prop$seq_depth_IQR,train_cell_types=train_dataset_prop$cell_types,
-#                             train_sparsity=train_dataset_prop$sparsity,train_sample_num=train_dataset_prop$sample_num,
-#                             train_gene_num=train_dataset_prop$gene_num,
-#                             test_dataset=test_dataset_prop$name,test_complexity=test_dataset_prop$complexity,
-#                             test_entropy=test_dataset_prop$entropy,test_seq_depth_med=test_dataset_prop$seq_depth_med,
-#                             test_seq_depth_IQR=test_dataset_prop$seq_depth_IQR,test_cell_types=test_dataset_prop$cell_types,
-#                             test_sparsity=test_dataset_prop$sparsity,test_sample_num=test_dataset_prop$sample_num,
-#                             test_gene_num=test_dataset_prop$gene_num)
-#       return(combined_prop)
-#     }
-#     
-#   }else{
-#     sub_props <- vector("list",length=length(sub_dirs))
-#     for(i in seq_along(sub_dirs)){
-#       sub_props[[i]] <- summary.read_dataset_prop_from_dir(sub_dirs[[i]], exp_config)
-#     }
-#     return(bind_rows(sub_props))
-#   }
-# }
 
 summary.read_results_from_dir <- function(current_dir,file_name="results.rds"){
   files <- list.files(current_dir,recursive = F)
@@ -302,7 +293,7 @@ summary.output_excel <- function(experiment,exp_config,...){
     suffix <- ""
   }
   
-  excel_file_name <- str_glue("{result_home}{experiment}/{experiment}{suffix}_summarized_results.xlsx")
+  excel_file_name <- str_glue("{result_home}{experiment}{suffix}/{experiment}_summarized_results.xlsx")
   wb <- xlsx::createWorkbook()
   title_style <- CellStyle(wb) +
     Font(wb, heightInPoints = 16,
@@ -405,7 +396,7 @@ summary.output_excel <- function(experiment,exp_config,...){
     pt$writeToExcelWorksheet(wb=wb1, topRowNumber = 2, leftMostColumnNumber = 1, wsName =  str_glue("Single type performance metrics"),outputValuesAs="rawValue",
                              applyStyles=TRUE, mapStylesFromCSS=TRUE)
   }
-  excel_file_name <- str_glue("{result_home}{experiment}/{experiment}_summarized_single_type_results.xlsx")
+  excel_file_name <- str_glue("{result_home}{experiment}{suffix}/{experiment}_summarized_single_type_results.xlsx")
   openxlsx::saveWorkbook(wb1, file = excel_file_name,overwrite = T)
 }
 

@@ -386,13 +386,13 @@ plot.imbalance_impacts <- function(results,raw_results,fig_path,...){
 }
 
 ###################
-plot.unknown_types <- function (results,raw_results,fig_path,...){
+plot.unknown_types <- function(results,raw_results,fig_path,...){
   single_method_results <- list(...)$single_method_results
   
   if(purrr::is_null(single_method_results)){
     single_method_results <- read_rds(str_glue("{fig_path}/single_method_results.rds"))
   }
-  
+  single_method_results$method <- factor(single_method_results$method) %>% forcats::fct_inorder()
   all_results <- dplyr::select(dplyr::filter(results,is.na(assigned)),c(ARI,AMI,FMI,methods,unknown_num,supervised)) %>%
     gather("metric","value",-c(methods,unknown_num,supervised))
   
@@ -465,8 +465,20 @@ plot.unknown_types <- function (results,raw_results,fig_path,...){
                                scale_x_discrete_limits="c(\"label\",\"value\")",facet_var="methods",facet_wrap=T,width=10,height=7,nrow=1)
     
     plot.sankey_plot(raw_results1,sankey_plot_params,fig_path,str_glue("sankey_unknown_num_{e}.pdf"))
-    
   }
+  
+  
+  ##########
+  unknown_type_results <- dplyr::select(single_method_results,c(type_accuracy,method,unknown_num,unknown_celltype,supervised)) %>%
+    gather("metric","value",-c(method,unknown_num,unknown_celltype,supervised))
+  
+  plot_params <- list(x="method",y="value",fill="supervised",label="label",xlabel="method",
+                      facet_wrap=T,dodged=T,facet_var='unknown_celltype',width=10,height=7,nrow=length(unique(unknown_type_results$unknown_celltype)))
+  
+  unknown_type_results$label <- round(unknown_type_results$value,2)
+  
+  plot_params$ylabel <- "type_accuracy"
+  plot.bar_plot(unknown_type_results[unknown_type_results$metric=="type_accuracy",],plot_params,fig_path,"unknown_type_accuracy.pdf")
 }
 
 

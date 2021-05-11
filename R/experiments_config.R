@@ -468,6 +468,12 @@ experiments.config.init.imbalance_impacts <- function(train_dataset, test_datase
   train_type <- train_test_types$train_type
   test_type <- train_test_types$test_type
   train_test_common_type <- intersect(train_type,test_type)
+  common_type_num <- length(train_test_common_type)
+  if(common_type_num > 5){
+    common_type_num <- 5
+    train_data <- utils.load_datasets(train_dataset)
+    train_test_common_type <- (dplyr::group_by(as.data.frame(colData(train_data)),label) %>% dplyr::summarize(type_number=n()) %>% dplyr::arrange(desc(type_number)))[['label']][1:common_type_num]
+  }
   exp_config$train_kept_types <- train_test_common_type
   exp_config$test_kept_types <- train_test_common_type
   exp_config$type_pctgs <- exp_config$all_type_pctgs[[as.character(length(train_test_common_type))]]
