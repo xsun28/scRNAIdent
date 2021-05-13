@@ -1,4 +1,4 @@
-experiment <- "imbalance_impacts"
+experiment <- "unknown_types"
 
 # experiments.data <- list(simple_accuracy="PBMC_AllCells_withLabels.RDS", 
 #                                  cell_number="ADASD_autism.RDS",
@@ -307,7 +307,7 @@ experiments.parameters <- list(
                                                             dataset.interdatasets$pancreas3,dataset.interdatasets$pancreas4,
                                                             dataset.interdatasets$pancreas5,dataset.interdatasets$pancreas6)),
   
-  imbalance_impacts = list(batch_free=F,target_train_num=1200, target_test_num=1000,fixed_train=F,fixed_test=T,
+  imbalance_impacts = list(batch_free=F,target_train_num=1200, target_test_num=1000,fixed_train=T,fixed_test=F,
                            all_type_pctgs = list(   "3"=list( list(0.33,0.33,0.34),
                                                             list(0.5,0.4,0.1),
                                                             list(0.7,0.25,0.05),
@@ -342,14 +342,14 @@ experiments.parameters <- list(
                                                                dataset.interdatasets$ADASD1,dataset.interdatasets$ADASD2)),
   
   celltype_number=list( cv=F,cv_fold=NULL, metrics=c('ARI','AMI','FMI'), batch_free=F,fixed_train=T,fixed_test=F,
-                        marker_gene_file=NULL,trained=F,target_train_num=1200, target_test_num=800,
-                        test_num=4, use_intra_dataset=F,intra_dataset=list(),
+                        marker_gene_file=NULL,trained=F,target_train_num=1200,target_test_num=1000,test_num=4, use_intra_dataset=F,intra_dataset=list(),
                         use_inter_dataset=T,inter_dataset=list(dataset.interdatasets$PBMC1,dataset.interdatasets$PBMC2,
                                                                dataset.interdatasets$PBMC3,dataset.interdatasets$PBMC4,
                                                                dataset.interdatasets$PBMC7,dataset.interdatasets$PBMC10,
                                                                dataset.interdatasets$pancreas3,dataset.interdatasets$pancreas4)
-  
+                        
                         ),
+  
 
   unknown_types=list( cv=F,cv_fold=NULL, metrics=c('ARI','AMI','FMI'), batch_free=F,fixed_train=T,fixed_test=F,
                            marker_gene_file=NULL,trained=F,target_train_num=1200, target_test_num=800,
@@ -522,6 +522,56 @@ experiments.config.init.unknown_types <-function(train_dataset, test_dataset=NUL
   exp_config
 }
 
+
+experiments.config.init.celltype_number <- function(train_dataset, test_dataset=NULL, exp_config){
+  get_type_order <- function(dataset){
+    data <- utils.load_datasets(dataset) 
+    type_pctg <- as.data.frame(table(colData(data)$label)/dim(data)[2])
+    celltype_order <- as.vector(type_pctg[order(type_pctg[,2],decreasing = T),][,1])
+    celltype_order
+  }
+  exp_config$train_type <- get_type_order(train_dataset)
+  exp_config$test_type <- get_type_order(test_dataset) 
+  exp_config$common_type <- intersect(exp_config$train_type,exp_config$test_type)
+  exp_config$test_num <- min(3,length(exp_config$train_type)-length(exp_config$common_type))
+  
+  exp_config$have_test <- if(exp_config$cv) F else T
+  exp_config$trained <- F
+  exp_config$clustered <- F
+  if(exp_config$fixed_train){
+    test_dataset_name <- str_split(test_dataset,"\\.")[[1]][[1]]
+    if(purrr::is_null(exp_config$increment)){
+      exp_config$increment <- floor(length(exp_config$common_type)/exp_config$test_num)
+      while(exp_config$increment==0){  
+        exp_config$test_num <- exp_config$test_num-1
+        stopifnot(exp_config$test_num>=2)
+        exp_config$increment <- floor(length(exp_config$common_type)/exp_config$test_num)
+      }
+    }
+    exp_config$train_number <- length(exp_config$train_type)
+    exp_config$train_type <- exp_config$train_type
+    print(str_glue("test dataset={test_dataset_name}"))
+  }
+  if(exp_config$fixed_test){
+    exp_config$test_number <- min(max(length(exp_config$common_type)*0.4,3),length(exp_config$common_type))
+    exp_config$test_type <- common_type[1:exp_config$test_number]
+    
+    train_dataset_name <- str_split(train_dataset,"\\.")[[1]][[1]]
+    if(purrr::is_null(exp_config$increment)){
+      exp_config$increment <- floor((length(exp_config$train_type)-length(exp_config$test_number))/exp_config$test_num)
+      while(exp_config$increment==0){  
+        exp_config$test_num <- exp_config$test_num-1
+        stopifnot(exp_config$test_num>=2)
+        exp_config$increment <- floor((length(exp_config$train_type)-length(exp_config$test_number))/exp_config$test_num)
+      }
+    }
+
+    print(str_glue("test dataset={train_dataset_name}"))
+  }
+  exp_config
+}
+
+
 ########################
 experiments.config.update <- function(experiment, train_dataset, test_dataset=NULL, exp_config){
   switch(experiment,
@@ -606,49 +656,23 @@ experiments.config.update.imbalance_impacts <- function(train_dataset, test_data
 }
 
 
-experiments.config.update.celltype_number <-function(train_dataset, test_dataset=NULL, exp_config){
-  
-  get_type_order <- function(data){
-    type_pctg <- as.data.frame(table(colData(data)$label)/dim(data)[2])
-    celltype_order <- as.vector(type_pctg[order(type_pctg[,2],decreasing = T),][,1])
-    celltype_order
-  }
-  
-  train_data <- utils.load_datasets(train_dataset) 
-  test_data <- utils.load_datasets(test_dataset) 
-  train_type <- unique(colData(train_data)$label)
-  common_type <- unique(intersect(colData(train_data)$label,colData(test_data)$label))
-  
-  calculate_type_increment <- function(train_dataset,test_dataset, exp_config, if_train){
-    if(exp_config$fixed_train) increment <- length(common_type)/5
-    if(exp_config$fixed_test){
-      increment <- ifelse(train_dataset %in% "Segerstolpe_pancreas_clean.RDS",round((length(train_type)-length(common_type))/4),length(common_type)/5)
-    } 
-    return(increment)
-  }
-  
-  exp_config$trained <- F
+experiments.config.update.celltype_number <- function(train_dataset, test_dataset=NULL, exp_config){
   if(exp_config$fixed_train){
-    exp_config$trained <- if(exp_config$current_increment_index==0) F else T
+    exp_config$trained <- if(exp_config$current_increment_index==1) F else T
     test_dataset_name <- str_split(test_dataset,"\\.")[[1]][[1]]
-    if(purrr::is_null(exp_config$increment)){
-      increment <- calculate_type_increment(train_dataset,test_dataset, exp_config, if_train=F)
-    }
-    exp_config$type_num <- floor(exp_config$current_increment_index*increment)+round(length(common_type)*0.2)
-    celltype_order <- intersect(get_type_order(test_data),common_type)
-    exp_config$sample_type <- celltype_order[1:(exp_config$type_num)]  
-    print("test dataset={test_dataset_name}")
+    exp_config$test_number <- exp_config$increment + exp_config$test_number
+    exp_config$test_type <- (exp_config$common_type)[1:(exp_config$test_number)] 
+    print(str_glue("test dataset={test_dataset_name}"))
   }
   if(exp_config$fixed_test){
     train_dataset_name <- str_split(train_dataset,"\\.")[[1]][[1]]
-    increment <- calculate_type_increment(train_dataset,test_dataset, exp_config, if_train=T)
-    type_num <- (exp_config$current_increment_index-1)*increment
-    exp_config$type_num <- type_num+length(common_type)
-    exp_config$sample_type <- c(setdiff(train_type,common_type)[0:type_num],common_type) 
-    print("train dataset={train_dataset_name}")
+    exp_config$train_number <- exp_config$train_number+exp_config$increment
+    exp_config$train_type <- c(exp_config$common_type,setdiff((exp_config$train_type),(exp_config$common_type)))[1:exp_config$train_number]
+    print(str_glue("test dataset={train_dataset_name}"))
   }
   exp_config
 }
+
 
 
 

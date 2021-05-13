@@ -190,7 +190,7 @@ experiments.simple_accuracy <- function(experiment){
     print(str_glue("{experiment} train_dataset={train_dataset}"))
     print(analy_results)
   }
-  summarize_experiments(experiment)
+  summarize_experiments(experiment,init_exp_config)
 }
 
 
@@ -249,7 +249,7 @@ experiments.cell_number <- function(experiment){
     print(str_glue("{experiment} train_dataset={train_dataset}, test_dataset={test_dataset}"))
     print(final_results)
   }
-  summarize_experiments(experiment,exp_config)
+  summarize_experiments(experiment,init_exp_config)
 }
 
 ###cell type number experiment
@@ -310,7 +310,7 @@ experiments.sequencing_depth <- function(experiment){
     print(str_glue("{experiment} train_dataset={train_dataset}, test_dataset={test_dataset}"))
     print(final_results)
   }
-  summarize_experiments(experiment)
+  summarize_experiments(experiment,init_exp_config)
 }
 
 
@@ -399,20 +399,12 @@ experiments.batch_effects <- function(experiment){
     init_exp_config <- experiments.config.init(experiment, train_dataset, test_dataset,base_exp_config)
     
     exp_config <-  experiments.config.update(experiment, train_dataset, test_dataset,init_exp_config)
-    # experiments.parameters[[experiment]]$train_sample_num <<- experiments.parameters.batch_effects[[datasets_perm2[i,1]]]$train_sample_num
-    # experiments.parameters[[experiment]]$train_sample_pctg <<- experiments.parameters.batch_effects[[datasets_perm2[i,1]]]$train_sample_pctg
-    # experiments.parameters[[experiment]]$test_sample_num <<- experiments.parameters.batch_effects[[datasets_perm2[i,2]]]$test_sample_num
-    # experiments.parameters[[experiment]]$test_sample_pctg <<- experiments.parameters.batch_effects[[datasets_perm2[i,2]]]$test_sample_pctg
     data <- utils.load_datasets(list(train_dataset,test_dataset))
     data_intersected <- list(str_glue("{metadata(data[[1]])$study_name}_{metadata(data[[2]])$study_name}_intersected.RDS"),
                              str_glue("{metadata(data[[2]])$study_name}_{metadata(data[[1]])$study_name}_intersected.RDS")
                               )
     preprocess.intersect_sces(data,unlist(data_intersected))
     
-    # experiments.assign.data$train_dataset[[experiment]] <<- data_intersected[[1]]
-    # print(str_glue("assign train data is {experiments.assign.data$train_dataset[[experiment]]}"))
-    # experiments.assign.data$test_dataset[[experiment]] <<- data_intersected[[2]]
-    # print(str_glue("assign test data is {experiments.assign.data$test_dataset[[experiment]]}"))
     experiments.config.update.train_test_datasets(experiment, data_intersected[[1]], data_intersected[[2]])
     exp_config$batch_free <- F
     base_results <- experiments.base(experiment,exp_config)
@@ -455,7 +447,7 @@ experiments.batch_effects <- function(experiment){
     utils.clean_marker_files()
     print(str_glue("finished batch effect dataset pair {experiments.assign.data$train_dataset[[experiment]]}-{experiments.assign.data$test_dataset[[experiment]]}"))
   }
-  summarize_experiments(experiment)
+  summarize_experiments(experiment,init_exp_config)
 }
 
 
@@ -489,7 +481,7 @@ experiments.inter_diseases <- function(experiment){
     plot.plot(experiment,results,raw_results)
     print(str_glue("finished inter-diseases dataset pair {experiments.assign.data$train_dataset[[experiment]]}-{experiments.assign.data$test_dataset[[experiment]]}"))
   }
-  summarize_experiments(experiment)
+  summarize_experiments(experiment,init_exp_config)
 }
 
 
@@ -552,19 +544,18 @@ experiments.imbalance_impacts <- function(experiment){
     print(str_glue("{experiment} train_dataset={train_dataset}, test_dataset={test_dataset}"))
     print(final_results)
   }
-  summarize_experiments(experiment)
+  summarize_experiments(experiment,init_exp_config)
 }
 
 
 ###cell type number experiment
 
 experiments.celltype_number <- function(experiment){
-  exp_config <- experiments.parameters[[experiment]]
-  experiments.config.check_config(exp_config)
-  used_dataset <- if(exp_config$use_intra_dataset) exp_config$intra_dataset else exp_config$inter_dataset
+  base_exp_config <- experiments.parameters[[experiment]]
+  experiments.config.check_config(base_exp_config)
+  used_dataset <- if(base_exp_config$use_intra_dataset) base_exp_config$intra_dataset else base_exp_config$inter_dataset
   for(j in seq_along(used_dataset)){
-    exp_config <- experiments.parameters[[experiment]]
-    if(exp_config$use_intra_dataset){
+    if(base_exp_config$use_intra_dataset){
       train_dataset <- used_dataset[[j]]
       test_dataset <- used_dataset[[j]]
     }else{
@@ -572,21 +563,31 @@ experiments.celltype_number <- function(experiment){
       test_dataset <- used_dataset[[j]]$test_dataset
     }
     experiments.config.update.train_test_datasets(experiment, train_dataset, test_dataset)
-    test_num <- exp_config$test_num
+    init_exp_config <- experiments.config.init(experiment, train_dataset, test_dataset,base_exp_config)
+    test_num <- init_exp_config$test_num
     combined_cluster_results <- vector('list',test_num)
     combined_assign_results <- vector('list',test_num)
     combined_raw_results <- vector('list',test_num)
     for(i in 1:test_num){
+      exp_config <- init_exp_config
       exp_config$current_increment_index <- i
       exp_config <- experiments.config.update(experiment, train_dataset, test_dataset,exp_config)
-      val <- exp_config$type_num
-      print(str_glue('type sample num={val}'))
+      val <- if(exp_config$fixed_train) exp_config$test_number else exp_config$train_number   
+      print(str_glue('target sample num={val}'))
       base_results <- experiments.base(experiment,exp_config)
-      results <- base_results$analy_results%>% 
+      if(exp_config$fixed_test){
+        if(!purrr::is_null(base_results$cluster_results)){
+          clustered_results <- base_results$cluster_results
+        }else{
+          base_results$cluster_results <- clustered_results
+        }
+      }
+      report_results <- do.call(experiments.analysis,base_results)
+      results <- report_results$analy_results%>% 
         purrr::map(~{
           .$type_num <- val
           return(.)})
-      raw_results <- base_results$pred_results
+      raw_results <- report_results$pred_results
       raw_results$type_num <- val
       combined_assign_results[[i]] <- bind_rows(results[grepl(".*_assign_.*",names(results))])
       combined_cluster_results[[i]] <- bind_rows(results[grepl(".*cluster.*",names(results))])
@@ -603,8 +604,9 @@ experiments.celltype_number <- function(experiment){
     print(str_glue("{experiment} train_dataset={train_dataset}, test_dataset={test_dataset}"))
     print(final_results)
   }
-  summarize_experiments(experiment)
+  summarize_experiments(experiment,init_exp_config)
 }
+
 
 
 ##############
@@ -668,7 +670,7 @@ experiments.unknown_types <- function(experiment){
     print(str_glue("{experiment} train_dataset={train_dataset}, test_dataset={test_dataset}"))
     print(final_results)
   }
-  summarize_experiments(experiment)
+  summarize_experiments(experiment,init_exp_config)
   
 }
 

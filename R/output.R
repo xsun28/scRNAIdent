@@ -114,12 +114,12 @@ output.dataset.properties_table <- function(t, file_path_name=NULL,prefix=NULL){
 ####
 output.generate_output_path <- function(experiment, dataset, train_dataset, test_dataset, exp_config){
   if(!purrr::is_null(exp_config$fixed_train)){
-    if(exp_config$fixed_train){
+    if(exp_config$fixed_train&&!exp_config$fixed_test){
       output_dir <- str_glue("{result_home}{experiment}_train_fixed")
     }
   }
   if(!purrr::is_null(exp_config$fixed_test)){
-    if(exp_config$fixed_test){
+    if(exp_config$fixed_test&&!exp_config$fixed_train){
       output_dir <- str_glue("{result_home}{experiment}_test_fixed")
     }
   }

@@ -162,11 +162,11 @@ summary.batch_effects <- function(exp_config){
                        combined_prop_unsup_other_results=combined_prop_unsup_other_results)
 }
 
-summary.imbalance_impacts <- function(experiment){
+summary.imbalance_impacts <- function(exp_config){
   experiment <- "imbalance_impacts"
   sample_id_var <- "imbl_entropy"
   # exp_config <- experiments.parameters[[experiment]]
-  exp_results <- summary.collect_experiment_results(experiment)
+  exp_results <- summary.collect_experiment_results(experiment,exp_config)
   # exp_dataset_props <-summary.read_exp_dataset_properties(experiment, exp_config)
   metric_results <- melt(exp_results,id.vars = c("train_dataset","test_dataset","assigned","methods",sample_id_var),measure.vars=c("ARI")) 
   
@@ -183,7 +183,7 @@ summary.imbalance_impacts <- function(experiment){
   combined_prop_metric_results <- left_join(metric_results,dataset_prop,by=c("train_dataset","test_dataset","imbl_entropy"))
   combined_prop_other_results <- left_join(other_results,dataset_prop,by=c("train_dataset","test_dataset","imbl_entropy"))
   combined_prop_unsup_other_results <- left_join(unsup_other_results,dataset_prop,by=c("train_dataset","test_dataset","imbl_entropy"))
-  single_type_results <- summary.collect_experiment_results(experiment,"single_method_results.rds") %>% dplyr::select(-methods)
+  single_type_results <- summary.collect_experiment_results(experiment,exp_config,"single_method_results.rds") %>% dplyr::select(-methods)
   if("train_dataset" %in% colnames(single_type_results)){
     single_type_results <- melt(single_type_results, id.vars=c("train_dataset","test_dataset","method","type","type_pctg","supervised","imbl_entropy"))
   }else{
@@ -197,31 +197,32 @@ summary.imbalance_impacts <- function(experiment){
   
 }
 
-summary.celltype_number <- function(){
+summary.celltype_number <- function(exp_config){
   experiment <- "celltype_number"
-  exp_config <- experiments.parameters[[experiment]]
-  type_pctgs <- exp_config$type_pctg
+  sample_id_var <- "type_num"
+  # exp_config <- experiments.parameters[[experiment]]
   exp_results <- summary.collect_experiment_results(experiment)
-  metric_results <- melt(exp_results,id.vars = c("dataset","assigned","methods"),measure.vars=c("ARI"),type_pctgs) 
+  # exp_dataset_props <-summary.read_exp_dataset_properties(experiment, exp_config)
+  metric_results <- melt(exp_results,id.vars = c("train_dataset","test_dataset","assigned","methods",sample_id_var),measure.vars=c("ARI")) 
   
-  metric_results <- dcast(metric_results, dataset+assigned+type_pctgs ~ methods)
-  dataset_prop <- bind_rows(group_by(exp_results,dataset,dataset,type_pctgs,.keep=T) %>% group_map(~{.[1,append(inter_dataset_properties_list,"type_pctgs")]},.keep=T))
+  metric_results <- dcast(metric_results, train_dataset+test_dataset+assigned+type_num ~ methods)
+  dataset_prop <- bind_rows(group_by(exp_results,train_dataset,test_dataset,type_num,.keep=T) %>% group_map(~{.[1,append(inter_dataset_properties_list,"type_num")]},.keep=T))
   other_results <- dplyr::filter(exp_results,is.na(assigned),supervised==TRUE) %>% 
-    melt(id.vars = c("dataset","methods","type_pctgs"),measure.vars=c("unlabeled_pctg","pred_type_max_pctg"),variable.name="metrics") %>%
-    dcast(dataset+metrics+type_pctgs ~ methods)
+    melt(id.vars = c("train_dataset","test_dataset","methods","type_num"),measure.vars=c("unlabeled_pctg","pred_type_max_pctg"),variable.name="metrics") %>%
+    dcast(train_dataset+test_dataset+metrics+type_num ~ methods)
   
   unsup_other_results <- dplyr::filter(exp_results,is.na(assigned),supervised==F) %>% 
-    melt(id.vars = c("dataset","methods","type_pctgs"),measure.vars=c("cluster_num","pred_type_max_pctg"),variable.name="metrics") %>%
-    dcast(dataset+metrics+sample_pctg ~ methods)
+    melt(id.vars = c("train_dataset","test_dataset","methods","type_num"),measure.vars=c("cluster_num","pred_type_max_pctg"),variable.name="metrics") %>%
+    dcast(train_dataset+test_dataset+metrics+type_num ~ methods)
   
-  combined_prop_metric_results <- left_join(metric_results,dataset_prop,by=c("dataset","methods","type_pctgs"))
-  combined_prop_other_results <- left_join(other_results,dataset_prop,by=c("dataset","methods","type_pctgs"))
-  combined_prop_unsup_other_results <- left_join(unsup_other_results,dataset_prop,by=c("dataset","methods","type_pctgs"))
-  
-  summary.output_excel(experiment,combined_prop_metric_results=combined_prop_metric_results,
+  combined_prop_metric_results <- left_join(metric_results,dataset_prop,by=c("train_dataset","test_dataset","type_num"))
+  combined_prop_other_results <- left_join(other_results,dataset_prop,by=c("train_dataset","test_dataset","type_num"))
+  combined_prop_unsup_other_results <- left_join(unsup_other_results,dataset_prop,by=c("train_dataset","test_dataset","type_num"))
+  summary.output_excel(experiment,exp_config,combined_prop_metric_results=combined_prop_metric_results,
                        combined_prop_unlabeled_pctg_results=combined_prop_other_results,
                        combined_prop_unsup_other_results=combined_prop_unsup_other_results)
 }
+
 
 
 summary.unknown_types <- function(experiment){
@@ -256,8 +257,14 @@ summary.unknown_types <- function(experiment){
 
 
 
-summary.collect_experiment_results <- function(experiment,file_name="results.rds"){
-  exp_results_dir <- str_glue({"{result_home}{experiment}"})
+summary.collect_experiment_results <- function(experiment,exp_config,file_name="results.rds"){
+  if(exp_config$fixed_train&&!exp_config$fixed_test) {
+    exp_results_dir <- str_glue({"{result_home}{experiment}_train_fixed"})
+  }else if(exp_config$fixed_test){
+    exp_results_dir <- str_glue({"{result_home}{experiment}_test_fixed"})
+  }else{
+    exp_results_dir <- str_glue({"{result_home}{experiment}"})
+  }
   exp_results <- summary.read_results_from_dir(exp_results_dir,file_name) %>% utils.get_methods()
   exp_results
 }
