@@ -152,9 +152,10 @@ plot.cell_number <- function(results,raw_results,fig_path){
 
   results_unlabeled_pctg <- dplyr::filter(dplyr::select(results[results$supervised,],methods,sample_num,unlabeled_pctg),!is.na(unlabeled_pctg))
   
-  plot_params <- list(x="sample_num",y="unlabeled_pctg",group="methods",line_color="methods",point_color="methods",
-                      facet_wrap=F,width=2*length(unique(results_unlabeled_pctg$methods)),
-                      height=2*length(unique(results_unlabeled_pctg$methods)))
+  plot_params <- list(x="sample_num",y="unlabeled_pctg",group="methods",line_color="methods",point_color="methods",line_type="methods",
+                      point_shape="methods",
+                      facet_wrap=F,width=length(unique(results_unlabeled_pctg$methods)),
+                      height=length(unique(results_unlabeled_pctg$methods)))
 
 
   plot.line_plot(results_unlabeled_pctg,plot_params,fig_path,"unlabeled_pctg.pdf")
@@ -229,9 +230,10 @@ plot.celltype_number <- function(results,raw_results,fig_path){
   
   results_unlabeled_pctg <- dplyr::filter(dplyr::select(results[results$supervised,],methods,type_num,unlabeled_pctg),!is.na(unlabeled_pctg))
   
-  plot_params <- list(x="type_num",y="unlabeled_pctg",group="methods",line_color="methods",point_color="methods",
-                      facet_wrap=F,width=2*length(unique(results_unlabeled_pctg$methods)),
-                      height=2*length(unique(results_unlabeled_pctg$methods)))
+  plot_params <- list(x="type_num",y="unlabeled_pctg",group="methods",line_color="methods",point_color="methods",line_type="methods",
+                      point_shape="methods",
+                      facet_wrap=F,width=length(unique(results_unlabeled_pctg$methods)),
+                      height=length(unique(results_unlabeled_pctg$methods)))
   
   
   plot.line_plot(results_unlabeled_pctg,plot_params,fig_path,"unlabeled_pctg.pdf")
@@ -320,9 +322,9 @@ plot.imbalance_impacts <- function(results,raw_results,fig_path,...){
   
   results_unlabeled_pctg <- dplyr::filter(dplyr::select(results[results$supervised,],methods,imbl_entropy,unlabeled_pctg),!is.na(unlabeled_pctg))
   
-  plot_params <- list(x="imbl_entropy",y="unlabeled_pctg",group="methods",line_color="methods",point_color="methods",
-                      facet_wrap=F,width=2*length(unique(results_unlabeled_pctg$methods)),
-                      height=2*length(unique(results_unlabeled_pctg$methods)))
+  plot_params <- list(x="imbl_entropy",y="unlabeled_pctg",group="methods",line_color="methods",point_color="methods",line_type="methods",
+                      point_shape="methods",facet_wrap=F,width=length(unique(results_unlabeled_pctg$methods)),
+                      height=length(unique(results_unlabeled_pctg$methods)))
   
   
   plot.line_plot(results_unlabeled_pctg,plot_params,fig_path,"unlabeled_pctg.pdf")
@@ -451,9 +453,10 @@ plot.unknown_types <- function(results,raw_results,fig_path,...){
   
   results_unlabeled_pctg <- dplyr::filter(dplyr::select(results[results$supervised,],methods,unknown_num,unlabeled_pctg),!is.na(unlabeled_pctg))
   
-  plot_params <- list(x="unknown_num",y="unlabeled_pctg",group="methods",line_color="methods",point_color="methods",
-                      facet_wrap=F,width=2*length(unique(results_unlabeled_pctg$methods)),
-                      height=2*length(unique(results_unlabeled_pctg$methods)))
+  plot_params <- list(x="unknown_num",y="unlabeled_pctg",group="methods",line_color="methods",point_color="methods",line_type="methods",
+                      point_shape="methods",
+                      facet_wrap=F,width=length(unique(results_unlabeled_pctg$methods)),
+                      height=length(unique(results_unlabeled_pctg$methods)))
   
   
   plot.line_plot(results_unlabeled_pctg,plot_params,fig_path,"unlabeled_pctg.pdf")
@@ -897,12 +900,14 @@ plot.line_plot <- function(results,params,fig_path,fig_name){
   group <- params$group
   line_color <- params$line_color
   point_color <- params$point_color
+  line_type <- params$line_type
+  point_shape <- params$point_shape
   width <- params$width
   height <- params$height
   plot_str <- 
   "ggplot(results, aes_string(x=x, y=y, group=group)) +
-    geom_line(aes_string(color=line_color))+
-    geom_point(aes_string(color=point_color))"
+    geom_line(aes_string(color=line_color,linetype=line_type))+
+    geom_point(aes_string(color=point_color,shape=point_shape))"
   if(params$facet_wrap){   
     plot_str <- str_glue("{plot_str}+
       facet_wrap(~{params$facet_var})"

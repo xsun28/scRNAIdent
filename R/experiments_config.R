@@ -351,15 +351,14 @@ experiments.parameters <- list(
                         ),
   
 
-  unknown_types=list( cv=F,cv_fold=NULL, metrics=c('ARI','AMI','FMI'), batch_free=F,fixed_train=T,fixed_test=F,
+  unknown_types=list(cv=F,cv_fold=NULL, metrics=c('ARI','AMI','FMI'), batch_free=F,fixed_train=T,fixed_test=F,
                            marker_gene_file=NULL,trained=F,target_train_num=1200, target_test_num=800,
                            test_num=4, use_intra_dataset=F,intra_dataset=list(),
                            use_inter_dataset=T,inter_dataset=list(dataset.interdatasets$PBMC1,dataset.interdatasets$PBMC2,
                                                                   dataset.interdatasets$PBMC3,dataset.interdatasets$PBMC4,
                                                                   dataset.interdatasets$PBMC7,dataset.interdatasets$PBMC10,
-                                                                  dataset.interdatasets$pancreas1,dataset.interdatasets$pancreas2,
-                                                                  dataset.interdatasets$pancreas5,dataset.interdatasets$ADASD2,
-                                                                  dataset.interdatasets$midbrain2)
+                                                                  dataset.interdatasets$pancreas1,dataset.interdatasets$pancreas5,
+                                                                  dataset.interdatasets$pancreas3,dataset.interdatasets$ADASD2)
                            ),
   celltype_complexity = list(),
   inter_species = list(),
@@ -507,6 +506,10 @@ experiments.config.init.unknown_types <-function(train_dataset, test_dataset=NUL
   test_type <- train_test_types$test_type
   exp_config$common_type <- intersect(train_type,test_type)
   if(exp_config$fixed_train){
+    if(length(test_type)<=length(exp_config$common_type)){
+      test_type <- exp_config$common_type[1:floor(length(exp_config$common_type)/2)]
+      stopifnot(length(test_type)>1)
+    }
     diff_type <- setdiff(test_type,exp_config$common_type)
     exp_config$diff_type <- diff_type
     if(purrr::is_null(exp_config$increment)){
@@ -682,7 +685,7 @@ experiments.config.update.unknown_types <-function(train_dataset, test_dataset=N
     exp_config$trained <- if(exp_config$current_increment_index==1) F else T
     test_dataset_name <- str_split(test_dataset,"\\.")[[1]][[1]]
     exp_config$unknown_num <- floor(exp_config$current_increment_index*exp_config$increment)
-    exp_config$sample_type <- c(exp_config$diff_type[1:(exp_config$unknown_num)],exp_config$common_type) 
+    exp_config$test_type <- c(exp_config$diff_type[1:(exp_config$unknown_num)],exp_config$common_type) 
     exp_config$unknown_type <- exp_config$diff_type[1:(exp_config$unknown_num)]
     print("test dataset={test_dataset_name}")
   }

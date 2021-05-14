@@ -238,12 +238,12 @@ experiments.cell_number <- function(experiment){
       combined_cluster_results[[i]] <- bind_rows(results[grepl(".*cluster.*",names(results))])
       combined_raw_results[[i]] <- raw_results
     }
-    combined_assign_results <- bind_rows(combined_assign_results)
-    combined_cluster_results <- bind_rows(combined_cluster_results)
-    combined_raw_results <- bind_rows(combined_raw_results)
-    final_results <- bind_rows(combined_assign_results,combined_cluster_results)
-    output.sink(experiment,combined_raw_results,final_results,exp_config)
-    plot.plot(experiment,final_results,combined_raw_results,exp_config)
+    collapsed_combined_assign_results <- bind_rows(combined_assign_results)
+    collapsed_combined_cluster_results <- bind_rows(combined_cluster_results)
+    collapsed_combined_raw_results <- bind_rows(combined_raw_results)
+    final_results <- bind_rows(collapsed_combined_assign_results,collapsed_combined_cluster_results)
+    output.sink(experiment,collapsed_combined_raw_results,final_results,exp_config)
+    plot.plot(experiment,final_results,collapsed_combined_raw_results,exp_config)
     utils.clean_marker_files()
     final_results
     print(str_glue("{experiment} train_dataset={train_dataset}, test_dataset={test_dataset}"))
@@ -300,12 +300,12 @@ experiments.sequencing_depth <- function(experiment){
       combined_cluster_results[[i]] <- bind_rows(results[grepl(".*cluster.*",names(results))])
       combined_raw_results[[i]] <- raw_results
     }
-    combined_assign_results <- bind_rows(combined_assign_results)
-    combined_cluster_results <- bind_rows(combined_cluster_results)
-    combined_raw_results <- bind_rows(combined_raw_results)
-    final_results <- bind_rows(combined_assign_results,combined_cluster_results)
-    output.sink(experiment,combined_raw_results,final_results,exp_config)
-    plot.plot(experiment,final_results,combined_raw_results, exp_config)
+    collapsed_combined_assign_results <- bind_rows(combined_assign_results)
+    collapsed_combined_cluster_results <- bind_rows(combined_cluster_results)
+    collapsed_combined_raw_results <- bind_rows(combined_raw_results)
+    final_results <- bind_rows(combined_assign_results,collapsed_combined_cluster_results)
+    output.sink(experiment,collapsed_combined_raw_results,final_results,exp_config)
+    plot.plot(experiment,final_results,collapsed_combined_raw_results, exp_config)
     utils.clean_marker_files()
     print(str_glue("{experiment} train_dataset={train_dataset}, test_dataset={test_dataset}"))
     print(final_results)
@@ -533,13 +533,13 @@ experiments.imbalance_impacts <- function(experiment){
       combined_raw_results[[i]] <- raw_results
       single_method_results[[i]] <- single_method_result
     }
-    combined_assign_results <- bind_rows(combined_assign_results)
-    combined_cluster_results <- bind_rows(combined_cluster_results)
-    combined_raw_results <- bind_rows(combined_raw_results)
-    combined_single_method_results <- bind_rows(single_method_results)
-    final_results <- bind_rows(combined_assign_results,combined_cluster_results)
-    output.sink(experiment,combined_raw_results,final_results,exp_config,single_method_results=combined_single_method_results)
-    plot.plot(experiment,final_results,combined_raw_results, exp_config,single_method_results=combined_single_method_results)
+    collapsed_combined_assign_results <- bind_rows(combined_assign_results)
+    collapsed_combined_cluster_results <- bind_rows(combined_cluster_results)
+    collapsed_combined_raw_results <- bind_rows(combined_raw_results)
+    collapsed_combined_single_method_results <- bind_rows(single_method_results)
+    final_results <- bind_rows(collapsed_combined_assign_results,collapsed_combined_cluster_results)
+    output.sink(experiment,collapsed_combined_raw_results,final_results,exp_config,single_method_results=collapsed_combined_single_method_results)
+    plot.plot(experiment,final_results,collapsed_combined_raw_results, exp_config,single_method_results=collapsed_combined_single_method_results)
     utils.clean_marker_files()
     print(str_glue("{experiment} train_dataset={train_dataset}, test_dataset={test_dataset}"))
     print(final_results)
@@ -593,12 +593,12 @@ experiments.celltype_number <- function(experiment){
       combined_cluster_results[[i]] <- bind_rows(results[grepl(".*cluster.*",names(results))])
       combined_raw_results[[i]] <- raw_results
     }
-    combined_assign_results <- bind_rows(combined_assign_results)
-    combined_cluster_results <- bind_rows(combined_cluster_results)
-    combined_raw_results <- bind_rows(combined_raw_results)
-    final_results <- bind_rows(combined_assign_results,combined_cluster_results)
-    output.sink(experiment,combined_raw_results,final_results,exp_config)
-    plot.plot(experiment,final_results,combined_raw_results,exp_config)
+    collapsed_combined_assign_results <- bind_rows(combined_assign_results)
+    collapsed_combined_cluster_results <- bind_rows(combined_cluster_results)
+    collapsed_combined_raw_results <- bind_rows(combined_raw_results)
+    final_results <- bind_rows(collapsed_combined_assign_results,collapsed_combined_cluster_results)
+    output.sink(experiment,collapsed_combined_raw_results,final_results,exp_config)
+    plot.plot(experiment,final_results,collapsed_combined_raw_results,exp_config)
     utils.clean_marker_files()
     final_results
     print(str_glue("{experiment} train_dataset={train_dataset}, test_dataset={test_dataset}"))
@@ -659,13 +659,13 @@ experiments.unknown_types <- function(experiment){
       combined_raw_results[[i]] <- raw_results
       single_method_results[[i]] <- single_method_result
     }
-    combined_assign_results <- bind_rows(combined_assign_results)
-    combined_cluster_results <- bind_rows(combined_cluster_results)
-    combined_raw_results <- bind_rows(combined_raw_results)
-    combined_single_method_results <- bind_rows(single_method_results)
-    final_results <- bind_rows(combined_assign_results,combined_cluster_results)
-    output.sink(experiment,combined_raw_results,final_results,exp_config,single_method_results=combined_single_method_results)
-    plot.plot(experiment,final_results,combined_raw_results, exp_config,single_method_results=combined_single_method_results)
+    collapsed_combined_assign_results <- bind_rows(combined_assign_results)
+    collapsed_combined_cluster_results <- bind_rows(combined_cluster_results)
+    collapsed_combined_raw_results <- bind_rows(combined_raw_results)
+    collapsed_combined_single_method_results <- bind_rows(single_method_results)
+    final_results <- bind_rows(collapsed_combined_assign_results,collapsed_combined_cluster_results)
+    output.sink(experiment,collapsed_combined_raw_results,final_results,exp_config,single_method_results=collapsed_combined_single_method_results)
+    plot.plot(experiment,final_results,collapsed_combined_raw_results, exp_config,single_method_results=collapsed_combined_single_method_results)
     utils.clean_marker_files()
     print(str_glue("{experiment} train_dataset={train_dataset}, test_dataset={test_dataset}"))
     print(final_results)

@@ -63,3 +63,28 @@ dataset.properties <- list(
                           cellbench_Dropseq=list(sample_threshold=3,gene_name_type="ENSEMBL")
                       )
 
+dataset.name.map1 <- list(PBMC_AllCells_withLabels.RDS="PBMC_AllCells_withLabels",
+                          GSE96583_batch1_3_samples.RDS="GSE96583_batch1_3_samples",
+                          GSE96583_8_Stim_Pats.RDS="GSE96583_8_Stim_Pats",
+                          GSE96583_8_Ctrl_Pats.RDS="GSE96583_8_Ctrl_Pats",
+                          Muraro_pancreas_clean.RDS="Muraro_pancreas",
+                          Segerstolpe_pancreas_clean.RDS="Segerstolpe_pancreas",
+                          Xin_pancreas_clean.RDS="Xin_pancreas",
+                          ADASD_AD.RDS="ADASD_AD",
+                          ADASD_autism.RDS="ADASD_autism",
+                          midbrain_human.RDS="midbrain_human",
+                          midbrain_mouse.RDS="midbrain_mouse"
+                          )
+
+dataset.name.map2 <- list(PBMC_AllCells_withLabels="PBMC_AllCells_withLabels.RDS",
+                          GSE96583_batch1_3_samples="GSE96583_batch1_3_samples.RDS",
+                          GSE96583_8_Stim_Pats="GSE96583_8_Stim_Pats.RDS",
+                          GSE96583_8_Ctrl_Pats="GSE96583_8_Ctrl_Pats.RDS",
+                          Muraro_pancreas="Muraro_pancreas_clean.RDS",
+                          Segerstolpe_pancreas="Segerstolpe_pancreas_clean.RDS",
+                          Xin_pancreas="Xin_pancreas_clean.RDS",
+                          ADASD_AD="ADASD_AD.RDS",
+                          ADASD_autism="ADASD_autism.RDS",
+                          midbrain_human="midbrain_human.RDS",
+                          midbrain_mouse="midbrain_mouse.RDS"
+                          )

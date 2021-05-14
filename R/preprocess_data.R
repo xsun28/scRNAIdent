@@ -64,6 +64,7 @@ preprocess_PBMC <- function(dataset){
   # sces <- purrr::map(sces,addPerCellQC)
   colData_cols <- colnames(colData(sces[[1]]))
   sces <- utils.combine_SCEdatasets(sces,if_combined=T,colData_cols)
+  sces <- sces[,!is.na(sces$label)]
   sces <- sces[,which(!quickPerCellQC(sces)$discard)]
   metadata(sces) <- list(study='PBMC', study_name="GSE96583_batch1_3_samples")
   rowData(sces)$geneName <- rownames(sces)
@@ -79,8 +80,10 @@ preprocess_PBMC <- function(dataset){
                                                    colData(.)$label <- utils.convertCellTypes(colData(.)$cell,type_map)
                                                    counts(.) <- as(counts(.),'sparseMatrix')
                                                    return(.)})
+
   colData_cols <- colnames(colData(sces[[1]]))
   sces <- utils.combine_SCEdatasets(sces,if_combined=T,colData_cols)
+  sces <- sces[,!is.na(sces$label)]
   sces <- sces[,which(!quickPerCellQC(sces)$discard)]
   metadata(sces) <- list(study='PBMC', study_name="GSE96583_8_Stim_Pats")
   rowData(sces)$geneName <- rownames(sces)
@@ -96,8 +99,10 @@ preprocess_PBMC <- function(dataset){
                                                    colData(.)$label <- utils.convertCellTypes(colData(.)$cell,type_map)
                                                    counts(.) <- as(counts(.),'sparseMatrix')
                                                    return(.)})
+
   colData_cols <- colnames(colData(sces[[1]]))
   sces <- utils.combine_SCEdatasets(sces,if_combined=T,colData_cols)
+  sces <- sces[,!is.na(sces$label)]
   sces <- sces[,which(!quickPerCellQC(sces)$discard)]
   metadata(sces) <- list(study='PBMC', study_name="GSE96583_8_Ctrl_Pats")
   rowData(sces)$geneName <- rownames(sces)

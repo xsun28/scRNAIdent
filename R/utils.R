@@ -499,6 +499,8 @@ utils.calc_entropy <- function(probs){
 }
 
 utils.get_train_test_types <- function(train_dataset,test_dataset){
+  train_dataset <- dataset.name.map1[[train_dataset]]
+  test_dataset <- dataset.name.map1[[test_dataset]]
   if(!purrr::is_null(dataset.properties[[train_dataset]]$cell_types)){
     train_type <- as.list(dataset.properties[[train_dataset]]$cell_types)
   }else{
