@@ -507,8 +507,10 @@ experiments.config.init.unknown_types <-function(train_dataset, test_dataset=NUL
   exp_config$common_type <- intersect(train_type,test_type)
   if(exp_config$fixed_train){
     if(length(test_type)<=length(exp_config$common_type)){
-      test_type <- exp_config$common_type[1:floor(length(exp_config$common_type)/2)]
-      stopifnot(length(test_type)>1)
+      train_diff_type <- setdiff(train_type,exp_config$common_type)
+      exp_config$common_type <- exp_config$common_type[1:floor(length(exp_config$common_type)/2)]
+      stopifnot(length(exp_config$common_type)>1)
+      train_type <- append(train_diff_type, exp_config$common_type)
     }
     diff_type <- setdiff(test_type,exp_config$common_type)
     exp_config$diff_type <- diff_type

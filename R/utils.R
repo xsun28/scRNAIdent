@@ -499,17 +499,17 @@ utils.calc_entropy <- function(probs){
 }
 
 utils.get_train_test_types <- function(train_dataset,test_dataset){
-  train_dataset <- dataset.name.map1[[train_dataset]]
-  test_dataset <- dataset.name.map1[[test_dataset]]
-  if(!purrr::is_null(dataset.properties[[train_dataset]]$cell_types)){
-    train_type <- as.list(dataset.properties[[train_dataset]]$cell_types)
+  train_dataset_name <- dataset.name.map1[[train_dataset]]
+  test_dataset_name <- dataset.name.map1[[test_dataset]]
+  if(!purrr::is_null(dataset.properties[[train_dataset_name]]$cell_types)){
+    train_type <- as.list(dataset.properties[[train_dataset_name]]$cell_types)
   }else{
     train_data <- utils.load_datasets(train_dataset)
     train_type <- unique(colData(train_data)$label) 
   }
   
-  if(!purrr::is_null(dataset.properties[[test_dataset]]$cell_types)){
-    test_type <- as.list(dataset.properties[[test_dataset]]$cell_types)
+  if(!purrr::is_null(dataset.properties[[test_dataset_name]]$cell_types)){
+    test_type <- as.list(dataset.properties[[test_dataset_name]]$cell_types)
   }else{
     test_data <- utils.load_datasets(test_dataset)
     test_type <- unique(colData(test_data)$label) 

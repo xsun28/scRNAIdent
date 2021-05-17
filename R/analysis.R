@@ -76,6 +76,14 @@ analysis.cluster_num <- function(labels,pred){
   length(unique(pred))
 }
 
+######KL divergency
+analysis.KL <- function(p,q){
+  stopifnot(length(p)==length(q))
+  KL <- sum(unlist(q)*log(unlist(q))-unlist(p)*log(unlist(p)))
+  return(KL)
+}
+
+
 ####
 analysis.max_type_pctg <- function(labels,pred){
   if(is.null(pred)==length(pred)||is.na(pred)==length(pred)) return(NA)
