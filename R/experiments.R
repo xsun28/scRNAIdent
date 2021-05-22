@@ -159,7 +159,7 @@ experiments.base <- function(experiment, exp_config){
   assign_results <- experiments.base.assign(experiment,train_dataset, test_dataset, exp_config)
   assign_results <- utils.label_unassigned(assign_results,T)
   ####cluster methods
-  if((!exp_config$fixed_test)||(!exp_config$clustered)){
+  if(purrr::is_null(exp_config$fixed_test)||(!exp_config$fixed_test)||(!exp_config$clustered)){
     cluster_results <- if(experiment %in% c("batch_effects")) experiments.base.cluster(experiment,exp_config,total_dataset) else experiments.base.cluster(experiment,exp_config,test_dataset)
     if(experiment %in% c("batch_effects")) cluster_results <- cluster_results[test_samples,]
     cluster_results <- utils.label_unassigned(cluster_results,F)
@@ -174,9 +174,9 @@ experiments.base <- function(experiment, exp_config){
 experiments.simple_accuracy <- function(experiment){
   base_exp_config <- experiments.parameters[[experiment]]
   experiments.config.check_config(base_exp_config)
-  for(i in seq_along(exp_config$intra_dataset)){
-    train_dataset <- exp_config$intra_dataset[[i]]
-    test_dataset <- exp_config$intra_dataset[[i]]
+  for(i in seq_along(base_exp_config$intra_dataset)){
+    train_dataset <- base_exp_config$intra_dataset[[i]]
+    test_dataset <- base_exp_config$intra_dataset[[i]]
     experiments.config.update.train_test_datasets(experiment, train_dataset, test_dataset)
     init_exp_config <- experiments.config.init.simple_accuracy(train_dataset, test_dataset, base_exp_config)
     exp_config <- experiments.config.update(experiment, train_dataset, test_dataset,init_exp_config)

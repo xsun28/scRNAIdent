@@ -36,7 +36,7 @@ summary.cell_number <- function(exp_config){
   experiment <- "cell_number"
   sample_id_var <- "sample_num"
   # exp_config <- experiments.parameters[[experiment]]
-  exp_results <- summary.collect_experiment_results(experiment)
+  exp_results <- summary.collect_experiment_results(experiment,exp_config)
   # exp_dataset_props <-summary.read_exp_dataset_properties(experiment, exp_config)
   metric_results <- melt(exp_results,id.vars = c("train_dataset","test_dataset","assigned","methods",sample_id_var),measure.vars=c("ARI")) 
 
@@ -61,7 +61,7 @@ summary.cell_number <- function(exp_config){
 summary.sequencing_depth <- function(exp_config){
   experiment <- "sequencing_depth"
   # exp_config <- experiments.parameters[[experiment]]
-  exp_results <- summary.collect_experiment_results(experiment)
+  exp_results <- summary.collect_experiment_results(experiment,exp_config)
   # exp_dataset_props <-summary.read_exp_dataset_properties(experiment, exp_config)
   metric_results <- melt(exp_results,id.vars = c("dataset","assigned","methods",'quantile'),measure.vars=c("ARI")) %>%
     dcast(dataset+assigned+quantile ~ methods)
@@ -87,7 +87,7 @@ summary.sequencing_depth <- function(exp_config){
 summary.simple_accuracy <- function(exp_config){
   
   experiment <- "simple_accuracy"
-  exp_results <- summary.collect_experiment_results(experiment)
+  exp_results <- summary.collect_experiment_results(experiment,exp_config)
   metric_results <- melt(exp_results,id.vars = c("dataset","assigned","methods"),measure.vars=c("ARI")) %>%
     dcast(dataset+assigned ~ methods)
   dataset_prop <- bind_rows(group_by(exp_results,dataset,.keep=T) %>% group_map(~{.[1,intra_dataset_properties_list]},.keep=T))
@@ -114,7 +114,7 @@ summary.inter_diseases <- function(exp_config){
   
   experiment <- "inter_diseases"
   # exp_config <- experiments.parameters[[experiment]]
-  exp_results <- summary.collect_experiment_results(experiment)
+  exp_results <- summary.collect_experiment_results(experiment,exp_config)
   # exp_dataset_props <-summary.read_exp_dataset_properties(experiment, exp_config)
   metric_results <- melt(exp_results,id.vars = c("train_dataset","test_dataset","assigned","methods"),measure.vars=c("ARI")) %>%
     dcast(train_dataset+test_dataset+assigned ~ methods)
@@ -140,7 +140,7 @@ summary.batch_effects <- function(exp_config){
   
   experiment <- "batch_effects"
   # exp_config <- experiments.parameters[[experiment]]
-  exp_results <- summary.collect_experiment_results(experiment)
+  exp_results <- summary.collect_experiment_results(experiment,exp_config)
   # exp_dataset_props <-summary.read_exp_dataset_properties(experiment, exp_config)
   metric_results <- melt(exp_results,id.vars = c("train_dataset","test_dataset","assigned","methods",'batch_effects_removed'),measure.vars=c("ARI")) %>%
     dcast(train_dataset+test_dataset+assigned+batch_effects_removed ~ methods)
@@ -201,7 +201,7 @@ summary.celltype_number <- function(exp_config){
   experiment <- "celltype_number"
   sample_id_var <- "type_num"
   # exp_config <- experiments.parameters[[experiment]]
-  exp_results <- summary.collect_experiment_results(experiment)
+  exp_results <- summary.collect_experiment_results(experiment,exp_config)
   # exp_dataset_props <-summary.read_exp_dataset_properties(experiment, exp_config)
   metric_results <- melt(exp_results,id.vars = c("train_dataset","test_dataset","assigned","methods",sample_id_var),measure.vars=c("ARI")) 
   
@@ -229,7 +229,7 @@ summary.unknown_types <- function(experiment){
   experiment <- "unknown_types"
   sample_id_var <- "unknown_num"
   # exp_config <- experiments.parameters[[experiment]]
-  exp_results <- summary.collect_experiment_results(experiment)
+  exp_results <- summary.collect_experiment_results(experiment,exp_config)
   # exp_dataset_props <-summary.read_exp_dataset_properties(experiment, exp_config)
   metric_results <- melt(exp_results,id.vars = c("train_dataset","test_dataset","assigned","methods",sample_id_var),measure.vars=c("ARI")) 
   
@@ -246,7 +246,7 @@ summary.unknown_types <- function(experiment){
   combined_prop_metric_results <- left_join(metric_results,dataset_prop,by=c("train_dataset","test_dataset","unknown_num"))
   combined_prop_other_results <- left_join(other_results,dataset_prop,by=c("train_dataset","test_dataset","unknown_num"))
   combined_prop_unsup_other_results <- left_join(unsup_other_results,dataset_prop,by=c("train_dataset","test_dataset","unknown_num"))
-  single_type_results <- summary.collect_experiment_results(experiment,"single_method_results.rds") %>% dplyr::select(-methods)
+  single_type_results <- summary.collect_experiment_results(experiment,exp_config,"single_method_results.rds") %>% dplyr::select(-methods)
   if("train_dataset" %in% colnames(single_type_results)){
     single_type_results <- melt(single_type_results, id.vars=c("train_dataset","test_dataset","method","unknown_celltype","supervised","unknown_num"))
   }else{
@@ -258,6 +258,8 @@ summary.unknown_types <- function(experiment){
 
 
 summary.collect_experiment_results <- function(experiment,exp_config,file_name="results.rds"){
+  if(purrr::is_null(exp_config$fixed_train)) exp_config$fixed_train <- F
+  if(purrr::is_null(exp_config$fixed_test)) exp_config$fixed_test <- F
   if(exp_config$fixed_train&&!exp_config$fixed_test) {
     exp_results_dir <- str_glue({"{result_home}{experiment}_train_fixed"})
   }else if(exp_config$fixed_test){
@@ -292,6 +294,8 @@ summary.output_excel <- function(experiment,exp_config,...){
   combined_prop_metric_results <- results$combined_prop_metric_results
   combined_prop_unlabeled_pctg_results <- results$combined_prop_unlabeled_pctg_results
   combined_prop_unsup_other_results <- results$combined_prop_unsup_other_results
+  if(purrr::is_null(exp_config$fixed_train)) exp_config$fixed_train <- F
+  if(purrr::is_null(exp_config$fixed_test)) exp_config$fixed_test <- F
   if(exp_config$fixed_train&&(!exp_config$fixed_test)){
     suffix <- "_train_fixed"
   }else if(exp_config$fixed_test&&(!exp_config$fixed_train)){
@@ -402,8 +406,9 @@ summary.output_excel <- function(experiment,exp_config,...){
     pt$evaluatePivot()
     pt$writeToExcelWorksheet(wb=wb1, topRowNumber = 2, leftMostColumnNumber = 1, wsName =  str_glue("Single type performance metrics"),outputValuesAs="rawValue",
                              applyStyles=TRUE, mapStylesFromCSS=TRUE)
+    excel_file_name <- str_glue("{result_home}{experiment}{suffix}/{experiment}_summarized_single_type_results.xlsx")
+    openxlsx::saveWorkbook(wb1, file = excel_file_name,overwrite = T)
   }
-  excel_file_name <- str_glue("{result_home}{experiment}{suffix}/{experiment}_summarized_single_type_results.xlsx")
-  openxlsx::saveWorkbook(wb1, file = excel_file_name,overwrite = T)
+
 }
 

@@ -1,4 +1,4 @@
-experiment <- "unknown_types"
+experiment <- "cell_number"
 
 # experiments.data <- list(simple_accuracy="PBMC_AllCells_withLabels.RDS", 
 #                                  cell_number="ADASD_autism.RDS",
@@ -386,6 +386,8 @@ experiments.config.init <- function(experiment, train_dataset, test_dataset=NULL
 }
 
 experiments.config.init.simple_accuracy <-function(train_dataset, test_dataset=NULL, exp_config){
+  if(purrr::is_null(exp_config$fixed_train)) exp_config$fixed_train <- F
+  if(purrr::is_null(exp_config$fixed_test)) exp_config$fixed_test <- F
   exp_config$have_test <- if(exp_config$cv) F else T
   exp_config
 }
@@ -415,12 +417,14 @@ experiments.config.init.cell_number <-function(train_dataset, test_dataset=NULL,
   exp_config$clustered <- F
   if(exp_config$fixed_train){
     if(purrr::is_null(exp_config$increment)){
+      test_dataset_name <- dataset.name.map1[[test_dataset]]
       exp_config$increment <- calculate_increment(test_dataset_name, exp_config$test_sample_increment, exp_config, if_train=F)
     }
   }
   
   if(exp_config$fixed_test){
     if(purrr::is_null(exp_config$increment)){
+      train_dataset_name <- dataset.name.map1[[train_dataset]]
       exp_config$increment <- calculate_increment(train_dataset_name, exp_config$train_sample_increment, exp_config, if_train=T)
     }
   }
@@ -448,12 +452,12 @@ experiments.config.init.sequencing_depth <-function(train_dataset, test_dataset=
   exp_config$clustered <- F
   if(exp_config$fixed_train){
     if(purrr::is_null(exp_config$increment)){
-      exp_config$increment <- calculate_quantile_increment(test_dataset_name, exp_config, if_train=F)
+      exp_config$increment <- calculate_quantile_increment(test_dataset, exp_config, if_train=F)
     }
   }
   if(exp_config$fixed_test){
     if(purrr::is_null(exp_config$increment)){
-      exp_config$increment <- calculate_increment(train_dataset_name, exp_config$train_sample_increment, exp_config, if_train=T)
+      exp_config$increment <- calculate_increment(train_dataset, exp_config$train_sample_increment, exp_config, if_train=T)
     }
   }
   exp_config
@@ -544,7 +548,7 @@ experiments.config.init.celltype_number <- function(train_dataset, test_dataset=
   exp_config$trained <- F
   exp_config$clustered <- F
   if(exp_config$fixed_train){
-    test_dataset_name <- str_split(test_dataset,"\\.")[[1]][[1]]
+    test_dataset_name <- dataset.name.map1[[test_dataset]]
     if(purrr::is_null(exp_config$increment)){
       exp_config$increment <- floor(length(exp_config$common_type)/exp_config$test_num)
       while(exp_config$increment==0){  
@@ -561,7 +565,7 @@ experiments.config.init.celltype_number <- function(train_dataset, test_dataset=
     exp_config$test_number <- min(max(length(exp_config$common_type)*0.4,3),length(exp_config$common_type))
     exp_config$test_type <- common_type[1:exp_config$test_number]
     
-    train_dataset_name <- str_split(train_dataset,"\\.")[[1]][[1]]
+    train_dataset_name <- dataset.name.map1[[train_dataset]]
     if(purrr::is_null(exp_config$increment)){
       exp_config$increment <- floor((length(exp_config$train_type)-length(exp_config$test_number))/exp_config$test_num)
       while(exp_config$increment==0){  
@@ -605,12 +609,12 @@ experiments.config.update.simple_accuracy <-function(train_dataset, test_dataset
 experiments.config.update.cell_number <-function(train_dataset, test_dataset=NULL, exp_config){
   if(exp_config$fixed_train){
     exp_config$trained <- if(exp_config$current_increment_index==0) F else T
-    test_dataset_name <- str_split(test_dataset,"\\.")[[1]][[1]]
+    test_dataset_name <- dataset.name.map1[[test_dataset]]
     exp_config$target_test_num <- exp_config$test_sample_start + exp_config$current_increment_index*exp_config$increment
   }
   if(exp_config$fixed_test){
     exp_config$clustered <- if(exp_config$current_increment_index==0) F else T
-    train_dataset_name <- str_split(train_dataset,"\\.")[[1]][[1]]
+    train_dataset_name <- dataset.name.map1[[train_dataset]]
     exp_config$target_train_num <- exp_config$train_sample_start + exp_config$current_increment_index*exp_config$increment
   }
   exp_config
@@ -620,12 +624,12 @@ experiments.config.update.cell_number <-function(train_dataset, test_dataset=NUL
 experiments.config.update.sequencing_depth <-function(train_dataset, test_dataset=NULL,exp_config){
   if(exp_config$fixed_train){
     exp_config$trained <- if(exp_config$current_increment_index==0) F else T
-    test_dataset_name <- str_split(test_dataset,"\\.")[[1]][[1]]
+    test_dataset_name <- dataset.name.map1[[test_dataset]]
     print("test dataset={test_dataset_name}")
   }
   if(exp_config$fixed_test){
     exp_config$clustered <- if(exp_config$current_increment_index==0) F else T
-    train_dataset_name <- str_split(train_dataset,"\\.")[[1]][[1]]
+    train_dataset_name <- dataset.name.map1[[train_dataset]]
     print("train dataset={train_dataset_name}")
   }
   exp_config$high_quantile <- exp_config$current_increment_index*(1/(exp_config$test_num))+exp_config$increment
@@ -664,13 +668,13 @@ experiments.config.update.imbalance_impacts <- function(train_dataset, test_data
 experiments.config.update.celltype_number <- function(train_dataset, test_dataset=NULL, exp_config){
   if(exp_config$fixed_train){
     exp_config$trained <- if(exp_config$current_increment_index==1) F else T
-    test_dataset_name <- str_split(test_dataset,"\\.")[[1]][[1]]
+    test_dataset_name <- dataset.name.map1[[test_dataset]]
     exp_config$test_number <- exp_config$increment + exp_config$test_number
     exp_config$test_type <- (exp_config$common_type)[1:(exp_config$test_number)] 
     print(str_glue("test dataset={test_dataset_name}"))
   }
   if(exp_config$fixed_test){
-    train_dataset_name <- str_split(train_dataset,"\\.")[[1]][[1]]
+    train_dataset_name <- dataset.name.map1[[train_dataset]]
     exp_config$train_number <- exp_config$train_number+exp_config$increment
     exp_config$train_type <- c(exp_config$common_type,setdiff((exp_config$train_type),(exp_config$common_type)))[1:exp_config$train_number]
     print(str_glue("test dataset={train_dataset_name}"))
@@ -685,7 +689,7 @@ experiments.config.update.unknown_types <-function(train_dataset, test_dataset=N
   
   if(exp_config$fixed_train){
     exp_config$trained <- if(exp_config$current_increment_index==1) F else T
-    test_dataset_name <- str_split(test_dataset,"\\.")[[1]][[1]]
+    test_dataset_name <- dataset.name.map1[[test_dataset]]
     exp_config$unknown_num <- floor(exp_config$current_increment_index*exp_config$increment)
     exp_config$test_type <- c(exp_config$diff_type[1:(exp_config$unknown_num)],exp_config$common_type) 
     exp_config$unknown_type <- exp_config$diff_type[1:(exp_config$unknown_num)]

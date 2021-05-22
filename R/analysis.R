@@ -79,7 +79,7 @@ analysis.cluster_num <- function(labels,pred){
 ######KL divergency
 analysis.KL <- function(p,q){
   stopifnot(length(p)==length(q))
-  KL <- sum(unlist(q)*log(unlist(q))-unlist(p)*log(unlist(p)))
+  KL <- sum(unlist(p)*log(unlist(p))-unlist(p)*log(unlist(q)))
   return(KL)
 }
 

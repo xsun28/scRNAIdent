@@ -117,11 +117,12 @@ output.generate_output_path <- function(experiment, dataset=NULL, train_dataset,
     if(exp_config$fixed_train&&!exp_config$fixed_test){
       output_dir <- str_glue("{result_home}{experiment}_train_fixed")
     }
-  }
-  if(!purrr::is_null(exp_config$fixed_test)){
-    if(exp_config$fixed_test&&!exp_config$fixed_train){
+  }else if(!purrr::is_null(exp_config$fixed_test)){
+    if(exp_config$fixed_test){
       output_dir <- str_glue("{result_home}{experiment}_test_fixed")
     }
+  }else{
+    output_dir <- str_glue("{result_home}{experiment}")
   }
   
   if(!purrr::is_null(dataset)){
