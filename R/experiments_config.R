@@ -1,4 +1,4 @@
-experiment <- "cell_number"
+experiment <- "sequencing_depth"
 
 # experiments.data <- list(simple_accuracy="PBMC_AllCells_withLabels.RDS", 
 #                                  cell_number="ADASD_autism.RDS",
@@ -272,7 +272,7 @@ experiments.parameters <- list(
                        marker_gene_file=NULL,use_intra_dataset=T,intra_dataset=dataset.datasets,
                        use_inter_dataset=F,inter_dataset=NULL,target_train_num=1200, target_test_num=NULL),
   
-  cell_number=list( cv=F,cv_fold=NULL, metrics=c('ARI','AMI','FMI'), batch_free=F,fixed_train=T,fixed_test=F,
+  cell_number=list( cv=F,cv_fold=NULL, metrics=c('ARI','AMI','FMI'), batch_free=F,fixed_train=F,fixed_test=T,
                    marker_gene_file=NULL,trained=F,target_train_num=1200, target_test_num=800,
                    train_sample_start=200, test_sample_start=100,train_sample_increment=400,test_sample_increment=250,
                    test_num=4, use_intra_dataset=F,intra_dataset=list(),
