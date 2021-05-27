@@ -284,7 +284,7 @@ experiments.parameters <- list(
                                                           )),
 
   
-  sequencing_depth=list(cv=F,cv_fold=5,metrics=c('ARI','AMI','FMI'),fixed_train=T,fixed_test=F,
+  sequencing_depth=list(cv=F,cv_fold=5,metrics=c('ARI','AMI','FMI'),fixed_train=F,fixed_test=T,
                         marker_gene_file=NULL,batch_free=F,target_train_num=1200, target_test_num=800,test_num=5,
                         use_intra_dataset=F,intra_dataset=list(),
                         use_inter_dataset=T,inter_dataset=list(dataset.interdatasets$PBMC1,dataset.interdatasets$PBMC2,
@@ -457,7 +457,7 @@ experiments.config.init.sequencing_depth <-function(train_dataset, test_dataset=
   }
   if(exp_config$fixed_test){
     if(purrr::is_null(exp_config$increment)){
-      exp_config$increment <- calculate_increment(train_dataset, exp_config$train_sample_increment, exp_config, if_train=T)
+      exp_config$increment <- calculate_quantile_increment(train_dataset,exp_config, if_train=T)
     }
   }
   exp_config
