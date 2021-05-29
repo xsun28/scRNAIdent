@@ -130,12 +130,9 @@ experiments.analysis.imbalance_impacts <- function(assign_results,cluster_result
   
   report_results <- experiments.analysis.base(assign_results,cluster_results,exp_config)
   combined_results <- bind_cols(assign_results,dplyr::select(cluster_results,-label))
-  if(exp_config$fixed_train){
-    type_pctg <- dplyr::group_by(as.data.frame(colData(test_dataset)), label) %>% dplyr::summarize(type_pctg=round(n()/length(colnames(test_dataset)),2))
-  }else{
-    type_pctg <- dplyr::group_by(as.data.frame(colData(train_dataset)), label) %>% dplyr::summarize(type_pctg=round(n()/length(colnames(train_dataset)),2))
-  }
-  cell_types <- type_pctg$label
+  train_type_pctg <- dplyr::group_by(as.data.frame(colData(train_dataset)), label) %>% dplyr::summarize(type_pctg=round(n()/length(colnames(train_dataset)),3))
+  test_type_pctg <- dplyr::group_by(as.data.frame(colData(test_dataset)), label) %>% dplyr::summarize(type_pctg=round(n()/length(colnames(test_dataset)),3))
+  cell_types <- ifelse(exp_config$fixed_train,test_type_pctg$label,train_type_pctg$label)
   methods <- colnames(combined_results)[colnames(combined_results)!="label"]
   supervised_methods <- colnames(assign_results)[colnames(assign_results)!="label"]
   unsupervised_methods <- colnames(cluster_results)[colnames(cluster_results)!="label"]
@@ -173,7 +170,9 @@ experiments.analysis.imbalance_impacts <- function(assign_results,cluster_result
                                                                       }else{
                                                                         stop(str_glue("unkown method={method}"))
                                                                       }
-                                                                      tibble(method=method,type=type_pctg$label,type_pctg=type_pctg$type_pctg,unlabeled_pctg=type_unassigned_pctg, type_accuracy=type_accuracy,type_f1=type_f1, supervised=supervised)
+                                                                      tibble(method=method,train_type=train_type_pctg$label,train_type_pctg=train_type_pctg$type_pctg,
+                                                                             test_type=test_type_pctg$label,test_type_pctg=test_type_pctg$type_pctg,
+                                                                             unlabeled_pctg=type_unassigned_pctg, type_accuracy=type_accuracy,type_f1=type_f1, supervised=supervised)
                                                                           }))
   
 
@@ -243,6 +242,7 @@ experiments.analysis.attach_dataset_props <- function(experiment,exp_config,...)
     train_data_props <- analysis.dataset.properties(train_dataset)
     test_data_props <- analysis.dataset.properties(test_dataset)
     train_test_corr <- analysis.interdata.correlation(train_dataset,test_dataset)
+    train_test_KL_div <- analysis.interdata.KL(train_dataset, test_dataset)
     total_data_props <- analysis.dataset.properties(total_dataset) %>% 
       purrr::list_modify("dataset"=NULL)
     for(prop in names(train_data_props)){
@@ -264,6 +264,11 @@ experiments.analysis.attach_dataset_props <- function(experiment,exp_config,...)
     report_results <- purrr::map(report_results,~{.$train_test_correlation=train_test_corr
     return(.)
     })
+    if(!purrr::is_null(train_test_KL_div)){
+      report_results <- purrr::map(report_results,~{.$train_test_KL=train_test_KL_div
+      return(.)
+      })
+    }
     if(experiment %in% c("batch_effects")){
       report_results <- purrr::map(report_results,~{.$batch_effects_amount=batch_effects_quant
       return(.)

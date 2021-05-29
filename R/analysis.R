@@ -77,6 +77,22 @@ analysis.cluster_num <- function(labels,pred){
 }
 
 ######KL divergency
+analysis.interdata.KL <- function(data1,data2){
+  stopifnot(is(data1,"SingleCellExperiment"))
+  stopifnot(is(data2,"SingleCellExperiment"))
+  types1 <- unique(data1$label)
+  types2 <- unique(data2$label)
+  if(length(setdiff(types1,types2))+length(setdiff(types2,types1))==0){
+    table1 <- (unlist(table(data1$label))/length(data1$label))[types1]
+    table2 <- (unlist(table(data2$label))/length(data2$label))[types1]
+    return(analysis.KL(table1,table2))
+  }else{
+    print("Types in train and test dataset are different, cannot calculate KL divergence")
+    return(NULL)
+  }
+}
+
+
 analysis.KL <- function(p,q){
   stopifnot(length(p)==length(q))
   KL <- sum(unlist(p)*log(unlist(p))-unlist(p)*log(unlist(q)))

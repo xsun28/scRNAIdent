@@ -185,7 +185,9 @@ summary.imbalance_impacts <- function(exp_config){
   combined_prop_unsup_other_results <- left_join(unsup_other_results,dataset_prop,by=c("train_dataset","test_dataset","imbl_entropy"))
   single_type_results <- summary.collect_experiment_results(experiment,exp_config,"single_method_results.rds") %>% dplyr::select(-methods)
   if("train_dataset" %in% colnames(single_type_results)){
-    single_type_results <- melt(single_type_results, id.vars=c("train_dataset","test_dataset","method","type","type_pctg","supervised","imbl_entropy"))
+    type_pctg <- ifelse(exp_config$fixed_train, "test_type_pctg","train_type_pctg")
+    type <- ifelse(exp_config$fixed_train,"test_type","train_type")
+    single_type_results <- melt(single_type_results, id.vars=c("train_dataset","test_dataset","method",type,type_pctg,"supervised","imbl_entropy"))
   }else{
     single_type_results <- melt(single_type_results, id.vars=c("dataset","method","type","type_pctg","supervised","imbl_entropy"))
   }
@@ -391,7 +393,8 @@ summary.output_excel <- function(experiment,exp_config,...){
     pt <- PivotTable$new()
     pt$addData(single_type_results)
     pt$addRowDataGroups("variable",addTotal=FALSE,header = "metric")
-    pt$addRowDataGroups("type",addTotal=FALSE,header = "cell type")
+    type <- ifelse(exp_config$fixed_train,"test_type","train_type") 
+    pt$addRowDataGroups(type,addTotal=FALSE,header = "cell type")
     if("train_dataset" %in% colnames(single_type_results)){
       pt$addRowDataGroups("train_dataset",addTotal=FALSE,header="train dataset")
       pt$addRowDataGroups("test_dataset",addTotal=FALSE,header="test dataset")
@@ -399,7 +402,8 @@ summary.output_excel <- function(experiment,exp_config,...){
       pt$addRowDataGroups("dataset",addTotal=FALSE,header="dataset")
     }
     pt$addColumnDataGroups("imbl_entropy", addTotal=FALSE,caption = "Entropy={value}",dataSortOrder="desc")
-    pt$defineCalculation(calculationName = "type_pctg", caption = "type_pctg",type="value",valueName="type_pctg")
+    type_pctg <- ifelse(exp_config$fixed_train, "test_type_pctg","train_type_pctg")
+    pt$defineCalculation(calculationName = type_pctg, caption = type_pctg,type="value",valueName=type_pctg)
     pt$addColumnDataGroups("supervised", addTotal=FALSE,caption = "Supervised={value}")
     pt$addColumnDataGroups("method", addTotal=FALSE)
     pt$defineCalculation(calculationName = "value", caption = "metric",type="value",valueName="value",format="%.2f",cellStyleDeclarations=list("xl-value-format"="##0.0"))

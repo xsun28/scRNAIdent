@@ -17,24 +17,24 @@ plot.plot <- function(experiment,results,raw_results, exp_config,...){
   results <- utils.get_methods(results) %>% dplyr::arrange(supervised,methods)
   results$methods <- factor(results$methods) %>% forcats::fct_inorder()
   switch(experiment,
-    simple_accuracy = plot.simple_accuracy(results,raw_results,fig_path),
-    cell_number = plot.cell_number(results,raw_results,fig_path),
-    celltype_number = plot.celltype_number(results,raw_results,fig_path),
-    sequencing_depth = plot.sequencing_depth(results,raw_results,fig_path),
-    celltype_structure = plot.celltype_structure(results,raw_results,fig_path),
-    batch_effects = plot.batch_effects(results,raw_results,fig_path),
-    inter_diseases = plot.inter_diseases(results,raw_results,fig_path),
-    celltype_complexity = plot.celltype_complexity(results,raw_results,fig_path),
-    inter_species = plot.inter_species(results,raw_results,fig_path),
-    random_noise = plot.random_noise(results,raw_results,fig_path),
-    inter_protocol = plot.inter_protocol(results,raw_results,fig_path),
-    imbalance_impacts = plot.imbalance_impacts(results,raw_results,fig_path,...),
-    unknown_types = plot.unknown_types(results,raw_results,fig_path,...),
+    simple_accuracy = plot.simple_accuracy(results,raw_results,fig_path,exp_config),
+    cell_number = plot.cell_number(results,raw_results,fig_path,exp_config),
+    celltype_number = plot.celltype_number(results,raw_results,fig_path,exp_config),
+    sequencing_depth = plot.sequencing_depth(results,raw_results,fig_path,exp_config),
+    celltype_structure = plot.celltype_structure(results,raw_results,fig_path,exp_config),
+    batch_effects = plot.batch_effects(results,raw_results,fig_path,exp_config),
+    inter_diseases = plot.inter_diseases(results,raw_results,fig_path,exp_config),
+    celltype_complexity = plot.celltype_complexity(results,raw_results,fig_path,exp_config),
+    inter_species = plot.inter_species(results,raw_results,fig_path,exp_config),
+    random_noise = plot.random_noise(results,raw_results,fig_path,exp_config),
+    inter_protocol = plot.inter_protocol(results,raw_results,fig_path,exp_config),
+    imbalance_impacts = plot.imbalance_impacts(results,raw_results,fig_path,exp_config,...),
+    unknown_types = plot.unknown_types(results,raw_results,fig_path,exp_config,...),
     stop("Unkown experiments")
   )
 }
 
-plot.simple_accuracy <- function(results,raw_results,fig_path){
+plot.simple_accuracy <- function(results,raw_results,fig_path,exp_config){
   require(data.table)
   all_results <- dplyr::select(dplyr::filter(results,is.na(assigned)),c(ARI,AMI,FMI,methods,supervised)) %>%
     gather("metric","value",-c(methods,supervised))
@@ -80,7 +80,7 @@ plot.simple_accuracy <- function(results,raw_results,fig_path){
   #####unlabeled pctg 
   # figure_name <- str_glue("unlabeled_pctg.pdf")
   results_unlabeled_pctg <- dplyr::filter(dplyr::select(results[results$supervised,],methods,unlabeled_pctg),!is.na(unlabeled_pctg))
-  results_unlabeled_pctg[,'label'] <- round(results_unlabeled_pctg$unlabeled_pctg,2)
+  results_unlabeled_pctg[,'label'] <- round(results_unlabeled_pctg$unlabeled_pctg,3)
   plot_params <- list(x="methods",y="unlabeled_pctg",label="label",xlabel="methods",ylabel="unlabeled_pctg",
                       fill="methods",dodged=F,facet_wrap=F,width=6,height=4)
   plot.bar_plot(results_unlabeled_pctg,plot_params,fig_path,"unlabeled_pctg.pdf")
@@ -101,7 +101,7 @@ plot.simple_accuracy <- function(results,raw_results,fig_path){
 }
 
 
-plot.cell_number <- function(results,raw_results,fig_path){
+plot.cell_number <- function(results,raw_results,fig_path,exp_config){
   all_results <- dplyr::select(dplyr::filter(results,is.na(assigned)),c(ARI,AMI,FMI,methods,sample_num,supervised)) %>%
     gather("metric","value",-c(methods,sample_num,supervised))
   
@@ -184,7 +184,7 @@ plot.cell_number <- function(results,raw_results,fig_path){
 
 
 ###celltype_number
-plot.celltype_number <- function(results,raw_results,fig_path){
+plot.celltype_number <- function(results,raw_results,fig_path,exp_config){
   all_results <- dplyr::select(dplyr::filter(results,is.na(assigned)),c(ARI,AMI,FMI,methods,type_num,supervised)) %>%
     gather("metric","value",-c(methods,type_num,supervised))
   
@@ -265,7 +265,7 @@ plot.celltype_number <- function(results,raw_results,fig_path){
 
 
 
-plot.imbalance_impacts <- function(results,raw_results,fig_path,...){
+plot.imbalance_impacts <- function(results,raw_results,fig_path,exp_config,...){
   single_method_results <- list(...)$single_method_results
   
   if(purrr::is_null(single_method_results)){
@@ -353,9 +353,14 @@ plot.imbalance_impacts <- function(results,raw_results,fig_path,...){
   
   ##########
  
-  single_method_results$xlabel <- purrr::map2_chr(single_method_results$type,single_method_results$type_pctg,function(x,y){paste(x,y)})
+  single_method_results$xlabel <- if(exp_config$fixed_test) purrr::map2_chr(single_method_results$train_type,single_method_results$train_type_pctg,function(x,y){paste(x,y)}) 
+                                  else purrr::map2_chr(single_method_results$test_type,single_method_results$test_type_pctg,function(x,y){paste(x,y)}) 
   plot_params <- list(x="xlabel",y="type_f1",fill="supervised",xlabel="cell type", ylabel="F1 score",
                       facet_wrap=T,dodged=T,facet_var='imbl_entropy',width=10,height=7,nrow=length(unique(single_method_results$imbl_entropy)))
+  single_method_results <- dplyr::mutate(single_method_results,
+                                         type_f1=ifelse(purrr::is_null(type_f1)|is.na(type_f1),0,type_f1),
+                                         type_accuracy=ifelse(purrr::is_null(type_accuracy)|is.na(type_accuracy),0,type_accuracy)
+                                         )
   plot.box_plot(single_method_results,plot_params,fig_path,str_glue("type_pctg_F1_score.pdf"))
   plot_params$y <- "type_accuracy"
   plot_params$ylabel <- "Accuracy"
@@ -363,8 +368,11 @@ plot.imbalance_impacts <- function(results,raw_results,fig_path,...){
   
   
   single_method_result_supervised <- dplyr::filter(single_method_results, supervised)
-  plot_params <- list(x="xlabel",y="unlabeled_pctg",xlabel="cell type", ylabel="Unlabeled Pctg",fill="type",
+  plot_params <- list(x="xlabel",y="unlabeled_pctg",xlabel="cell type", ylabel="Unlabeled Pctg",
                       facet_wrap=T,dodged=F,facet_var='imbl_entropy',width=10,height=7,nrow=length(unique(single_method_result_supervised$imbl_entropy)))
+  plot_params$fill <- if(exp_config$fixed_test) "train_type" else "test_type"
+  single_method_result_supervised <- dplyr::mutate(single_method_result_supervised,unlabeled_pctg=ifelse(purrr::is_null(unlabeled_pctg)|is.na(unlabeled_pctg),0,unlabeled_pctg))
+  
   plot.box_plot(single_method_result_supervised,plot_params,fig_path,str_glue("type_pctg_unlabeled.pdf"))
   
   ######single method performance F1 score vs cell type pctg
@@ -481,7 +489,8 @@ plot.unknown_types <- function(results,raw_results,fig_path,...){
   
   ##########
   unknown_type_results <- dplyr::select(single_method_results,c(type_accuracy,method,unknown_num,unknown_celltype,supervised)) %>%
-    gather("metric","value",-c(method,unknown_num,unknown_celltype,supervised))
+    gather("metric","value",-c(method,unknown_num,unknown_celltype,supervised)) %>% 
+    dplyr::mutate(type_accuracy=ifelse(purrr::is_null(type_accuracy)|is.na(type_accuracy),0,type_accuracy))
   
   plot_params <- list(x="method",y="value",fill="supervised",label="label",xlabel="method",
                       facet_wrap=T,dodged=T,facet_var='unknown_celltype',width=10,height=7,nrow=length(unique(unknown_type_results$unknown_celltype)))
@@ -910,7 +919,7 @@ plot.line_plot <- function(results,params,fig_path,fig_name){
     geom_point(aes_string(color=point_color,shape=point_shape))"
   if(params$facet_wrap){   
     plot_str <- str_glue("{plot_str}+
-      facet_wrap(~{params$facet_var})"
+      facet_wrap(~{params$facet_var},scales='free')"
     )
   }
   print(plot_str)
