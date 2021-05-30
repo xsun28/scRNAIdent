@@ -269,3 +269,27 @@ analysis.interdata.correlation <- function(data1,data2){
   correlation <- median(corr)
   correlation
 }
+
+analysis.dataset.spearman_corrs <- function(data1, types1, data2, types2){
+  stopifnot(is(data1,"SingleCellExperiment"))
+  stopifnot(is(data2,"SingleCellExperiment"))
+  common_genes <- intersect(rownames(data1),rownames(data2))
+  data1 <- data1[common_genes,data1$label %in% types1]
+  data2 <- data2[common_genes,data2$label %in% types2]
+  data1_median <- utils.medianMatrix(as.matrix(counts(data1)),data1$label)
+  data2_median <- utils.medianMatrix(as.matrix(counts(data2)),data2$label)
+  sd <-  rowSds(data1_median)
+  sd.thres <- 1
+  genes.filtered <- intersect(rownames(data1_median)[sd>sd.thres],rownames(data2))
+  data1_filtered <- as.matrix(counts(data1[genes.filtered,]))
+  data2_filtered <- as.matrix(counts(data2[genes.filtered,]))
+  r <- utils.cor.stable(data2_filtered,data1_filtered,method='spearman')
+  agg_scores <- utils.quantileMatrix(r,data1$label,q = 0.8) ###get the 80% quantile of pearson correlation coefficient of target cell to cells of each cell type in reference
+  agg_scores_t <- t(agg_scores)
+  r1 <- utils.quantileMatrix(agg_scores_t,data2$label,q = 0.5)
+  r1
+}
+
+
+
+

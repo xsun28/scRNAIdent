@@ -1,4 +1,4 @@
-experiment <- "imbalance_impacts"
+experiment <- "unknown_types"
 
 # experiments.data <- list(simple_accuracy="PBMC_AllCells_withLabels.RDS", 
 #                                  cell_number="ADASD_autism.RDS",
@@ -510,23 +510,8 @@ experiments.config.init.unknown_types <-function(train_dataset, test_dataset=NUL
   test_type <- train_test_types$test_type
   exp_config$common_type <- intersect(train_type,test_type)
   if(exp_config$fixed_train){
-    if(length(test_type)<=length(exp_config$common_type)){
-      train_diff_type <- setdiff(train_type,exp_config$common_type)
-      exp_config$common_type <- exp_config$common_type[1:floor(length(exp_config$common_type)/2)]
-      stopifnot(length(exp_config$common_type)>1)
-      train_type <- append(train_diff_type, exp_config$common_type)
-    }
-    diff_type <- setdiff(test_type,exp_config$common_type)
-    exp_config$diff_type <- diff_type
-    if(purrr::is_null(exp_config$increment)){
-      exp_config$increment <- floor(length(diff_type)/exp_config$test_num)
-      while(exp_config$increment==0){  
-        exp_config$test_num <- exp_config$test_num-1
-        stopifnot(exp_config$test_num>=2)
-        exp_config$increment <- floor(length(diff_type)/exp_config$test_num)
-      }
-    }
-    exp_config$train_type <- train_type
+    exp_config$test_num <- min(length(exp_config$common_type),exp_config$test_num)
+    exp_config$test_type <- exp_config$common_type
   }
   exp_config
 }
@@ -690,9 +675,8 @@ experiments.config.update.unknown_types <-function(train_dataset, test_dataset=N
   if(exp_config$fixed_train){
     exp_config$trained <- if(exp_config$current_increment_index==1) F else T
     test_dataset_name <- dataset.name.map1[[test_dataset]]
-    exp_config$unknown_num <- floor(exp_config$current_increment_index*exp_config$increment)
-    exp_config$test_type <- c(exp_config$diff_type[1:(exp_config$unknown_num)],exp_config$common_type) 
-    exp_config$unknown_type <- exp_config$diff_type[1:(exp_config$unknown_num)]
+    exp_config$unknown_type <- exp_config$common_type[exp_config$current_increment_index]
+    exp_config$train_type <- exp_config$common_type[-exp_config$current_increment_index]
     print("test dataset={test_dataset_name}")
   }
   exp_config

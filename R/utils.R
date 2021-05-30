@@ -517,3 +517,57 @@ utils.get_train_test_types <- function(train_dataset,test_dataset){
   return(list(train_type=train_type,test_type=test_type))
 }
 
+utils.cor.stable <- function (x, y, method="pearson", ...) {
+  omit1 <- which(apply(x, 2, sd) == 0)
+  omit2 <- which(apply(y, 2, sd) == 0)
+  if (length(omit1) > 0 && length(omit2) > 0) {
+    r <- matrix(0, ncol(x), ncol(y))
+    r[-omit1,-omit2] = cor(x[,-omit1], y[,-omit2], method=method, ...)
+  } else if (length(omit1) > 0) {
+    r <- matrix(0, ncol(x), ncol(y))
+    r[-omit1,] = cor(x[,-omit1], y, method=method, ...)
+  } else if (length(omit2) > 0) {
+    r <- matrix(0, ncol(x), ncol(y))
+    r[,-omit2] = cor(x, y[,-omit2], method=method, ...)
+  } else {
+    r = cor(x, y, method=method, ...)
+  }
+  
+  return(r)
+}
+
+utils.medianMatrix <- function(mat,groups) {
+  require(matrixStats)
+  fgroups = levels(factor(groups))
+  mat.group <- do.call(cbind, lapply(fgroups, function(g) {
+    A = groups==g
+    if(sum(A)==1) {
+      mat[,A]
+    } else {
+      rowMedians(mat[,A],na.rm=T)
+    }
+  }))
+  colnames(mat.group) = fgroups
+  rownames(mat.group) = rownames(mat)
+  mat.group
+}
+
+
+utils.quantileMatrix <- function(mat,groups,q=0.5) {
+  fgroups = levels(factor(groups))
+  mat.group <- do.call(cbind, lapply(fgroups, function(g) {
+    A = groups==g
+    if (nrow(mat)==1) {
+      quantile(mat[A],na.rm=T,probs=q)
+    } else {
+      if(sum(A)==1) {
+        mat[,A]
+      } else {
+        rowQuantiles(mat[,A],na.rm=T,probs=q)
+      }
+    }
+  }))
+  colnames(mat.group) = fgroups
+  rownames(mat.group) = rownames(mat)
+  mat.group
+}

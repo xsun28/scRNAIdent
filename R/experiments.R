@@ -634,9 +634,7 @@ experiments.unknown_types <- function(experiment){
       exp_config <- init_exp_config
       exp_config$current_increment_index <- i
       exp_config <- experiments.config.update(experiment, train_dataset, test_dataset,exp_config)
-      if(i > exp_config$test_num) break
-      val <- exp_config$unknown_num
-      print(str_glue('type sample num={val}'))
+      print(str_glue('unknown type={exp_config$unknown_type}'))
       base_results <- experiments.base(experiment,exp_config)
       if(exp_config$fixed_test){
         if(!purrr::is_null(base_results$cluster_results)){
@@ -648,12 +646,12 @@ experiments.unknown_types <- function(experiment){
       report_results <- do.call(experiments.analysis,base_results)
       results <- report_results$analy_results%>% 
         purrr::map(~{
-          .$unknown_num <- val
+          .$unknown_type <- exp_config$unknown_type
           return(.)})
       raw_results <- report_results$pred_results
-      raw_results$unknown_num <- val
+      raw_results$unknown_type <- exp_config$unknown_type
       single_method_result <- report_results$single_method_result
-      single_method_result$unknown_num <- val
+      single_method_result$unknown_type <- exp_config$unknown_type
       combined_assign_results[[i]] <- bind_rows(results[grepl(".*_assign_.*",names(results))])
       combined_cluster_results[[i]] <- bind_rows(results[grepl(".*cluster.*",names(results))])
       combined_raw_results[[i]] <- raw_results
