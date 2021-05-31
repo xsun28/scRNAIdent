@@ -411,11 +411,13 @@ plot.unknown_types <- function(results,raw_results,fig_path,...){
     single_method_results <- read_rds(str_glue("{fig_path}/single_method_results.rds"))
   }
   single_method_results$method <- factor(single_method_results$method) %>% forcats::fct_inorder()
-  all_results <- dplyr::select(dplyr::filter(results,is.na(assigned)),c(ARI,AMI,FMI,methods,unknown_num,supervised)) %>%
-    gather("metric","value",-c(methods,unknown_num,supervised))
-  
+  all_results <- dplyr::select(dplyr::filter(results,is.na(assigned)),c(ARI,AMI,FMI,methods,unknown_type,supervised,max_spearman,spearman_sprd)) %>%
+    gather("metric","value",-c(methods,unknown_type,max_spearman,spearman_sprd,supervised))
+  all_results$unknown_type_similarity <- purrr::pmap_chr(dplyr::select(all_results,unknown_type,max_spearman,spearman_sprd),function(unknown_type,max_spearman,spearman_sprd){
+                                                str_glue("{unknown_type}|max_spearman={round(max_spearman,3)}|spearman_sprd={round(spearman_sprd,3)}")
+                                                }) 
   plot_params <- list(x="methods",y="value",fill="supervised",label="label",xlabel="methods",
-                      facet_wrap=T,dodged=T,facet_var='unknown_num',width=10,height=7,nrow=length(unique(all_results$unknown_num)))
+                      facet_wrap=T,dodged=T,facet_var='unknown_type_similarity',width=10,height=7,nrow=length(unique(all_results$unknown_type)))
   
   all_results$label <- round(all_results$value,2)
   # plot_params <-
@@ -431,9 +433,11 @@ plot.unknown_types <- function(results,raw_results,fig_path,...){
   plot_params$ylabel <- "FMI"
   plot.bar_plot(all_results[all_results$metric=="FMI",],plot_params,fig_path,"all_FMI.pdf")
   
-  results_assigned <- dplyr::select(dplyr::filter(results,assigned),c(ARI,AMI,FMI,methods,unknown_num,supervised)) %>%
-    gather("metric","value",-c(methods,unknown_num,supervised))
-  
+  results_assigned <- dplyr::select(dplyr::filter(results,assigned),c(ARI,AMI,FMI,methods,unknown_type,max_spearman,spearman_sprd,supervised)) %>%
+    gather("metric","value",-c(methods,unknown_type,max_spearman,spearman_sprd,supervised))
+  results_assigned$unknown_type_similarity <- purrr::pmap_chr(dplyr::select(results_assigned,unknown_type,max_spearman,spearman_sprd),function(unknown_type,max_spearman,spearman_sprd){
+    str_glue("{unknown_type}|max_spearman={round(max_spearman,3)}|spearman_sprd={round(spearman_sprd,3)}")
+  }) 
   results_assigned$label <- round(results_assigned$value,2)
   plot_params$ylabel <- "ARI"
   plot.bar_plot(results_assigned[results_assigned$metric=="ARI",],plot_params,fig_path,"assigned_ARI.pdf")
@@ -443,9 +447,11 @@ plot.unknown_types <- function(results,raw_results,fig_path,...){
   plot.bar_plot(results_assigned[results_assigned$metric=="FMI",],plot_params,fig_path,"assigned_FMI.pdf")
   # plot.line_plot(results_assigned,plot_params,result_home,figure_assigned_name)
   
-  results_unassigned <- dplyr::select(dplyr::filter(results,!assigned),c(ARI,AMI,FMI,methods,unknown_num,supervised)) %>%
-    gather("metric","value",-c(methods,unknown_num,supervised))
-  
+  results_unassigned <- dplyr::select(dplyr::filter(results,!assigned),c(ARI,AMI,FMI,methods,unknown_type,max_spearman,spearman_sprd,supervised)) %>%
+    gather("metric","value",-c(methods,unknown_type,max_spearman,spearman_sprd,supervised))
+  results_unassigned$unknown_type_similarity <- purrr::pmap_chr(dplyr::select(results_unassigned,unknown_type,max_spearman,spearman_sprd),function(unknown_type,max_spearman,spearman_sprd){
+    str_glue("{unknown_type}|max_spearman={round(max_spearman,3)}|spearman_sprd={round(spearman_sprd,3)}")
+  }) 
   results_unassigned$label <- round(results_unassigned$value,2)
   plot_params$ylabel <- "ARI"
   plot.bar_plot(results_unassigned[results_unassigned$metric=="ARI",],plot_params,fig_path,"unassigned_ARI.pdf")
@@ -459,9 +465,9 @@ plot.unknown_types <- function(results,raw_results,fig_path,...){
   ######
   # figure_name <- str_glue("cell_number_{dataset}_unlabeled_pctg.pdf")
   
-  results_unlabeled_pctg <- dplyr::filter(dplyr::select(results[results$supervised,],methods,unknown_num,unlabeled_pctg),!is.na(unlabeled_pctg))
+  results_unlabeled_pctg <- dplyr::filter(dplyr::select(results[results$supervised,],methods,unknown_type,unlabeled_pctg),!is.na(unlabeled_pctg))
   
-  plot_params <- list(x="unknown_num",y="unlabeled_pctg",group="methods",line_color="methods",point_color="methods",line_type="methods",
+  plot_params <- list(x="unknown_type",y="unlabeled_pctg",group="methods",line_color="methods",point_color="methods",line_type="methods",
                       point_shape="methods",
                       facet_wrap=F,width=length(unique(results_unlabeled_pctg$methods)),
                       height=length(unique(results_unlabeled_pctg$methods)))
@@ -470,12 +476,12 @@ plot.unknown_types <- function(results,raw_results,fig_path,...){
   plot.line_plot(results_unlabeled_pctg,plot_params,fig_path,"unlabeled_pctg.pdf")
   
   ###sankey_plot
-  unique_unknown <- unique(raw_results[["unknown_num"]])
-  for(e in unique_unknown){
-    raw_results1 <- raw_results[raw_results[["unknown_num"]]==e,]
-    methods <- colnames(dplyr::select(raw_results1,-c(label,unknown_num)))
+  unique_unknown <- unique(raw_results[["unknown_type"]])
+  for(e in unknown_type){
+    raw_results1 <- raw_results[raw_results[["unknown_type"]]==e,]
+    methods <- colnames(dplyr::select(raw_results1,-c(label,unknown_type)))
     
-    raw_results1 <- gather(raw_results1,"methods","pred",-c(label,unknown_num,train_dataset,test_dataset)) %>%
+    raw_results1 <- gather(raw_results1,"methods","pred",-c(label,unknown_type,train_dataset,test_dataset)) %>%
       group_by(methods,label,pred) %>%
       summarize(freq=n()) %>%
       filter(freq>0)
@@ -483,20 +489,22 @@ plot.unknown_types <- function(results,raw_results,fig_path,...){
     sankey_plot_params <- list(y="freq", axis1="label",axis2="pred",fill="label",label="label",xlabel="methods",
                                scale_x_discrete_limits="c(\"label\",\"value\")",facet_var="methods",facet_wrap=T,width=10,height=7,nrow=1)
     
-    plot.sankey_plot(raw_results1,sankey_plot_params,fig_path,str_glue("sankey_unknown_num_{e}.pdf"))
+    plot.sankey_plot(raw_results1,sankey_plot_params,fig_path,str_glue("sankey_unknown_type_{e}.pdf"))
   }
   
   
   ##########
-  unknown_type_results <- dplyr::select(single_method_results,c(type_accuracy,method,unknown_num,unknown_celltype,supervised)) %>%
-    gather("metric","value",-c(method,unknown_num,unknown_celltype,supervised)) %>% 
+  unknown_type_results <- dplyr::select(single_method_results,c(type_accuracy,method,max_spearman,spearman_sprd,unknown_celltype,supervised)) %>%
+    gather("metric","value",-c(method,max_spearman,spearman_sprd,unknown_celltype,supervised)) %>% 
     dplyr::mutate(type_accuracy=ifelse(purrr::is_null(type_accuracy)|is.na(type_accuracy),0,type_accuracy))
   
   plot_params <- list(x="method",y="value",fill="supervised",label="label",xlabel="method",
-                      facet_wrap=T,dodged=T,facet_var='unknown_celltype',width=10,height=7,nrow=length(unique(unknown_type_results$unknown_celltype)))
+                      facet_wrap=T,dodged=T,facet_var='sim',width=10,height=7,nrow=length(unique(unknown_type_results$sim)))
   
   unknown_type_results$label <- round(unknown_type_results$value,2)
-  
+  unknown_type_results$sim <- purrr::pmap_chr(dplyr::select(unknown_type_results,unknown_celltype,max_spearman,spearman_sprd),function(unknown_celltype,max_spearman,spearman_sprd){
+                                                   str_glue("{unknown_celltype}|max_spearman={round(max_spearman,3)}|spearman_sprd={round(spearman_sprd,3)}")[[1]]
+                                                  })
   plot_params$ylabel <- "type_accuracy"
   plot.bar_plot(unknown_type_results[unknown_type_results$metric=="type_accuracy",],plot_params,fig_path,"unknown_type_accuracy.pdf")
 }

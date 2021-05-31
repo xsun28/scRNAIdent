@@ -229,7 +229,7 @@ summary.celltype_number <- function(exp_config){
 
 summary.unknown_types <- function(experiment){
   experiment <- "unknown_types"
-  sample_id_var <- "unknown_num"
+  sample_id_var <- "unknown_type"
   # exp_config <- experiments.parameters[[experiment]]
   exp_results <- summary.collect_experiment_results(experiment,exp_config)
   # exp_dataset_props <-summary.read_exp_dataset_properties(experiment, exp_config)
