@@ -229,31 +229,36 @@ summary.celltype_number <- function(exp_config){
 
 summary.unknown_types <- function(experiment){
   experiment <- "unknown_types"
-  sample_id_var <- "unknown_type"
+  sample_id_var <- "sim"
   # exp_config <- experiments.parameters[[experiment]]
   exp_results <- summary.collect_experiment_results(experiment,exp_config)
+  exp_results$sim <- purrr::pmap_chr(dplyr::select(exp_results,unknown_type,max_spearman,spearman_sprd),function(unknown_type,max_spearman,spearman_sprd){str_glue("{unknown_type}:max_spearman={round(max_spearman,3)}|spearman_sprd={round(spearman_sprd,3)}")})
   # exp_dataset_props <-summary.read_exp_dataset_properties(experiment, exp_config)
   metric_results <- melt(exp_results,id.vars = c("train_dataset","test_dataset","assigned","methods",sample_id_var),measure.vars=c("ARI")) 
   
-  metric_results <- dcast(metric_results, train_dataset+test_dataset+assigned+unknown_num ~ methods)
-  dataset_prop <- bind_rows(group_by(exp_results,train_dataset,test_dataset,unknown_num,.keep=T) %>% group_map(~{.[1,append(inter_dataset_properties_list,"unknown_num")]},.keep=T))
+  metric_results <- dcast(metric_results, train_dataset+test_dataset+assigned+sim ~ methods)
+  dataset_prop <- bind_rows(group_by(exp_results,train_dataset,test_dataset,sim,.keep=T) %>% group_map(~{.[1,append(inter_dataset_properties_list,"sim")]},.keep=T))
   other_results <- dplyr::filter(exp_results,is.na(assigned),supervised==TRUE) %>% 
-    melt(id.vars = c("train_dataset","test_dataset","methods","unknown_num"),measure.vars=c("unlabeled_pctg","pred_type_max_pctg"),variable.name="metrics") %>%
-    dcast(train_dataset+test_dataset+metrics+unknown_num ~ methods)
+    melt(id.vars = c("train_dataset","test_dataset","methods","sim"),measure.vars=c("unlabeled_pctg","pred_type_max_pctg"),variable.name="metrics") %>%
+    dcast(train_dataset+test_dataset+metrics+sim ~ methods)
   
   unsup_other_results <- dplyr::filter(exp_results,is.na(assigned),supervised==F) %>% 
-    melt(id.vars = c("train_dataset","test_dataset","methods","unknown_num"),measure.vars=c("cluster_num","pred_type_max_pctg"),variable.name="metrics") %>%
-    dcast(train_dataset+test_dataset+metrics+unknown_num ~ methods)
+    melt(id.vars = c("train_dataset","test_dataset","methods","sim"),measure.vars=c("cluster_num","pred_type_max_pctg"),variable.name="metrics") %>%
+    dcast(train_dataset+test_dataset+metrics+sim ~ methods)
   
-  combined_prop_metric_results <- left_join(metric_results,dataset_prop,by=c("train_dataset","test_dataset","unknown_num"))
-  combined_prop_other_results <- left_join(other_results,dataset_prop,by=c("train_dataset","test_dataset","unknown_num"))
-  combined_prop_unsup_other_results <- left_join(unsup_other_results,dataset_prop,by=c("train_dataset","test_dataset","unknown_num"))
+  combined_prop_metric_results <- left_join(metric_results,dataset_prop,by=c("train_dataset","test_dataset","sim"))
+  combined_prop_other_results <- left_join(other_results,dataset_prop,by=c("train_dataset","test_dataset","sim"))
+  combined_prop_unsup_other_results <- left_join(unsup_other_results,dataset_prop,by=c("train_dataset","test_dataset","sim"))
   single_type_results <- summary.collect_experiment_results(experiment,exp_config,"single_method_results.rds") %>% dplyr::select(-methods)
   if("train_dataset" %in% colnames(single_type_results)){
-    single_type_results <- melt(single_type_results, id.vars=c("train_dataset","test_dataset","method","unknown_celltype","supervised","unknown_num"))
+    single_type_results <- melt(single_type_results, id.vars=c("train_dataset","test_dataset","method","unknown_celltype","supervised","max_spearman","spearman_sprd"))
   }else{
-    single_type_results <- melt(single_type_results, id.vars=c("dataset","method","unknown_celltype","supervised","unknown_num"))
+    single_type_results <- melt(single_type_results, id.vars=c("dataset","method","unknown_celltype","supervised","max_spearman","spearman_sprd"))
   }
+  summary.output_excel(experiment,exp_config,combined_prop_metric_results=combined_prop_metric_results,
+                       combined_prop_unlabeled_pctg_results=combined_prop_other_results,
+                       combined_prop_unsup_other_results=combined_prop_unsup_other_results,
+                       single_type_results=single_type_results)
 }
 
 
