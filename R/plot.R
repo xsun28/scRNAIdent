@@ -477,7 +477,7 @@ plot.unknown_types <- function(results,raw_results,fig_path,...){
   
   ###sankey_plot
   unique_unknown <- unique(raw_results[["unknown_type"]])
-  for(e in unknown_type){
+  for(e in unique_unknown){
     raw_results1 <- raw_results[raw_results[["unknown_type"]]==e,]
     methods <- colnames(dplyr::select(raw_results1,-c(label,unknown_type)))
     
