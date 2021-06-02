@@ -1,4 +1,4 @@
-experiment <- "unknown_types"
+experiment <- "imbalance_impacts"
 
 
 experiments.assign.data <- list(
@@ -76,7 +76,7 @@ experiments.parameters <- list(
                                                             dataset.interdatasets$pancreas3,dataset.interdatasets$pancreas4,
                                                             dataset.interdatasets$pancreas5,dataset.interdatasets$pancreas6)),
   
-  imbalance_impacts = list(batch_free=F,target_train_num=1200, target_test_num=1000,fixed_train=F,fixed_test=T,
+  imbalance_impacts = list(batch_free=F,target_train_num=1200, target_test_num=1000,fixed_train=T,fixed_test=F,
                            all_type_pctgs = list(   "3"=list( list(0.33,0.33,0.34),
                                                             list(0.6,0.35,0.05),
                                                             list(0.7,0.29,0.01),
