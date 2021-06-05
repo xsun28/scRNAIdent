@@ -404,7 +404,7 @@ plot.imbalance_impacts <- function(results,raw_results,fig_path,exp_config,...){
 }
 
 ###################
-plot.unknown_types <- function(results,raw_results,fig_path,...){
+plot.unknown_types <- function(results,raw_results,fig_path,exp_config,...){
   single_method_results <- list(...)$single_method_results
   
   if(purrr::is_null(single_method_results)){
@@ -563,16 +563,9 @@ plot.celltype_structure <- function(results,raw_results,fig_path,...){
 }
 
 
-plot.sequencing_depth <- function(results,raw_results,fig_path){
+plot.sequencing_depth <- function(results,raw_results,fig_path,exp_config){
   
   results$quantile <- factor(results$quantile)
-  
-  
-  # figure_all_name <- str_glue("sequencing_depth_{dataset}_all")
-  # figure_assigned_name <- str_glue("sequencing_depth_{dataset}_assigned")
-  # figure_unassigned_name <- str_glue("sequencing_depth_{dataset}_unassigned")
-  
-  
   all_results <- dplyr::select(dplyr::filter(results,is.na(assigned)),c(ARI,AMI,FMI,methods,quantile,supervised)) %>%
     gather("metric","value",-c(methods,quantile,supervised))
   all_results$label <- round(all_results$value,2)
@@ -623,19 +616,6 @@ plot.sequencing_depth <- function(results,raw_results,fig_path){
   plot.line_plot(results_unlabeled_pctg,plot_params,fig_path,"unlabeled_pctg.pdf")
   
   
-  # ggplot(results_unlabeled_pctg, aes(quantile,methods, fill=unlabeled_pctg)) + 
-  #   geom_tile() +
-  #   scale_fill_distiller(palette = "RdPu") +
-  #   theme_ipsum()
-  # ggsave(
-  #   figure_name,
-  #   plot = last_plot(),
-  #   device = 'pdf',
-  #   path = result_home,
-  #   width = 2*length(unique(results_unlabeled_pctg$methods)),
-  #   height = 2*length(unique(results_unlabeled_pctg$methods)),
-  #   units = "in"
-  # )
 ####sankey plot
   
   uniq_quantile <- unique(raw_results[["quantile"]])
@@ -658,7 +638,7 @@ plot.sequencing_depth <- function(results,raw_results,fig_path){
   }
 }
 
-plot.batch_effects <- function(results,raw_results,fig_path){
+plot.batch_effects <- function(results,raw_results,fig_path,exp_config){
   require(data.table)
   print(str_glue("Generating figures for batch effect pairs {fig_path}"))
   
@@ -729,7 +709,7 @@ plot.batch_effects <- function(results,raw_results,fig_path){
   
 }
   
-plot.inter_diseases <- function(results,raw_results,fig_path){
+plot.inter_diseases <- function(results,raw_results,fig_path,exp_config){
     
   require(data.table)
   print(str_glue("Generating figures for inter diseases pairs {fig_path}"))
