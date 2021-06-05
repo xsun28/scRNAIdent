@@ -1,4 +1,4 @@
-experiment <- "imbalance_impacts"
+experiment <- "batch_effects"
 
 
 experiments.assign.data <- list(
@@ -154,10 +154,18 @@ experiments.config.init <- function(experiment, train_dataset, test_dataset=NULL
   )
 }
 
-experiments.config.init.simple_accuracy <-function(train_dataset, test_dataset=NULL, exp_config){
+experiments.config.init.base <- function(exp_config){
+  exp_config$have_test <- if(exp_config$cv) F else T
+  exp_config$trained <- F
+  exp_config$clustered <- F
   if(purrr::is_null(exp_config$fixed_train)) exp_config$fixed_train <- F
   if(purrr::is_null(exp_config$fixed_test)) exp_config$fixed_test <- F
-  exp_config$have_test <- if(exp_config$cv) F else T
+  exp_config
+}
+
+
+experiments.config.init.simple_accuracy <-function(train_dataset, test_dataset=NULL, exp_config){
+  exp_config <- experiments.config.init.base(exp_config)
   exp_config
 }
 
@@ -181,9 +189,7 @@ experiments.config.init.cell_number <-function(train_dataset, test_dataset=NULL,
     }
     increment
   }
-  exp_config$have_test <- if(exp_config$cv) F else T
-  exp_config$trained <- F
-  exp_config$clustered <- F
+  exp_config <- experiments.config.init.base(exp_config)
   if(exp_config$fixed_train){
     if(purrr::is_null(exp_config$increment)){
       test_dataset_name <- dataset.name.map1[[test_dataset]]
@@ -216,9 +222,7 @@ experiments.config.init.sequencing_depth <-function(train_dataset, test_dataset=
     }
     increment
   }
-  exp_config$have_test <- if(exp_config$cv) F else T
-  exp_config$trained <- F
-  exp_config$clustered <- F
+  exp_config <- experiments.config.init.base(exp_config)
   if(exp_config$fixed_train){
     if(purrr::is_null(exp_config$increment)){
       exp_config$increment <- calculate_quantile_increment(test_dataset, exp_config, if_train=F)
@@ -233,9 +237,7 @@ experiments.config.init.sequencing_depth <-function(train_dataset, test_dataset=
 }
 
 experiments.config.init.imbalance_impacts <- function(train_dataset, test_dataset=NULL, exp_config){
-  exp_config$have_test <- if(exp_config$cv) F else T
-  exp_config$trained <- F
-  exp_config$clustered <- F
+  exp_config <- experiments.config.init.base(exp_config)
   train_test_types <- utils.get_train_test_types(train_dataset,test_dataset)
   train_type <- train_test_types$train_type
   test_type <- train_test_types$test_type
@@ -254,12 +256,12 @@ experiments.config.init.imbalance_impacts <- function(train_dataset, test_datase
 }
 
 experiments.config.init.batch_effects <- function(train_dataset, test_dataset=NULL,exp_config){
-  exp_config$have_test <- if(exp_config$cv) F else T
+  exp_config <- experiments.config.init.base(exp_config)
   exp_config
 }
 
 experiments.config.init.inter_diseases <- function(train_dataset, test_dataset=NULL, exp_config){
-  exp_config$have_test <- if(exp_config$cv) F else T
+  exp_config <- experiments.config.init.base(exp_config)
   exp_config
 }
 
@@ -271,9 +273,7 @@ experiments.config.init.unknown_types <-function(train_dataset, test_dataset=NUL
   dataset.properties$Segerstolpe_pancreas$cell_types <<- c('beta','alpha','delta','epsilon','mast','MHC class II',
                                                            'acinar','ductal','gamma','mesenchymal','PSC',
                                                            'endothelial')
-  exp_config$have_test <- if(exp_config$cv) F else T
-  exp_config$trained <- F
-  exp_config$clustered <- F
+  exp_config <- experiments.config.init.base(exp_config)
   train_test_types <- utils.get_train_test_types(train_dataset,test_dataset)
   train_type <- train_test_types$train_type
   test_type <- train_test_types$test_type
@@ -298,9 +298,7 @@ experiments.config.init.celltype_number <- function(train_dataset, test_dataset=
   exp_config$common_type <- intersect(exp_config$train_type,exp_config$test_type)
   exp_config$test_num <- min(3,length(exp_config$train_type)-length(exp_config$common_type))
   
-  exp_config$have_test <- if(exp_config$cv) F else T
-  exp_config$trained <- F
-  exp_config$clustered <- F
+  exp_config <- experiments.config.init.base(exp_config)
   if(exp_config$fixed_train){
     test_dataset_name <- dataset.name.map1[[test_dataset]]
     if(purrr::is_null(exp_config$increment)){
