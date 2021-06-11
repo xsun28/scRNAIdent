@@ -269,7 +269,7 @@ summary.collect_experiment_results <- function(experiment,exp_config,file_name="
   if(purrr::is_null(exp_config$fixed_test)) exp_config$fixed_test <- F
   if(exp_config$fixed_train&&!exp_config$fixed_test) {
     exp_results_dir <- str_glue({"{result_home}{experiment}_train_fixed"})
-  }else if(exp_config$fixed_test){
+  }else if((!exp_config$fixed_train)&&exp_config$fixed_test){
     exp_results_dir <- str_glue({"{result_home}{experiment}_test_fixed"})
   }else{
     exp_results_dir <- str_glue({"{result_home}{experiment}"})

@@ -1,4 +1,4 @@
-experiment <- "batch_effects"
+experiment <- "imbalance_impacts"
 
 
 experiments.assign.data <- list(
