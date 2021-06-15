@@ -139,6 +139,7 @@ analysis.dataset.complexity <- function(data){
   require(scater)
   stopifnot(is(data,"SingleCellExperiment"))
   stopifnot("label" %in% colnames(colData(data)))
+  if(length(unique(data$label))<=1) return(0)
   counts(data) <- as.matrix(counts(data))
   agg_sce <- aggregateAcrossCells(data,ids = data$label)
   agg_count <- assay(agg_sce,"counts")
@@ -254,17 +255,16 @@ analysis.interdata.correlation <- function(data1,data2){
     counts(data) <- as.matrix(counts(data))
     agg_sce <- aggregateAcrossCells(data,ids = data$label)
     agg_count <- assay(agg_sce,"counts")
-    agg_count <- agg_count[,apply(agg_count,2,sum)>0]
+    agg_count <- counts(agg_sce[,apply(agg_count,2,sum)>0])
   }
   
   matrix1 <- get_expression_matrix(data1)
   matrix2 <- get_expression_matrix(data2)
-  matrix1 <- matrix1[intersect(rownames(matrix1),rownames(matrix2)),]
-  matrix2 <- matrix2[intersect(rownames(matrix1),rownames(matrix2)),]
+  intersected_genes <- intersect(rownames(matrix1),rownames(matrix2))
   celltype <- intersect(colnames(matrix1),colnames(matrix2))
   corr <- vector()
   for(i in seq_along(celltype)){
-    corr[i] <- cor(matrix1[,celltype[[i]]],matrix2[,celltype[[i]]])
+    corr[i] <- cor(matrix1[intersected_genes,celltype[[i]]],matrix2[intersected_genes,celltype[[i]]])
   }
   correlation <- median(corr)
   correlation

@@ -185,9 +185,7 @@ summary.imbalance_impacts <- function(exp_config){
   combined_prop_unsup_other_results <- left_join(unsup_other_results,dataset_prop,by=c("train_dataset","test_dataset","imbl_entropy"))
   single_type_results <- summary.collect_experiment_results(experiment,exp_config,"single_method_results.rds") %>% dplyr::select(-methods)
   if("train_dataset" %in% colnames(single_type_results)){
-    type_pctg <- ifelse(exp_config$fixed_train, "test_type_pctg","train_type_pctg")
-    type <- ifelse(exp_config$fixed_train,"test_type","train_type")
-    single_type_results <- melt(single_type_results, id.vars=c("train_dataset","test_dataset","method",type,type_pctg,"supervised","imbl_entropy"))
+    single_type_results <- melt(single_type_results, id.vars=c("train_dataset","test_dataset","method","test_type","train_type","test_type_pctg","train_type_pctg","supervised","imbl_entropy"))
   }else{
     single_type_results <- melt(single_type_results, id.vars=c("dataset","method","type","type_pctg","supervised","imbl_entropy"))
   }
@@ -220,14 +218,21 @@ summary.celltype_number <- function(exp_config){
   combined_prop_metric_results <- left_join(metric_results,dataset_prop,by=c("train_dataset","test_dataset","type_num"))
   combined_prop_other_results <- left_join(other_results,dataset_prop,by=c("train_dataset","test_dataset","type_num"))
   combined_prop_unsup_other_results <- left_join(unsup_other_results,dataset_prop,by=c("train_dataset","test_dataset","type_num"))
+  single_type_results <- summary.collect_experiment_results(experiment,exp_config,"single_method_results.rds") %>% dplyr::select(-methods)
+  if("train_dataset" %in% colnames(single_type_results)){
+    single_type_results <- melt(single_type_results, id.vars=c("train_dataset","test_dataset","method","test_type_num","test_type","train_type_num","train_type","supervised"))
+  }else{
+    single_type_results <- melt(single_type_results, id.vars=c("dataset","method","unknown_celltype","supervised","max_spearman","spearman_sprd"))
+  }
   summary.output_excel(experiment,exp_config,combined_prop_metric_results=combined_prop_metric_results,
                        combined_prop_unlabeled_pctg_results=combined_prop_other_results,
-                       combined_prop_unsup_other_results=combined_prop_unsup_other_results)
+                       combined_prop_unsup_other_results=combined_prop_unsup_other_results,
+                       single_type_results=single_type_results)
 }
 
 
 
-summary.unknown_types <- function(experiment){
+summary.unknown_types <- function(exp_config){
   experiment <- "unknown_types"
   sample_id_var <- "sim"
   # exp_config <- experiments.parameters[[experiment]]
@@ -249,7 +254,7 @@ summary.unknown_types <- function(experiment){
   combined_prop_metric_results <- left_join(metric_results,dataset_prop,by=c("train_dataset","test_dataset","sim"))
   combined_prop_other_results <- left_join(other_results,dataset_prop,by=c("train_dataset","test_dataset","sim"))
   combined_prop_unsup_other_results <- left_join(unsup_other_results,dataset_prop,by=c("train_dataset","test_dataset","sim"))
-  single_type_results <- summary.collect_experiment_results(experiment,exp_config,"single_method_results.rds") %>% dplyr::select(-methods)
+  single_type_results <- summary.collect_experiment_results(experiment,exp_config,"single_method_results.rds") %>% dplyr::select(-c(methods,unknown_type))
   if("train_dataset" %in% colnames(single_type_results)){
     single_type_results <- melt(single_type_results, id.vars=c("train_dataset","test_dataset","method","unknown_celltype","supervised","max_spearman","spearman_sprd"))
   }else{
@@ -390,7 +395,7 @@ summary.output_excel <- function(experiment,exp_config,...){
   setColumnWidth(sheet = unsupervised_other_ws, colIndex = 1:dim(combined_prop_unsup_other_results)[[2]], colWidth = colWidth)
   xlsx::saveWorkbook(wb, file = excel_file_name)
   
-  if(experiment %in% c("imbalance_impacts")){
+  if(experiment %in% c("imbalance_impacts","unknown_types","celltype_number")){
     require(openxlsx)
     wb1 <- openxlsx::createWorkbook()
     openxlsx::addWorksheet(wb1,str_glue("Single type performance metrics"))
@@ -398,17 +403,43 @@ summary.output_excel <- function(experiment,exp_config,...){
     pt <- PivotTable$new()
     pt$addData(single_type_results)
     pt$addRowDataGroups("variable",addTotal=FALSE,header = "metric")
-    type <- ifelse(exp_config$fixed_train,"test_type","train_type") 
-    pt$addRowDataGroups(type,addTotal=FALSE,header = "cell type")
-    if("train_dataset" %in% colnames(single_type_results)){
-      pt$addRowDataGroups("train_dataset",addTotal=FALSE,header="train dataset")
-      pt$addRowDataGroups("test_dataset",addTotal=FALSE,header="test dataset")
+
+    if(experiment == "imbalance_impacts"){
+      type <- ifelse(exp_config$fixed_train,"test_type","train_type") 
+      pt$addRowDataGroups(type,addTotal=FALSE,header = "cell type")
+      if("train_dataset" %in% colnames(single_type_results)){
+        pt$addRowDataGroups("train_dataset",addTotal=FALSE,header="train dataset")
+        pt$addRowDataGroups("test_dataset",addTotal=FALSE,header="test dataset")
+      }else{
+        pt$addRowDataGroups("dataset",addTotal=FALSE,header="dataset")
+      }
+      pt$addColumnDataGroups("imbl_entropy", addTotal=FALSE,caption = "Entropy={value}",dataSortOrder="desc")
+      type_pctg <- ifelse(exp_config$fixed_train, "test_type_pctg","train_type_pctg")
+      pt$defineCalculation(calculationName = type_pctg, caption = type_pctg,type="value",valueName=type_pctg)
+    }else if(experiment == "unknown_types"){
+      pt$addRowDataGroups("unknown_celltype", addTotal=FALSE,header = "unknown cell type")
+      if("train_dataset" %in% colnames(single_type_results)){
+        pt$addRowDataGroups("train_dataset",addTotal=FALSE,header="train dataset")
+        pt$addRowDataGroups("test_dataset",addTotal=FALSE,header="test dataset")
+      }else{
+        pt$addRowDataGroups("dataset",addTotal=FALSE,header="dataset")
+      }
+      pt$defineCalculation(calculationName = "max_spearman", caption = "max_spearman",type="value",valueName="max_spearman")
+      pt$defineCalculation(calculationName = "spearman_sprd", caption = "spearman_sprd",type="value",valueName="spearman_sprd")
+      
+    }else if(experiment == "celltype_num"){
+      pt$addRowDataGroups("test_cell_types",addTotal=FALSE,header = "test cell type")
+      if("train_dataset" %in% colnames(single_type_results)){
+        pt$addRowDataGroups("train_dataset",addTotal=FALSE,header="train dataset")
+        pt$addRowDataGroups("test_dataset",addTotal=FALSE,header="test dataset")
+      }else{
+        pt$addRowDataGroups("dataset",addTotal=FALSE,header="dataset")
+      }
+      pt$addColumnDataGroups("cell_type_num", addTotal=FALSE,caption = "Type Number={value}",dataSortOrder="asc")
+      pt$defineCalculation(calculationName = "cell_type_num", caption = "cell_type_num",type="value",valueName="cell_type_num")
     }else{
-      pt$addRowDataGroups("dataset",addTotal=FALSE,header="dataset")
+      
     }
-    pt$addColumnDataGroups("imbl_entropy", addTotal=FALSE,caption = "Entropy={value}",dataSortOrder="desc")
-    type_pctg <- ifelse(exp_config$fixed_train, "test_type_pctg","train_type_pctg")
-    pt$defineCalculation(calculationName = type_pctg, caption = type_pctg,type="value",valueName=type_pctg)
     pt$addColumnDataGroups("supervised", addTotal=FALSE,caption = "Supervised={value}")
     pt$addColumnDataGroups("method", addTotal=FALSE)
     pt$defineCalculation(calculationName = "value", caption = "metric",type="value",valueName="value",format="%.2f",cellStyleDeclarations=list("xl-value-format"="##0.0"))

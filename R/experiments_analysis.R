@@ -95,10 +95,58 @@ experiments.analysis.cell_number <- function(assign_results,cluster_results,exp_
 }
 
 experiments.analysis.celltype_number <- function(assign_results,cluster_results,exp_config,...){
+  extra_args <- list(...)
   report_results <- experiments.analysis.base(assign_results,cluster_results,exp_config)
   combined_results <- bind_cols(assign_results,dplyr::select(cluster_results,-label))
-  experiments.analysis.attach_dataset_props("celltype_number", exp_config,report_results=report_results,
-                                            combined_results=combined_results,...)
+  test_cell_types <- unique(extra_args$test_dataset$label)
+  train_cell_types <- unique(extra_args$train_dataset$label)
+  cell_types <- if(exp_config$fixed_train) test_cell_types else train_cell_types
+  methods <- colnames(combined_results)[colnames(combined_results)!="label"]
+  supervised_methods <- colnames(assign_results)[colnames(assign_results)!="label"]
+  unsupervised_methods <- colnames(cluster_results)[colnames(cluster_results)!="label"]
+  single_type_result <- bind_rows(purrr::map(methods, function(method){
+    if(method %in% unsupervised_methods){
+      type_accuracy_f1 <- bind_rows(purrr::map(test_cell_types, function(type){ method_pred_true <- dplyr::select(combined_results,method,label)
+      if(all(sapply(method_pred_true[[method]],function(x){is_null(x)||is.na(x)}))){
+        return(list(f1=NA,acc=NA))
+      }
+      type_pred_true <- dplyr::filter(method_pred_true,label==type)
+      unique_clusters <- unique(type_pred_true[[method]])                                                
+      cluster_f_betas <- purrr::map(unique_clusters,function(cluster_num){ 
+        analysis.cluster.fbeta(method_pred_true$label,method_pred_true[[method]],1,type,cluster_num)
+      })
+      max_fscore_cluster <- unique_clusters[[which.max(cluster_f_betas)]]
+      list(f1=max(unlist(cluster_f_betas)),acc=sum(type_pred_true[[method]]==max_fscore_cluster)/nrow(type_pred_true))
+      }))
+      type_accuracy <- type_accuracy_f1$acc
+      type_f1 <- type_accuracy_f1$f1
+      type_unassigned_pctg <- NA
+      supervised <- F
+    }else if(method %in% supervised_methods){
+      type_unassigned_pctg <- purrr::map_dbl(test_cell_types, function(type){ type_pred_true <- dplyr::select(combined_results,method,label) %>% dplyr::filter(label==type)
+      analysis.assign.unlabeled_pctg(type_pred_true$label,type_pred_true[[method]])
+      })
+      type_accuracy <- purrr::map_dbl(test_cell_types, function(type){ type_pred_true <- dplyr::select(combined_results,method,label) %>% dplyr::filter(label==type)
+      analysis.assign.accuracy(type_pred_true$label,type_pred_true[[method]])
+      })
+      type_f1 <- purrr::map_dbl(test_cell_types, function(type){ method_pred_true <- dplyr::select(combined_results,method,label) 
+      type_pred_true <- dplyr::filter(method_pred_true,label==type)
+      analysis.cluster.fbeta(method_pred_true$label,method_pred_true[[method]],1,type,type)
+      })
+      
+      supervised <- T
+    }else{
+      stop(str_glue("unkown method={method}"))
+    }
+    tibble(method=method,test_cell_types=test_cell_types, cell_type=str_c(cell_types,collapse = "|"), cell_type_num=length(cell_types),
+           unlabeled_pctg=type_unassigned_pctg, type_accuracy=type_accuracy,type_f1=type_f1, 
+           supervised=supervised)
+  }))
+  
+  
+  experiments.analysis.attach_dataset_props("celltype_number",exp_config,report_results=report_results,
+                                            combined_results=combined_results,
+                                            single_method_result=single_type_result,...)
 }
 
 experiments.analysis.sequencing_depth <- function(assign_results,cluster_results,exp_config,...){
@@ -132,7 +180,7 @@ experiments.analysis.imbalance_impacts <- function(assign_results,cluster_result
   combined_results <- bind_cols(assign_results,dplyr::select(cluster_results,-label))
   train_type_pctg <- dplyr::group_by(as.data.frame(colData(train_dataset)), label) %>% dplyr::summarize(type_pctg=round(n()/length(colnames(train_dataset)),3))
   test_type_pctg <- dplyr::group_by(as.data.frame(colData(test_dataset)), label) %>% dplyr::summarize(type_pctg=round(n()/length(colnames(test_dataset)),3))
-  cell_types <- ifelse(exp_config$fixed_train,test_type_pctg$label,train_type_pctg$label)
+  cell_types <- if(exp_config$fixed_train) test_type_pctg$label else train_type_pctg$label
   methods <- colnames(combined_results)[colnames(combined_results)!="label"]
   supervised_methods <- colnames(assign_results)[colnames(assign_results)!="label"]
   unsupervised_methods <- colnames(cluster_results)[colnames(cluster_results)!="label"]
@@ -230,7 +278,7 @@ experiments.analysis.attach_dataset_props <- function(experiment,exp_config,...)
   have_test <- exp_config$have_test
   report_results <- extra_args$report_results
   combined_results <- extra_args$combined_results
-  if(experiment %in% c("imbalance_impacts","unknown_types")) single_method_result <-  extra_args$single_method_result
+  if(experiment %in% c("imbalance_impacts","unknown_types","celltype_number")) single_method_result <-  extra_args$single_method_result
   if(have_test){
     if(experiment %in% c("batch_effects")) batch_effects_quant = analysis.dataset.batch_effects(train_dataset, test_dataset)
     if(experiment %in% c("unknown_types")) {
@@ -282,7 +330,7 @@ experiments.analysis.attach_dataset_props <- function(experiment,exp_config,...)
     
     combined_results[["train_dataset"]] <- train_data_props[["dataset"]]
     combined_results[["test_dataset"]] <- test_data_props[["dataset"]]
-    if(experiment %in% c("imbalance_impacts","unknown_types")){
+    if(experiment %in% c("imbalance_impacts","unknown_types","celltype_number")){
       single_method_result[["train_dataset"]] <- train_data_props[["dataset"]]
       single_method_result[["test_dataset"]] <- test_data_props[["dataset"]]
       if(experiment %in% c("unknown_types")){
@@ -298,7 +346,7 @@ experiments.analysis.attach_dataset_props <- function(experiment,exp_config,...)
       })
     }
     combined_results[["dataset"]] <- data_props[["dataset"]]
-    if(experiment %in% c("imbalance_impacts","unknown_types")){
+    if(experiment %in% c("imbalance_impacts","unknown_types","celltype_number")){
       single_method_result[["dataset"]] <- data_props[["dataset"]]
       if(experiment %in% c("unknown_types")){
         single_method_result[["max_spearman"]] <- max_spearman
@@ -306,7 +354,7 @@ experiments.analysis.attach_dataset_props <- function(experiment,exp_config,...)
       }
     }
   }
-  if(experiment %in% c("imbalance_impacts","unknown_types")){
+  if(experiment %in% c("imbalance_impacts","unknown_types","celltype_number")){
     return(list(pred_results=combined_results,analy_results=report_results,single_method_result=single_method_result))
   }else{
     return(list(pred_results=combined_results,analy_results=report_results))

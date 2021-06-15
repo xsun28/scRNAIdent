@@ -1,4 +1,4 @@
-experiment <- "imbalance_impacts"
+experiment <- "celltype_number"
 
 
 experiments.assign.data <- list(
@@ -110,7 +110,7 @@ experiments.parameters <- list(
                                                                dataset.interdatasets$PBMC11,dataset.interdatasets$PBMC12,
                                                                dataset.interdatasets$ADASD1,dataset.interdatasets$ADASD2)),
   
-  celltype_number=list( cv=F,cv_fold=NULL, metrics=c('ARI','AMI','FMI'), batch_free=F,fixed_train=T,fixed_test=F,
+  celltype_number=list( cv=F,cv_fold=NULL, metrics=c('ARI','AMI','FMI'), batch_free=F,fixed_train=F,fixed_test=T,
                         marker_gene_file=NULL,trained=F,target_train_num=1200,target_test_num=1000,test_num=4, use_intra_dataset=F,intra_dataset=list(),
                         use_inter_dataset=T,inter_dataset=list(dataset.interdatasets$PBMC1,dataset.interdatasets$PBMC2,
                                                                dataset.interdatasets$PBMC3,dataset.interdatasets$PBMC4,
@@ -294,8 +294,9 @@ experiments.config.init.celltype_number <- function(train_dataset, test_dataset=
     celltype_order
   }
   exp_config$train_type <- get_type_order(train_dataset)
-  exp_config$test_type <- get_type_order(test_dataset) 
+  exp_config$test_type <- get_type_order(test_dataset)
   exp_config$common_type <- intersect(exp_config$train_type,exp_config$test_type)
+  exp_config$train_uniq_type <- setdiff(exp_config$train_type,exp_config$common_type)
   exp_config$test_num <- min(3,length(exp_config$train_type)-length(exp_config$common_type))
   
   exp_config <- experiments.config.init.base(exp_config)
@@ -310,13 +311,12 @@ experiments.config.init.celltype_number <- function(train_dataset, test_dataset=
       }
     }
     exp_config$train_number <- length(exp_config$train_type)
-    exp_config$train_type <- exp_config$train_type
+    exp_config$test_number <- 0
     print(str_glue("test dataset={test_dataset_name}"))
   }
   if(exp_config$fixed_test){
     exp_config$test_number <- min(max(length(exp_config$common_type)*0.4,3),length(exp_config$common_type))
-    exp_config$test_type <- common_type[1:exp_config$test_number]
-    
+    exp_config$test_type <- exp_config$common_type[1:exp_config$test_number]
     train_dataset_name <- dataset.name.map1[[train_dataset]]
     if(purrr::is_null(exp_config$increment)){
       exp_config$increment <- floor((length(exp_config$train_type)-length(exp_config$test_number))/exp_config$test_num)
@@ -402,10 +402,7 @@ experiments.config.update.inter_diseases <- function(train_dataset, test_dataset
 }
 
 experiments.config.update.imbalance_impacts <- function(train_dataset, test_dataset=NULL, exp_config){
-  exp_config$have_test <- if(exp_config$cv) F else T
   exp_config$type_pctg <- exp_config$type_pctgs[[exp_config$current_increment_index+1]]
-  exp_config$trained <- F
-  exp_config$clustered <- F
   if(exp_config$fixed_train){
     exp_config$trained <- if(exp_config$current_increment_index==0) F else T
   }
@@ -422,14 +419,16 @@ experiments.config.update.celltype_number <- function(train_dataset, test_datase
     exp_config$trained <- if(exp_config$current_increment_index==1) F else T
     test_dataset_name <- dataset.name.map1[[test_dataset]]
     exp_config$test_number <- exp_config$increment + exp_config$test_number
-    exp_config$test_type <- (exp_config$common_type)[1:(exp_config$test_number)] 
-    print(str_glue("test dataset={test_dataset_name}"))
+    exp_config$test_type <- (exp_config$common_type)[1:(exp_config$test_number)]
+    print(str_glue("fixed train with test types={exp_config$test_type}"))
   }
   if(exp_config$fixed_test){
     train_dataset_name <- dataset.name.map1[[train_dataset]]
-    exp_config$train_number <- exp_config$train_number+exp_config$increment
-    exp_config$train_type <- c(exp_config$common_type,setdiff((exp_config$train_type),(exp_config$common_type)))[1:exp_config$train_number]
-    print(str_glue("test dataset={train_dataset_name}"))
+    exp_config$clustered <- if(exp_config$current_increment_index==1) F else T
+    exp_config$train_number <- ifelse(exp_config$current_increment_index==1,exp_config$test_number,exp_config$train_number+exp_config$increment)
+    exp_config$train_type <- c(exp_config$common_type,exp_config$train_uniq_type)[1:exp_config$train_number]
+
+    print(str_glue("fixed test with train types={exp_config$train_type}"))
   }
   exp_config
 }

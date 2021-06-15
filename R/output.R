@@ -36,7 +36,7 @@ output.cell_number <- function(raw_results,results,output_dir){
 
 output.celltype_number <- function(raw_results,results,output_dir){
   print(str_glue('start writing {experiment} results to {output_dir}'))
-  output.write_results(raw_results=raw_results,results=results,output_dir=output_dir)
+  output.write_results(raw_results=raw_results,results=results, single_method_results=single_method_results, output_dir=output_dir)
 }
 
 output.sequencing_depth <- function(raw_results,results, output_dir){

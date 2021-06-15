@@ -568,12 +568,13 @@ experiments.celltype_number <- function(experiment){
     combined_cluster_results <- vector('list',test_num)
     combined_assign_results <- vector('list',test_num)
     combined_raw_results <- vector('list',test_num)
+    single_method_results <- vector('list',test_num)
+    exp_config <- init_exp_config
     for(i in 1:test_num){
-      exp_config <- init_exp_config
       exp_config$current_increment_index <- i
       exp_config <- experiments.config.update(experiment, train_dataset, test_dataset,exp_config)
       val <- if(exp_config$fixed_train) exp_config$test_number else exp_config$train_number   
-      print(str_glue('target sample num={val}'))
+      print(str_glue('cell type num={val}'))
       base_results <- experiments.base(experiment,exp_config)
       if(exp_config$fixed_test){
         if(!purrr::is_null(base_results$cluster_results)){
@@ -589,16 +590,24 @@ experiments.celltype_number <- function(experiment){
           return(.)})
       raw_results <- report_results$pred_results
       raw_results$type_num <- val
+      single_method_result <- report_results$single_method_result
+      single_method_result$type_num <- val
+      
       combined_assign_results[[i]] <- bind_rows(results[grepl(".*_assign_.*",names(results))])
       combined_cluster_results[[i]] <- bind_rows(results[grepl(".*cluster.*",names(results))])
       combined_raw_results[[i]] <- raw_results
+      single_method_results[[i]] <- single_method_result
+      
     }
     collapsed_combined_assign_results <- bind_rows(combined_assign_results)
     collapsed_combined_cluster_results <- bind_rows(combined_cluster_results)
     collapsed_combined_raw_results <- bind_rows(combined_raw_results)
+    collapsed_combined_single_method_results <- bind_rows(single_method_results)
+    
     final_results <- bind_rows(collapsed_combined_assign_results,collapsed_combined_cluster_results)
-    output.sink(experiment,collapsed_combined_raw_results,final_results,exp_config)
-    plot.plot(experiment,final_results,collapsed_combined_raw_results,exp_config)
+    output.sink(experiment,collapsed_combined_raw_results,final_results,exp_config,single_method_results=collapsed_combined_single_method_results)
+    plot.plot(experiment,final_results,collapsed_combined_raw_results, exp_config,single_method_results=collapsed_combined_single_method_results)
+    
     utils.clean_marker_files()
     final_results
     print(str_glue("{experiment} train_dataset={train_dataset}, test_dataset={test_dataset}"))
