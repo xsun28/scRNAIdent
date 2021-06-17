@@ -138,7 +138,8 @@ experiments.analysis.celltype_number <- function(assign_results,cluster_results,
     }else{
       stop(str_glue("unkown method={method}"))
     }
-    tibble(method=method,test_cell_types=test_cell_types, cell_type=str_c(cell_types,collapse = "|"), cell_type_num=length(cell_types),
+    tibble(method=method,test_cell_types=test_cell_types, cell_type=str_c(cell_types,collapse = "|"), 
+           cell_type_num=length(cell_types),
            unlabeled_pctg=type_unassigned_pctg, type_accuracy=type_accuracy,type_f1=type_f1, 
            supervised=supervised)
   }))

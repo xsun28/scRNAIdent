@@ -220,7 +220,7 @@ summary.celltype_number <- function(exp_config){
   combined_prop_unsup_other_results <- left_join(unsup_other_results,dataset_prop,by=c("train_dataset","test_dataset","type_num"))
   single_type_results <- summary.collect_experiment_results(experiment,exp_config,"single_method_results.rds") %>% dplyr::select(-methods)
   if("train_dataset" %in% colnames(single_type_results)){
-    single_type_results <- melt(single_type_results, id.vars=c("train_dataset","test_dataset","method","test_type_num","test_type","train_type_num","train_type","supervised"))
+    single_type_results <- melt(single_type_results, id.vars=c("train_dataset","test_dataset","method","test_cell_types","cell_type","cell_type_num","supervised"))
   }else{
     single_type_results <- melt(single_type_results, id.vars=c("dataset","method","unknown_celltype","supervised","max_spearman","spearman_sprd"))
   }
@@ -427,14 +427,14 @@ summary.output_excel <- function(experiment,exp_config,...){
       pt$defineCalculation(calculationName = "max_spearman", caption = "max_spearman",type="value",valueName="max_spearman")
       pt$defineCalculation(calculationName = "spearman_sprd", caption = "spearman_sprd",type="value",valueName="spearman_sprd")
       
-    }else if(experiment == "celltype_num"){
-      pt$addRowDataGroups("test_cell_types",addTotal=FALSE,header = "test cell type")
+    }else if(experiment == "celltype_number"){
       if("train_dataset" %in% colnames(single_type_results)){
         pt$addRowDataGroups("train_dataset",addTotal=FALSE,header="train dataset")
         pt$addRowDataGroups("test_dataset",addTotal=FALSE,header="test dataset")
       }else{
         pt$addRowDataGroups("dataset",addTotal=FALSE,header="dataset")
       }
+      pt$addRowDataGroups("test_cell_types",addTotal=FALSE,header = "test cell type")
       pt$addColumnDataGroups("cell_type_num", addTotal=FALSE,caption = "Type Number={value}",dataSortOrder="asc")
       pt$defineCalculation(calculationName = "cell_type_num", caption = "cell_type_num",type="value",valueName="cell_type_num")
     }else{

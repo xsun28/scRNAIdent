@@ -110,8 +110,8 @@ experiments.parameters <- list(
                                                                dataset.interdatasets$PBMC11,dataset.interdatasets$PBMC12,
                                                                dataset.interdatasets$ADASD1,dataset.interdatasets$ADASD2)),
   
-  celltype_number=list( cv=F,cv_fold=NULL, metrics=c('ARI','AMI','FMI'), batch_free=F,fixed_train=F,fixed_test=T,
-                        marker_gene_file=NULL,trained=F,target_train_num=1200,target_test_num=1000,test_num=4, use_intra_dataset=F,intra_dataset=list(),
+  celltype_number=list( cv=F,cv_fold=NULL, metrics=c('ARI','AMI','FMI'), batch_free=F,fixed_train=T,fixed_test=F,
+                        marker_gene_file=NULL,trained=F,target_train_num=1200,target_test_num=1000,test_num=3, use_intra_dataset=F,intra_dataset=list(),
                         use_inter_dataset=T,inter_dataset=list(dataset.interdatasets$PBMC1,dataset.interdatasets$PBMC2,
                                                                dataset.interdatasets$PBMC3,dataset.interdatasets$PBMC4,
                                                                dataset.interdatasets$PBMC7,dataset.interdatasets$PBMC10,
@@ -288,18 +288,17 @@ experiments.config.init.unknown_types <-function(train_dataset, test_dataset=NUL
 
 experiments.config.init.celltype_number <- function(train_dataset, test_dataset=NULL, exp_config){
   get_type_order <- function(dataset){
-    data <- utils.load_datasets(dataset) 
+    data <- utils.load_datasets(dataset) %>% utils.filter(filter_gene=F, filter_cells=TRUE, filter_cell_type=TRUE)
     type_pctg <- as.data.frame(table(colData(data)$label)/dim(data)[2])
     celltype_order <- as.vector(type_pctg[order(type_pctg[,2],decreasing = T),][,1])
     celltype_order
   }
+  exp_config <- experiments.config.init.base(exp_config)
   exp_config$train_type <- get_type_order(train_dataset)
   exp_config$test_type <- get_type_order(test_dataset)
   exp_config$common_type <- intersect(exp_config$train_type,exp_config$test_type)
   exp_config$train_uniq_type <- setdiff(exp_config$train_type,exp_config$common_type)
-  exp_config$test_num <- min(3,length(exp_config$train_type)-length(exp_config$common_type))
   
-  exp_config <- experiments.config.init.base(exp_config)
   if(exp_config$fixed_train){
     test_dataset_name <- dataset.name.map1[[test_dataset]]
     if(purrr::is_null(exp_config$increment)){
@@ -315,11 +314,11 @@ experiments.config.init.celltype_number <- function(train_dataset, test_dataset=
     print(str_glue("test dataset={test_dataset_name}"))
   }
   if(exp_config$fixed_test){
-    exp_config$test_number <- min(max(length(exp_config$common_type)*0.4,3),length(exp_config$common_type))
+    exp_config$test_number <- ceiling(min(max(length(exp_config$common_type)*0.4,3),length(exp_config$common_type)))
     exp_config$test_type <- exp_config$common_type[1:exp_config$test_number]
     train_dataset_name <- dataset.name.map1[[train_dataset]]
     if(purrr::is_null(exp_config$increment)){
-      exp_config$increment <- floor((length(exp_config$train_type)-length(exp_config$test_number))/exp_config$test_num)
+      exp_config$increment <- floor((length(exp_config$train_type)-exp_config$test_number)/(exp_config$test_num-1))
       while(exp_config$increment==0){  
         exp_config$test_num <- exp_config$test_num-1
         stopifnot(exp_config$test_num>=2)

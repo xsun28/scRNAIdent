@@ -504,14 +504,15 @@ utils.get_train_test_types <- function(train_dataset,test_dataset){
   if(!purrr::is_null(dataset.properties[[train_dataset_name]]$cell_types)){
     train_type <- as.list(dataset.properties[[train_dataset_name]]$cell_types)
   }else{
-    train_data <- utils.load_datasets(train_dataset)
+    train_data <- utils.load_datasets(train_dataset) %>% utils.filter(filter_gene=F, filter_cells=TRUE, filter_cell_type=TRUE)
+
     train_type <- unique(colData(train_data)$label) 
   }
   
   if(!purrr::is_null(dataset.properties[[test_dataset_name]]$cell_types)){
     test_type <- as.list(dataset.properties[[test_dataset_name]]$cell_types)
   }else{
-    test_data <- utils.load_datasets(test_dataset)
+    test_data <- utils.load_datasets(test_dataset) %>% utils.filter(filter_gene=F, filter_cells=TRUE, filter_cell_type=TRUE)
     test_type <- unique(colData(test_data)$label) 
   }
   return(list(train_type=train_type,test_type=test_type))
