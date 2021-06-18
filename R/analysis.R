@@ -99,6 +99,24 @@ analysis.KL <- function(p,q){
   return(KL)
 }
 
+########
+analysis.cluster.bcubed <- function(results,type,beta=1){
+  unique_cluster <- unique(results$pred)
+  type_num <- sum(results$label==type)
+  total_recall <- 0
+  total_precision <- 0
+  for(c in unique_cluster){
+    cluster_results <- results[results$pred==c,]
+    cluster_precision <- sum(cluster_results$label == type)**2/length(cluster_results$label)
+    cluster_recall <- sum(cluster_results$label == type)**2/type_num
+    total_recall <- total_recall + cluster_recall
+    total_precision <- total_precision + cluster_precision
+  }
+  avg_recall <- total_recall/type_num
+  avg_precision <- total_precision/type_num
+  fbeta_BCubed <- (beta ** 2 + 1) * avg_precision * avg_recall / (beta ** 2 * avg_precision + avg_recall)
+  fbeta_BCubed
+}
 
 ####
 analysis.max_type_pctg <- function(labels,pred){
