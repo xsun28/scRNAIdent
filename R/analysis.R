@@ -1,16 +1,16 @@
 
 ###separate assigned and unassigned and analyze respectively
 
-analysis.run <- function(results,methods,metrics){
+analysis.run <- function(results,methods,metrics,...){
   metrics_functions_mapping <- c(ARI="analysis.cluster.ARI",
-                                AMI="analysis.cluster.AMI",
-                                FMI="analysis.cluster.FMI",
-                                wNMI="analysis.cluster.wNMI",
-                                wRI="analysis.cluster.wRI",
-                                unlabeled_pctg="analysis.assign.unlabeled_pctg",
-                                cluster_num="analysis.cluster_num",
-                                pred_type_max_pctg="analysis.max_type_pctg")
-  
+                                 AMI="analysis.cluster.AMI",
+                                 FMI="analysis.cluster.FMI",
+                                 BCubed = "analysis.cluster.bcubed",
+                                 wNMI="analysis.cluster.wNMI",
+                                 wRI="analysis.cluster.wRI",
+                                 unlabeled_pctg="analysis.assign.unlabeled_pctg",
+                                 cluster_num="analysis.cluster_num",
+                                 pred_type_max_pctg="analysis.max_type_pctg")
   analysis_results <- as.data.frame(matrix(nrow = length(methods), ncol = length(metrics)))
   rownames(analysis_results) <- methods
   colnames(analysis_results) <- metrics
@@ -18,7 +18,7 @@ analysis.run <- function(results,methods,metrics){
   for (m in methods){
     for(metric in metrics){
       f <- get(metrics_functions_mapping[[metric]])
-      analysis_results[m,metric] <- f(as.character(results$label),results[[m]])
+      analysis_results[m,metric] <- f(as.character(results$label),results[[m]],...)
     }
   }
   analysis_results
@@ -27,11 +27,11 @@ analysis.run <- function(results,methods,metrics){
 analysis.assign.accuracy <- function(true,pred,macro=T){
   unique_label <- unique(true)
   accuracies <- bind_rows(purrr::map(unique_label,~{
-                          TP <- sum(pred==.)
-                          n <- sum(true==.)
-                          return(list(accuracy=TP/n,n=n))
-                        })
-                        )
+    TP <- sum(pred==.)
+    n <- sum(true==.)
+    return(list(accuracy=TP/n,n=n))
+  })
+  )
   if(macro){
     return(mean(accuracies$accuracy))
   }
@@ -50,21 +50,21 @@ analysis.cluster.fbeta <- function(true,pred,beta=1,true_label,cluster_num){
 }
 
 ###Adjusted rand index
-analysis.cluster.ARI <- function(true,pred){
+analysis.cluster.ARI <- function(true,pred,...){
   require(aricode)
   pred[is.na(pred)] <- -1 ####replace na with -1 unclustered cells
   ARI(true,pred)
 }
 
 ###Adjusted mutual information
-analysis.cluster.AMI <- function(true,pred){
+analysis.cluster.AMI <- function(true,pred,...){
   require(aricode)
   pred[is.na(pred)] <- -1
   AMI(true,pred)
 }
 
 ###Fowlkes Mallows index
-analysis.cluster.FMI <- function(true,pred){
+analysis.cluster.FMI <- function(true,pred,...){
   require(dendextend)
   pred[is.na(pred)] <- -1
   FM_index(true,pred)[[1]]
@@ -100,20 +100,24 @@ analysis.KL <- function(p,q){
 }
 
 ########
-analysis.cluster.bcubed <- function(results,type,beta=1){
-  unique_cluster <- unique(results$pred)
-  type_num <- sum(results$label==type)
+analysis.cluster.bcubed <- function(true,pred,beta=1,...){
+  extra_args <- list(...)
+  checked_types <- extra_args$types
+  unique_cluster <- unique(pred)
   total_recall <- 0
   total_precision <- 0
-  for(c in unique_cluster){
-    cluster_results <- results[results$pred==c,]
-    cluster_precision <- sum(cluster_results$label == type)**2/length(cluster_results$label)
-    cluster_recall <- sum(cluster_results$label == type)**2/type_num
-    total_recall <- total_recall + cluster_recall
-    total_precision <- total_precision + cluster_precision
+  for(type in checked_types){
+    type_num <- sum(true==type)
+    for(c in unique_cluster){
+      cluster_num <- sum(pred==c)
+      cluster_precision <- sum(true[which(pred==c)] == type)**2/cluster_num
+      cluster_recall <- sum(true[which(pred==c)] == type)**2/type_num
+      total_recall <- total_recall + cluster_recall
+      total_precision <- total_precision + cluster_precision
+    }
   }
-  avg_recall <- total_recall/type_num
-  avg_precision <- total_precision/type_num
+  avg_recall <- total_recall/length(true)
+  avg_precision <- total_precision/length(true)
   fbeta_BCubed <- (beta ** 2 + 1) * avg_precision * avg_recall / (beta ** 2 * avg_precision + avg_recall)
   fbeta_BCubed
 }
@@ -173,7 +177,7 @@ analysis.dataset.entropy <- function(data){
   stopifnot(is(data,"SingleCellExperiment"))
   stopifnot("label" %in% colnames(colData(data)))
   entropy <- sum((dplyr::group_by(as.data.frame(colData(data)),label)%>%dplyr::summarize(prob=n()/length(colData(data)$label)))[['prob']]%>%
-            map_dbl(~{-log(.)*.}))
+                   map_dbl(~{-log(.)*.}))
   entropy
 }
 
@@ -224,8 +228,8 @@ analysis.dataset.properties <- function(data){
   sample_num <- analysis.dataset.sample_num(data)
   gene_num <- analysis.dataset.gene_num(data)
   list(dataset=metadata(data)$study_name,complexity=complexity,entropy=entropy,seq_depth_med=sequencing_depth[['median']],
-      seq_depth_IQR=sequencing_depth[['IQR']],cell_types=cell_types,cell_type_max_pctg=cell_type_max_pctg,sparsity=sparsity,sample_num=sample_num,
-      gene_num=gene_num)
+       seq_depth_IQR=sequencing_depth[['IQR']],cell_types=cell_types,cell_type_max_pctg=cell_type_max_pctg,sparsity=sparsity,sample_num=sample_num,
+       gene_num=gene_num)
 }
 
 analysis.dataset.properties_table <- function(dataset_names){
@@ -243,7 +247,7 @@ analysis.dataset.batch_effects <- function(dataset1,dataset2){
   require(scater)
   stopifnot(is(dataset1,"SingleCellExperiment"))
   stopifnot(is(dataset2,"SingleCellExperiment"))
-
+  
   batch_name <- intersect(dataset1$label,dataset2$label)
   sce_data1 <- computeLibraryFactors(dataset1)
   assay(sce_data1,"normed") <- scater::normalizeCounts(sce_data1,log = FALSE)
@@ -256,7 +260,7 @@ analysis.dataset.batch_effects <- function(dataset1,dataset2){
   batch_distance <- vector(mode='numeric',length=length(batch_name))
   for(i in seq_along(batch_name)){
     batch_distance[i] <- utils.manhattan_dist(apply(as.data.frame(assay(data1[,colData(data1)$label==batch_name[i]],"normed")),1,median),
-                                          apply(as.data.frame(assay(data2[,colData(data2)$label==batch_name[i]],"normed")),1,median))       
+                                              apply(as.data.frame(assay(data2[,colData(data2)$label==batch_name[i]],"normed")),1,median))       
   }
   mean(batch_distance)
 }
@@ -307,7 +311,3 @@ analysis.dataset.spearman_corrs <- function(data1, types1, data2, types2){
   r1 <- utils.quantileMatrix(agg_scores_t,data2$label,q = 0.5)
   r1
 }
-
-
-
-

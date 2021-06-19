@@ -25,20 +25,20 @@ experiments.analysis.base <- function(assign_results,cluster_results,exp_config)
   if(missing(exp_config)){
     stop("missing exp_config in base analysis function")
   }
-
+  
   cluster_methods <- colnames(cluster_results)[colnames(cluster_results)!="label"]
   assign_methods <- colnames(assign_results)[colnames(assign_results)!="label"]
   unlabeled_pctg_results <- analysis.run(assign_results,assign_methods,c("unlabeled_pctg"))
   supervised_cluster_num <- analysis.run(assign_results,assign_methods,c("cluster_num"))
   supervised_pred_type_max_pctg <- analysis.run(assign_results,assign_methods,c("pred_type_max_pctg"))
-  assign_analysis_results <- analysis.run(assign_results,assign_methods,exp_config$metrics) %>%
+  assign_analysis_results <- analysis.run(assign_results,assign_methods,exp_config$metrics,types=unique(assign_results$label)) %>%
     dplyr::bind_cols(unlabeled_pctg_results) %>% dplyr::bind_cols(supervised_cluster_num) %>% 
     dplyr::bind_cols(supervised_pred_type_max_pctg)
   assign_analysis_results$supervised <- T
   
   unsupervised_cluster_num <- analysis.run(cluster_results,cluster_methods,c("cluster_num"))
   unsupervised_pred_type_max_pctg <- analysis.run(cluster_results,cluster_methods,c("pred_type_max_pctg"))
-  cluster_analysis_results <- analysis.run(cluster_results,cluster_methods,exp_config$metrics) %>%
+  cluster_analysis_results <- analysis.run(cluster_results,cluster_methods,exp_config$metrics,types=unique(cluster_results$label)) %>%
     dplyr::bind_cols(unsupervised_cluster_num) %>% 
     dplyr::bind_cols(unsupervised_pred_type_max_pctg)
   cluster_analysis_results$supervised <- F
@@ -49,10 +49,10 @@ experiments.analysis.base <- function(assign_results,cluster_results,exp_config)
   ####
   assigned_results <- utils.select_assigned(results)
   
-  cluster_analysis_assigned_results <- analysis.run(assigned_results$cluster_results,cluster_methods,exp_config$metrics)
+  cluster_analysis_assigned_results <- analysis.run(assigned_results$cluster_results,cluster_methods,exp_config$metrics,types=unique(assigned_results$cluster_results$label))
   cluster_analysis_assigned_results$assigned <- TRUE
   cluster_analysis_assigned_results$supervised <- F
-  assign_analysis_assigned_results <- analysis.run(assigned_results$assign_results,assign_methods,exp_config$metrics)
+  assign_analysis_assigned_results <- analysis.run(assigned_results$assign_results,assign_methods,exp_config$metrics,types=unique(assigned_results$assign_results$label))
   assign_analysis_assigned_results$assigned <- TRUE
   assign_analysis_assigned_results$supervised <- T
   
@@ -64,10 +64,10 @@ experiments.analysis.base <- function(assign_results,cluster_results,exp_config)
   #   return(report_results)
   # }
   unassigned_results <- utils.select_unassigned(results)
-  cluster_analysis_unassigned_results <- analysis.run(unassigned_results$cluster_results,cluster_methods,exp_config$metrics)
+  cluster_analysis_unassigned_results <- analysis.run(unassigned_results$cluster_results,cluster_methods,exp_config$metrics,types=unique(unassigned_results$cluster_results$label))
   cluster_analysis_unassigned_results$assigned <- FALSE
   cluster_analysis_unassigned_results$supervised <- F
-  assign_analysis_unassigned_results <- analysis.run(unassigned_results$assign_results,assign_methods,exp_config$metrics)
+  assign_analysis_unassigned_results <- analysis.run(unassigned_results$assign_results,assign_methods,exp_config$metrics,types=unique(unassigned_results$assign_results$label))
   assign_analysis_unassigned_results$assigned <- FALSE
   assign_analysis_unassigned_results$supervised <- T
   report_results <- list(all_assign_results=assign_analysis_results,
@@ -123,11 +123,11 @@ experiments.analysis.celltype_number <- function(assign_results,cluster_results,
       type_f1 <- type_accuracy_f1$f1
       
       type_bcubed_fbeta <- purrr::map_dbl(test_cell_types, function(type){ method_pred_true <- dplyr::select(combined_results,method,label)
-        if(all(sapply(method_pred_true[[method]],function(x){is_null(x)||is.na(x)}))){
-          return(NA)
-        }
-        bcubed_fbeta <- analysis.cluster.bcubed(dplyr::select(method_pred_true,pred=method,label),type)
-        bcubed_fbeta
+      if(all(sapply(method_pred_true[[method]],function(x){is_null(x)||is.na(x)}))){
+        return(NA)
+      }
+      bcubed_fbeta <- analysis.cluster.bcubed(method_pred_true$label,method_pred_true[[method]],types=type)
+      bcubed_fbeta
       })
       type_unassigned_pctg <- NA
       supervised <- F
@@ -143,11 +143,11 @@ experiments.analysis.celltype_number <- function(assign_results,cluster_results,
       analysis.cluster.fbeta(method_pred_true$label,method_pred_true[[method]],1,type,type)
       })
       type_bcubed_fbeta <- purrr::map_dbl(test_cell_types, function(type){ method_pred_true <- dplyr::select(combined_results,method,label)
-        if(all(sapply(method_pred_true[[method]],function(x){is_null(x)||is.na(x)}))){
-          return(NA)
-        }
-        bcubed_fbeta <- analysis.cluster.bcubed(dplyr::select(method_pred_true,pred=method,label),type)
-        bcubed_fbeta
+      if(all(sapply(method_pred_true[[method]],function(x){is_null(x)||is.na(x)}))){
+        return(NA)
+      }
+      bcubed_fbeta <- analysis.cluster.bcubed(method_pred_true$label,method_pred_true[[method]],types=type)
+      bcubed_fbeta
       })
       supervised <- T
     }else{
@@ -202,59 +202,59 @@ experiments.analysis.imbalance_impacts <- function(assign_results,cluster_result
   supervised_methods <- colnames(assign_results)[colnames(assign_results)!="label"]
   unsupervised_methods <- colnames(cluster_results)[colnames(cluster_results)!="label"]
   single_method_result <- bind_rows(purrr::map(methods, function(method){
-                                                                      if(method %in% unsupervised_methods){
-                                                                        type_accuracy_f1 <- bind_rows(purrr::map(cell_types, function(type){ method_pred_true <- dplyr::select(combined_results,method,label)
-                                                                                                                                              if(all(sapply(method_pred_true[[method]],function(x){is_null(x)||is.na(x)}))){
-                                                                                                                                                return(list(f1=NA,acc=NA))
-                                                                                                                                              }
-                                                                                                                                                type_pred_true <- dplyr::filter(method_pred_true,label==type)
-                                                                                                                                                unique_clusters <- unique(type_pred_true[[method]])                                                
-                                                                                                                                                cluster_f_betas <- purrr::map(unique_clusters,function(cluster_num){ 
-                                                                                                                                                analysis.cluster.fbeta(method_pred_true$label,method_pred_true[[method]],1,type,cluster_num)
-                                                                                                                                              })
-                                                                                                                                              max_fscore_cluster <- unique_clusters[[which.max(cluster_f_betas)]]
-                                                                                                                                              list(f1=max(unlist(cluster_f_betas)),acc=sum(type_pred_true[[method]]==max_fscore_cluster)/nrow(type_pred_true))
-                                                                                                                                                  }))
-                                                                        type_accuracy <- type_accuracy_f1$acc
-                                                                        type_f1 <- type_accuracy_f1$f1
-                                                                        type_bcubed_fbeta <- purrr::map_dbl(cell_types, function(type){ method_pred_true <- dplyr::select(combined_results,method,label)
-                                                                        if(all(sapply(method_pred_true[[method]],function(x){is_null(x)||is.na(x)}))){
-                                                                          return(NA)
-                                                                        }
-                                                                        bcubed_fbeta <- analysis.cluster.bcubed(dplyr::select(method_pred_true,pred=method,label),type)
-                                                                        bcubed_fbeta
-                                                                        })
-                                                                        type_unassigned_pctg <- NA
-                                                                        supervised <- F
-                                                                      }else if(method %in% supervised_methods){
-                                                                        type_unassigned_pctg <- purrr::map_dbl(cell_types, function(type){ type_pred_true <- dplyr::select(combined_results,method,label) %>% dplyr::filter(label==type)
-                                                                                                    analysis.assign.unlabeled_pctg(type_pred_true$label,type_pred_true[[method]])
-                                                                                                    })
-                                                                        type_accuracy <- purrr::map_dbl(cell_types, function(type){ type_pred_true <- dplyr::select(combined_results,method,label) %>% dplyr::filter(label==type)
-                                                                                                    analysis.assign.accuracy(type_pred_true$label,type_pred_true[[method]])
-                                                                                                    })
-                                                                        type_f1 <- purrr::map_dbl(cell_types, function(type){ method_pred_true <- dplyr::select(combined_results,method,label) 
-                                                                                                                              type_pred_true <- dplyr::filter(method_pred_true,label==type)
-                                                                                                    analysis.cluster.fbeta(method_pred_true$label,method_pred_true[[method]],1,type,type)
-                                                                                                    })
-                                                                        type_bcubed_fbeta <- purrr::map_dbl(cell_types, function(type){ method_pred_true <- dplyr::select(combined_results,method,label)
-                                                                          if(all(sapply(method_pred_true[[method]],function(x){is_null(x)||is.na(x)}))){
-                                                                            return(NA)
-                                                                          }
-                                                                          bcubed_fbeta <- analysis.cluster.bcubed(dplyr::select(method_pred_true,pred=method,label),type)
-                                                                          bcubed_fbeta
-                                                                        })
-                                                                          
-                                                                        supervised <- T
-                                                                      }else{
-                                                                        stop(str_glue("unkown method={method}"))
-                                                                      }
-                                                                      tibble(method=method,train_type=train_type_pctg$label,train_type_pctg=train_type_pctg$type_pctg,
-                                                                             test_type=test_type_pctg$label,test_type_pctg=test_type_pctg$type_pctg, type_bcubed_fbeta = type_bcubed_fbeta,
-                                                                             unlabeled_pctg=type_unassigned_pctg, type_accuracy=type_accuracy,type_f1=type_f1, supervised=supervised)
-                                                                          }))
+    if(method %in% unsupervised_methods){
+      type_accuracy_f1 <- bind_rows(purrr::map(cell_types, function(type){ method_pred_true <- dplyr::select(combined_results,method,label)
+      if(all(sapply(method_pred_true[[method]],function(x){is_null(x)||is.na(x)}))){
+        return(list(f1=NA,acc=NA))
+      }
+      type_pred_true <- dplyr::filter(method_pred_true,label==type)
+      unique_clusters <- unique(type_pred_true[[method]])                                                
+      cluster_f_betas <- purrr::map(unique_clusters,function(cluster_num){ 
+        analysis.cluster.fbeta(method_pred_true$label,method_pred_true[[method]],1,type,cluster_num)
+      })
+      max_fscore_cluster <- unique_clusters[[which.max(cluster_f_betas)]]
+      list(f1=max(unlist(cluster_f_betas)),acc=sum(type_pred_true[[method]]==max_fscore_cluster)/nrow(type_pred_true))
+      }))
+      type_accuracy <- type_accuracy_f1$acc
+      type_f1 <- type_accuracy_f1$f1
+      type_bcubed_fbeta <- purrr::map_dbl(cell_types, function(type){ method_pred_true <- dplyr::select(combined_results,method,label)
+      if(all(sapply(method_pred_true[[method]],function(x){is_null(x)||is.na(x)}))){
+        return(NA)
+      }
+      bcubed_fbeta <- analysis.cluster.bcubed(method_pred_true$label,method_pred_true[[method]],types=type)
+      bcubed_fbeta
+      })
+      type_unassigned_pctg <- NA
+      supervised <- F
+    }else if(method %in% supervised_methods){
+      type_unassigned_pctg <- purrr::map_dbl(cell_types, function(type){ type_pred_true <- dplyr::select(combined_results,method,label) %>% dplyr::filter(label==type)
+      analysis.assign.unlabeled_pctg(type_pred_true$label,type_pred_true[[method]])
+      })
+      type_accuracy <- purrr::map_dbl(cell_types, function(type){ type_pred_true <- dplyr::select(combined_results,method,label) %>% dplyr::filter(label==type)
+      analysis.assign.accuracy(type_pred_true$label,type_pred_true[[method]])
+      })
+      type_f1 <- purrr::map_dbl(cell_types, function(type){ method_pred_true <- dplyr::select(combined_results,method,label) 
+      type_pred_true <- dplyr::filter(method_pred_true,label==type)
+      analysis.cluster.fbeta(method_pred_true$label,method_pred_true[[method]],1,type,type)
+      })
+      type_bcubed_fbeta <- purrr::map_dbl(cell_types, function(type){ method_pred_true <- dplyr::select(combined_results,method,label)
+      if(all(sapply(method_pred_true[[method]],function(x){is_null(x)||is.na(x)}))){
+        return(NA)
+      }
+      bcubed_fbeta <- analysis.cluster.bcubed(method_pred_true$label,method_pred_true[[method]],types=type)
+      bcubed_fbeta
+      })
+      
+      supervised <- T
+    }else{
+      stop(str_glue("unkown method={method}"))
+    }
+    tibble(method=method,train_type=train_type_pctg$label,train_type_pctg=train_type_pctg$type_pctg,
+           test_type=test_type_pctg$label,test_type_pctg=test_type_pctg$type_pctg, type_bcubed_fbeta = type_bcubed_fbeta,
+           unlabeled_pctg=type_unassigned_pctg, type_accuracy=type_accuracy,type_f1=type_f1, supervised=supervised)
+  }))
   
-
+  
   experiments.analysis.attach_dataset_props("imbalance_impacts",exp_config,report_results=report_results,
                                             combined_results=combined_results,
                                             single_method_result=single_method_result,...)
@@ -282,13 +282,13 @@ experiments.analysis.unknown_types <- function(assign_results,cluster_results,ex
       max_fscore_cluster <- unique_clusters[[which.max(cluster_f_betas)]]
       type_accuracy <- sum(type_pred_true[[method]]==max_fscore_cluster)/nrow(type_pred_true)
       type_f1 <- max(unlist(cluster_f_betas))
-      type_bcubed_fbeta <-  analysis.cluster.bcubed(dplyr::select(method_pred_true,pred=method,label),unknown_type)
+      type_bcubed_fbeta <-  analysis.cluster.bcubed(method_pred_true$label,method_pred_true[[method]],types=unknown_type)
       supervised <- F
     }else if(method %in% supervised_methods){
       type_pred <- dplyr::select(combined_results,method,label) %>% dplyr::filter(label==unknown_type) 
       type_accuracy <- sum(type_pred[,1]=="unassigned")/nrow(type_pred)
       type_f1 <- NA
-      type_bcubed_fbeta <-  analysis.cluster.bcubed(dplyr::select(method_pred_true,pred=method,label),unknown_type)
+      type_bcubed_fbeta <- analysis.cluster.bcubed(method_pred_true$label,method_pred_true[[method]],types=unknown_type)
       supervised <- T
     }else{
       stop(str_glue("unkown method={method}"))
@@ -393,5 +393,3 @@ experiments.analysis.attach_dataset_props <- function(experiment,exp_config,...)
     return(list(pred_results=combined_results,analy_results=report_results))
   }
 }  
-  
-  

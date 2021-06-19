@@ -110,7 +110,7 @@ experiments.parameters <- list(
                                                                dataset.interdatasets$PBMC11,dataset.interdatasets$PBMC12,
                                                                dataset.interdatasets$ADASD1,dataset.interdatasets$ADASD2)),
   
-  celltype_number=list( cv=F,cv_fold=NULL, metrics=c('ARI','AMI','FMI'), batch_free=F,fixed_train=T,fixed_test=F,
+  celltype_number=list( cv=F,cv_fold=NULL, metrics=c('ARI','AMI','FMI',"BCubed"), batch_free=F,fixed_train=T,fixed_test=F,
                         marker_gene_file=NULL,trained=F,target_train_num=1200,target_test_num=1000,test_num=3, use_intra_dataset=F,intra_dataset=list(),
                         use_inter_dataset=T,inter_dataset=list(dataset.interdatasets$PBMC1,dataset.interdatasets$PBMC2,
                                                                dataset.interdatasets$PBMC3,dataset.interdatasets$PBMC4,
