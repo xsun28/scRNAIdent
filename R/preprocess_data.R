@@ -4,7 +4,7 @@ source("R/config.R")
 source("R/utils.R")
 source("R/dataset_config.R")
 
-preprocesss.datasets <- list(PBMC=list("PBMC_AllCells_withLabels.RDS","GSE96583_batch1_3_samples.RDS","GSE96583_8_Stim_Pats.RDS","GSE96583_8_Ctrl_Pats.RDS"),
+preprocesss.datasets <- list(PBMC=list("PBMC_AllCells_withLabels.RDS","GSE96583_batch{i}_samples.RDS","GSE96583_8_Stim_Pats.RDS","GSE96583_8_Ctrl_Pats.RDS"),
                  pancreas=list(muraro="Muraro_pancreas_clean.RDS",
                                seger="Segerstolpe_pancreas_clean.RDS",
                                xin="Xin_pancreas_clean.RDS"
@@ -53,7 +53,7 @@ preprocess_PBMC <- function(dataset){
   write_rds(data,new_dataset_path)
   
   ##load GSE96583_batch1_3_samples.RData
-  map_path <- str_glue("{type_home}/{dataset.properties$GSE96583_batch1_3_samples$cell_type_map}")
+  map_path <- str_glue("{type_home}/{dataset.properties$GSE96583_batch1_samples$cell_type_map}")
   type_map <- read_csv(map_path)
   dataset_names <- load(dataset_paths[[2]])
   sces <- purrr::map(purrr::map(dataset_names,~eval(as.name(.))), ~{
@@ -63,14 +63,20 @@ preprocess_PBMC <- function(dataset){
                                                     return(.)})
   # sces <- purrr::map(sces,addPerCellQC)
   colData_cols <- colnames(colData(sces[[1]]))
-  sces <- utils.combine_SCEdatasets(sces,if_combined=T,colData_cols)
-  sces <- sces[,!is.na(sces$label)]
-  sces <- sces[,which(!quickPerCellQC(sces)$discard)]
-  metadata(sces) <- list(study='PBMC', study_name="GSE96583_batch1_3_samples")
-  rowData(sces)$geneName <- rownames(sces)
-  rowData(sces)$EnsembleId <- utils.convert2EnsemblIDs(rownames(sces))
-  new_dataset_path <- utils.get_dataset_paths(data_home,preprocesss.datasets[[dataset]][[2]])
-  write_rds(sces,new_dataset_path)
+  # sces <- utils.combine_SCEdatasets(sces,if_combined=T,colData_cols)
+  for(i in seq_along(sces)){
+    sce <- sces[[i]]
+    sce <- sce[,!is.na(sce$label)]
+    sce <- addPerCellQC(sce)
+    sce <- sce[,which(!quickPerCellQC(sce)$discard)]
+    metadata(sce) <- list(study='PBMC', study_name=str_glue("GSE96583_batch{i}_samples"))
+    rowData(sce)$count <- nexprs(sce,byrow=TRUE)
+    rowData(sce)$geneName <- rownames(sce)
+    rowData(sce)$EnsembleId <- utils.convert2EnsemblIDs(rownames(sce))
+    new_dataset_path <- utils.get_dataset_paths(data_home,str_glue(preprocesss.datasets[[dataset]][[2]]))
+    write_rds(sce,new_dataset_path)
+  }
+  
   
   ###load GSE96583_8_Stim_Pats.RData
   map_path <- str_glue("{type_home}/{dataset.properties$GSE96583_8_Stim_Pats$cell_type_map}")
@@ -128,7 +134,7 @@ preprocess_pancreas <- function(dataset){
     sampleId <- if(length(sampleId)!=length(labels)) rep(NA,length(labels)) else sampleId
     genes <- purrr::map_chr(rownames(cnt),~str_split(.,"__")[[1]][1])
 
-    data <- utils.convert_to_SingleCellExperiment(cnt,genes,colnames(cnt),tibble(label=labels,sampleId=sampleId),
+    data <- utils.convert_to_SingleCellExperiment(cnt,genes,colnames(cnt),tibble(label=labels,sampleId=sampleId,ind=sampleId),
                                             list(study='pancreas',study_name=study_name))
     rowData(data)$geneName <- rownames(data)
     rowData(data)$EnsembleId <- utils.convert2EnsemblIDs(rownames(data))

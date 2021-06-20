@@ -13,7 +13,7 @@ output.sink <- function(experiment,raw_results,results,exp_config=NULL,...){
          sequencing_depth = output.sequencing_depth(raw_results,results,output_dir),
          celltype_structure = output.celltype_structure(raw_results,results,output_dir),
          batch_effects = output.batch_effects(raw_results,results,output_dir),
-         inter_diseases = output.inter_diseases(raw_results,results,output_dir),
+         sample_bias = output.sample_bias(raw_results,results,output_dir),
          celltype_complexity = output.celltype_complexity(raw_results,results,output_dir),
          inter_species = output.inter_species(raw_results,results,output_dir),
          random_noise = output.random_noise(raw_results,results,output_dir),
@@ -53,7 +53,7 @@ output.batch_effects <- function(raw_results,results, output_dir){
   output.write_results(raw_results=raw_results,results=results,output_dir=output_dir)
 }
 
-output.inter_diseases <- function(raw_results,results, output_dir){
+output.sample_bias <- function(raw_results,results, output_dir){
   output.write_results(raw_results=raw_results,results=results,output_dir=output_dir)
 }
 

@@ -13,8 +13,14 @@ methods.config.pcaReduce <- list(K=10)
 methods.config.garnett <- list(PBMC_AllCells_withLabels=list(marker_file_path=str_glue("Garnett_PBMC_AllCells_withLabels_marker_{dataset.properties$PBMC_AllCells_withLabels$gene_name_type}.txt"),
                                                               pretrained_classifier=NULL,marker_gene_method='seurat',num_unknown=60),
                                
-                               GSE96583_batch1_3_samples=list(marker_file_path=str_glue("Garnett_GSE96583_batch1_3_samples_marker_{dataset.properties$GSE96583_batch1_3_samples$gene_name_type}.txt"),
+                               GSE96583_batch1_samples=list(marker_file_path=str_glue("Garnett_GSE96583_batch1_samples_marker_{dataset.properties$GSE96583_batch1_samples$gene_name_type}.txt"),
                                                               pretrained_classifier=NULL,marker_gene_method='seurat',num_unknown=50),
+                               
+                               GSE96583_batch2_samples=list(marker_file_path=str_glue("Garnett_GSE96583_batch2_samples_marker_{dataset.properties$GSE96583_batch2_samples$gene_name_type}.txt"),
+                                                            pretrained_classifier=NULL,marker_gene_method='seurat',num_unknown=50),
+                               
+                               GSE96583_batch3_samples=list(marker_file_path=str_glue("Garnett_GSE96583_batch3_samples_marker_{dataset.properties$GSE96583_batch3_samples$gene_name_type}.txt"),
+                                                            pretrained_classifier=NULL,marker_gene_method='seurat',num_unknown=50),
                                
                                GSE96583_8_Stim_Pats=list(marker_file_path=str_glue("Garnett_GSE96583_8_Stim_Pats_marker_{dataset.properties$GSE96583_8_Stim_Pats$gene_name_type}.txt"),
                                                               pretrained_classifier=NULL,marker_gene_method='seurat',num_unknown=50),

@@ -5,26 +5,49 @@ raw_datasets <- list(PBMC=c("PBMC_AllCells_withLabels.RData","GSE96583_batch1_3_
                      midbrain="midbrain.RData",
                      cellbench="cellbench.RData")
 
-dataset.datasets <- list("PBMC_AllCells_withLabels.RDS","GSE96583_batch1_3_samples.RDS","GSE96583_8_Stim_Pats.RDS","GSE96583_8_Ctrl_Pats.RDS",
-                 "Muraro_pancreas_clean.RDS","Segerstolpe_pancreas_clean.RDS","Xin_pancreas_clean.RDS",
-                 "ADASD_AD.RDS","ADASD_autism.RDS",
-                 "midbrain_human.RDS","midbrain_mouse.RDS"
+dataset.datasets <- list("PBMC_AllCells_withLabels.RDS","GSE96583_batch1_samples.RDS","GSE96583_batch2_samples.RDS",
+                         "GSE96583_batch3_samples.RDS","GSE96583_8_Stim_Pats.RDS","GSE96583_8_Ctrl_Pats.RDS",
+                          "Muraro_pancreas_clean.RDS","Segerstolpe_pancreas_clean.RDS","Xin_pancreas_clean.RDS",
+                          "ADASD_AD.RDS","ADASD_autism.RDS",
+                          "midbrain_human.RDS","midbrain_mouse.RDS"
                  # cellbench=list(tenx="cellbench_10x.RDS",CELseq2="cellbench_CELseq2.RDS",Dropseq="cellbench_Dropseq.RDS")
                  )
 
 dataset.interdatasets <- list(
-                              PBMC1 = list(train_dataset="PBMC_AllCells_withLabels.RDS", test_dataset="GSE96583_batch1_3_samples.RDS"),
+                              PBMC1 = list(train_dataset="PBMC_AllCells_withLabels.RDS", test_dataset="GSE96583_batch1_samples.RDS"),
                               PBMC2 = list(train_dataset="PBMC_AllCells_withLabels.RDS",  test_dataset="GSE96583_8_Ctrl_Pats.RDS"),
                               PBMC3 = list(train_dataset="PBMC_AllCells_withLabels.RDS",  test_dataset="GSE96583_8_Stim_Pats.RDS"),
                               PBMC4 = list(train_dataset="GSE96583_8_Ctrl_Pats.RDS",  test_dataset="PBMC_AllCells_withLabels.RDS"),
                               PBMC5 = list(train_dataset="GSE96583_8_Ctrl_Pats.RDS",  test_dataset="GSE96583_8_Stim_Pats.RDS"),
-                              PBMC6 = list(train_dataset="GSE96583_8_Ctrl_Pats.RDS",  test_dataset="GSE96583_batch1_3_samples.RDS"),
-                              PBMC7 = list(train_dataset="GSE96583_batch1_3_samples.RDS",  test_dataset="PBMC_AllCells_withLabels.RDS"),
-                              PBMC8 = list(train_dataset="GSE96583_batch1_3_samples.RDS",  test_dataset="GSE96583_8_Stim_Pats.RDS"),
-                              PBMC9 = list(train_dataset="GSE96583_batch1_3_samples.RDS",  test_dataset="GSE96583_8_Ctrl_Pats.RDS"),
+                              PBMC6 = list(train_dataset="GSE96583_8_Ctrl_Pats.RDS",  test_dataset="GSE96583_batch1_samples.RDS"),
+                              PBMC7 = list(train_dataset="GSE96583_batch1_samples.RDS",  test_dataset="PBMC_AllCells_withLabels.RDS"),
+                              PBMC8 = list(train_dataset="GSE96583_batch1_samples.RDS",  test_dataset="GSE96583_8_Stim_Pats.RDS"),
+                              PBMC9 = list(train_dataset="GSE96583_batch1_samples.RDS",  test_dataset="GSE96583_8_Ctrl_Pats.RDS"),
                               PBMC10 = list(train_dataset="GSE96583_8_Stim_Pats.RDS",  test_dataset="PBMC_AllCells_withLabels.RDS"),
                               PBMC11 = list(train_dataset="GSE96583_8_Stim_Pats.RDS",  test_dataset="GSE96583_8_Ctrl_Pats.RDS"),
-                              PBMC12 = list(train_dataset="GSE96583_8_Stim_Pats.RDS",  test_dataset="GSE96583_batch1_3_samples.RDS"),
+                              PBMC12 = list(train_dataset="GSE96583_8_Stim_Pats.RDS",  test_dataset="GSE96583_batch1_samples.RDS"),
+                              PBMC13 = list(train_dataset="GSE96583_batch1_samples.RDS",  test_dataset="GSE96583_batch2_samples.RDS"),
+                              PBMC14 = list(train_dataset="PBMC_AllCells_withLabels.RDS", test_dataset="GSE96583_batch2_samples.RDS"),
+                              PBMC15 = list(train_dataset="PBMC_AllCells_withLabels.RDS", test_dataset="GSE96583_batch3_samples.RDS"),
+                              PBMC16 = list(train_dataset="GSE96583_8_Ctrl_Pats.RDS", test_dataset="GSE96583_batch2_samples.RDS"),
+                              PBMC17 = list(train_dataset="GSE96583_8_Ctrl_Pats.RDS", test_dataset="GSE96583_batch3_samples.RDS"),
+                              PBMC18 = list(train_dataset="GSE96583_8_Stim_Pats.RDS", test_dataset="GSE96583_batch2_samples.RDS"),
+                              PBMC19 = list(train_dataset="GSE96583_8_Stim_Pats.RDS", test_dataset="GSE96583_batch3_samples.RDS"),
+                              PBMC20 = list(train_dataset="GSE96583_batch1_samples.RDS", test_dataset="GSE96583_batch3_samples.RDS"),
+                              PBMC21 = list(train_dataset="GSE96583_batch2_samples.RDS", test_dataset="GSE96583_batch3_samples.RDS"),
+                              PBMC22 = list(train_dataset="GSE96583_batch2_samples.RDS",  test_dataset="PBMC_AllCells_withLabels.RDS"),
+                              PBMC23 = list(train_dataset="GSE96583_batch2_samples.RDS",  test_dataset="GSE96583_8_Stim_Pats.RDS"),
+                              PBMC24 = list(train_dataset="GSE96583_batch2_samples.RDS",  test_dataset="GSE96583_8_Ctrl_Pats.RDS"),
+                              PBMC25 = list(train_dataset="GSE96583_batch3_samples.RDS",  test_dataset="PBMC_AllCells_withLabels.RDS"),
+                              PBMC26 = list(train_dataset="GSE96583_batch3_samples.RDS",  test_dataset="GSE96583_8_Stim_Pats.RDS"),
+                              PBMC27 = list(train_dataset="GSE96583_batch3_samples.RDS",  test_dataset="GSE96583_8_Ctrl_Pats.RDS"),
+                              PBMC28 = list(train_dataset="GSE96583_batch2_samples.RDS", test_dataset="GSE96583_batch1_samples.RDS"),
+                              PBMC29 = list(train_dataset="GSE96583_batch3_samples.RDS", test_dataset="GSE96583_batch1_samples.RDS"),
+                              PBMC30 = list(train_dataset="GSE96583_batch3_samples.RDS", test_dataset="GSE96583_batch2_samples.RDS"),
+                              PBMC31 = list(train_dataset="GSE96583_batch1_samples.RDS",  test_dataset="GSE96583_batch1_samples.RDS"),
+                              PBMC32 = list(train_dataset="GSE96583_batch2_samples.RDS",  test_dataset="GSE96583_batch2_samples.RDS"),
+                              PBMC33 = list(train_dataset="GSE96583_batch3_samples.RDS",  test_dataset="GSE96583_batch3_samples.RDS"),
+                              
                               pancreas1 = list(train_dataset="Muraro_pancreas_clean.RDS",  test_dataset="Segerstolpe_pancreas_clean.RDS"),
                               pancreas2 = list(train_dataset="Muraro_pancreas_clean.RDS",  test_dataset="Xin_pancreas_clean.RDS"),
                               pancreas3 = list(train_dataset="Segerstolpe_pancreas_clean.RDS",  test_dataset="Muraro_pancreas_clean.RDS"),
@@ -41,7 +64,9 @@ dataset.interdatasets <- list(
 
 dataset.properties <- list(
                           PBMC_AllCells_withLabels=list(sample_threshold=3,gene_name_type="SYMBOL",total_num=61309),
-                          GSE96583_batch1_3_samples=list(sample_threshold=3,gene_name_type="SYMBOL",cell_type_map="PBMC_celltype_map.csv",total_num=14017),
+                          GSE96583_batch1_samples=list(sample_threshold=3,gene_name_type="SYMBOL",cell_type_map="PBMC_celltype_map.csv",total_num=3582),
+                          GSE96583_batch2_samples=list(sample_threshold=3,gene_name_type="SYMBOL",cell_type_map="PBMC_celltype_map.csv",total_num=4184),
+                          GSE96583_batch3_samples=list(sample_threshold=3,gene_name_type="SYMBOL",cell_type_map="PBMC_celltype_map.csv",total_num=6115),
                           GSE96583_8_Stim_Pats=list(sample_threshold=3,gene_name_type="SYMBOL",cell_type_map="PBMC_celltype_map.csv",total_num=14126),
                           GSE96583_8_Ctrl_Pats=list(sample_threshold=3,gene_name_type="SYMBOL",cell_type_map="PBMC_celltype_map.csv",total_num=14617),
                           ADASD_AD=list(sample_threshold=3,gene_name_type="SYMBOL",total_num=70634),
@@ -64,7 +89,9 @@ dataset.properties <- list(
                       )
 
 dataset.name.map1 <- list(PBMC_AllCells_withLabels.RDS="PBMC_AllCells_withLabels",
-                          GSE96583_batch1_3_samples.RDS="GSE96583_batch1_3_samples",
+                          GSE96583_batch1_samples.RDS="GSE96583_batch1_samples",
+                          GSE96583_batch2_samples.RDS="GSE96583_batch2_samples",
+                          GSE96583_batch3_samples.RDS="GSE96583_batch3_samples",
                           GSE96583_8_Stim_Pats.RDS="GSE96583_8_Stim_Pats",
                           GSE96583_8_Ctrl_Pats.RDS="GSE96583_8_Ctrl_Pats",
                           Muraro_pancreas_clean.RDS="Muraro_pancreas",
@@ -77,7 +104,9 @@ dataset.name.map1 <- list(PBMC_AllCells_withLabels.RDS="PBMC_AllCells_withLabels
                           )
 
 dataset.name.map2 <- list(PBMC_AllCells_withLabels="PBMC_AllCells_withLabels.RDS",
-                          GSE96583_batch1_3_samples="GSE96583_batch1_3_samples.RDS",
+                          GSE96583_batch1_samples="GSE96583_batch1_samples.RDS",
+                          GSE96583_batch2_samples="GSE96583_batch2_samples.RDS",
+                          GSE96583_batch3_samples="GSE96583_batch3_samples.RDS",
                           GSE96583_8_Stim_Pats="GSE96583_8_Stim_Pats.RDS",
                           GSE96583_8_Ctrl_Pats="GSE96583_8_Ctrl_Pats.RDS",
                           Muraro_pancreas="Muraro_pancreas_clean.RDS",

@@ -7,7 +7,7 @@ experiments.analysis <- function(experiment, assign_results,cluster_results,exp_
          sequencing_depth = experiments.analysis.sequencing_depth(assign_results,cluster_results,exp_config,...),
          celltype_structure = experiments.analysis.celltype_structure(assign_results,cluster_results,exp_config,...),
          batch_effects = experiments.analysis.batch_effects(assign_results,cluster_results,exp_config,...),
-         inter_diseases = experiments.analysis.inter_diseases(assign_results,cluster_results,exp_config,...),
+         sample_bias = experiments.analysis.sample_bias(assign_results,cluster_results,exp_config,...),
          celltype_complexity = experiments.analysis.celltype_complexity(assign_results,cluster_results,exp_config,...),
          inter_species = experiments.analysis.inter_species(assign_results,cluster_results,exp_config,...),
          random_noise = experiments.analysis.random_noise(assign_results,cluster_results,exp_config,...),
@@ -180,10 +180,10 @@ experiments.analysis.batch_effects <- function(assign_results,cluster_results,ex
                                             combined_results=combined_results,...)
 }
 
-experiments.analysis.inter_diseases <- function(assign_results,cluster_results,exp_config,...){
+experiments.analysis.sample_bias <- function(assign_results,cluster_results,exp_config,...){
   report_results <- experiments.analysis.base(assign_results,cluster_results,exp_config)
   combined_results <- bind_cols(assign_results,dplyr::select(cluster_results,-label))
-  experiments.analysis.attach_dataset_props("inter_diseases", exp_config,report_results=report_results,
+  experiments.analysis.attach_dataset_props("sample_bias", exp_config,report_results=report_results,
                                             combined_results=combined_results,...)
 }
 

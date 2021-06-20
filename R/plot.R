@@ -23,7 +23,7 @@ plot.plot <- function(experiment,results,raw_results, exp_config,...){
     sequencing_depth = plot.sequencing_depth(results,raw_results,fig_path,exp_config),
     celltype_structure = plot.celltype_structure(results,raw_results,fig_path,exp_config),
     batch_effects = plot.batch_effects(results,raw_results,fig_path,exp_config),
-    inter_diseases = plot.inter_diseases(results,raw_results,fig_path,exp_config),
+    sample_bias = plot.sample_bias(results,raw_results,fig_path,exp_config),
     celltype_complexity = plot.celltype_complexity(results,raw_results,fig_path,exp_config),
     inter_species = plot.inter_species(results,raw_results,fig_path,exp_config),
     random_noise = plot.random_noise(results,raw_results,fig_path,exp_config),
@@ -709,7 +709,7 @@ plot.batch_effects <- function(results,raw_results,fig_path,exp_config){
   
 }
   
-plot.inter_diseases <- function(results,raw_results,fig_path,exp_config){
+plot.sample_bias <- function(results,raw_results,fig_path,exp_config){
     
   require(data.table)
   print(str_glue("Generating figures for inter diseases pairs {fig_path}"))

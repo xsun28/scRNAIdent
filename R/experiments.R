@@ -23,7 +23,7 @@ library(R.methodsS3)
 logger <- utils.get_logger("DEBUG",log_file)
 ##Wrapper
 runExperiments <- function(experiment=c("simple_accuracy","cell_number","celltype_number","sequencing_depth","celltype_structure",
-                                        "batch_effects","inter_diseases","celltype_complexity","inter_species",
+                                        "batch_effects","sample_bias","celltype_complexity","inter_species",
                                         "random_noise","inter_protocol")){
   switch(experiment,
          simple_accuracy = experiments.simple_accuracy(experiment),
@@ -32,7 +32,7 @@ runExperiments <- function(experiment=c("simple_accuracy","cell_number","celltyp
          sequencing_depth = experiments.sequencing_depth(experiment),
          celltype_structure = experiments.celltype_structure(experiment),
          batch_effects = experiments.batch_effects(experiment),
-         inter_diseases = experiments.inter_diseases(experiment),
+         sample_bias = experiments.sample_bias(experiment),
          celltype_complexity = experiments.celltype_complexity(experiment),
          inter_species = experiments.inter_species(experiment),
          random_noise = experiments.random_noise(experiment),
@@ -452,7 +452,7 @@ experiments.batch_effects <- function(experiment){
 
 
 ############
-experiments.inter_diseases <- function(experiment){
+experiments.sample_bias <- function(experiment){
   require(gtools)
   base_exp_config <- experiments.parameters[[experiment]]
   # datasets_perm2 <- gtools::permutations(n=length(experiments.data[[experiment]]),r=2,v=unlist(experiments.data[[experiment]]),repeats.allowed = F)
@@ -463,13 +463,15 @@ experiments.inter_diseases <- function(experiment){
       train_dataset <- used_dataset[[j]]
       test_dataset <- used_dataset[[j]]
     }else{
-      train_dataset <- used_dataset[[j]]$train_dataset
-      test_dataset <- used_dataset[[j]]$test_dataset
+      train_dataset <- used_dataset[[j]]$dataset$train_dataset
+      train_ind <- used_dataset[[j]]$inds$train_ind
+      test_dataset <- used_dataset[[j]]$dataset$test_dataset
+      test_ind <- used_dataset[[j]]$inds$test_ind
     }
     experiments.config.update.train_test_datasets(experiment, train_dataset, test_dataset)
     init_exp_config <- experiments.config.init(experiment, train_dataset, test_dataset,base_exp_config)
     
-    exp_config <-  experiments.config.update(experiment, train_dataset, test_dataset,init_exp_config)
+    exp_config <-  experiments.config.update(experiment, train_dataset, test_dataset,init_exp_config,train_ind=train_ind,test_ind=test_ind)
     base_results <- experiments.base(experiment,exp_config)
     report_results <- do.call(experiments.analysis,base_results)
     results <- report_results$analy_results
@@ -478,8 +480,8 @@ experiments.inter_diseases <- function(experiment){
     results <- bind_rows(results)
     raw_results <- bind_rows(raw_results)
     output.sink(experiment,raw_results,results,exp_config)
-    plot.plot(experiment,results,raw_results)
-    print(str_glue("finished inter-diseases dataset pair {experiments.assign.data$train_dataset[[experiment]]}-{experiments.assign.data$test_dataset[[experiment]]}"))
+    plot.plot(experiment,results,raw_results,exp_config)
+    print(str_glue("finished sample-bias dataset pair {experiments.assign.data$train_dataset[[experiment]]}-{experiments.assign.data$test_dataset[[experiment]]}"))
   }
   summarize_experiments(experiment,init_exp_config)
 }

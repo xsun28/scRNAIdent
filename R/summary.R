@@ -21,7 +21,7 @@ summarize_experiments <- function(experiment,exp_config){
          sequencing_depth = summary.sequencing_depth(exp_config),
          celltype_structure = summary.celltype_structure(exp_config),
          batch_effects = summary.batch_effects(exp_config),
-         inter_diseases = summary.inter_diseases(exp_config),
+         sample_bias = summary.sample_bias(exp_config),
          celltype_complexity = summary.celltype_complexity(exp_config),
          inter_species = summary.inter_species(exp_config),
          random_noise = summary.random_noise(exp_config),
@@ -110,9 +110,9 @@ summary.simple_accuracy <- function(exp_config){
 
 
 
-summary.inter_diseases <- function(exp_config){
+summary.sample_bias <- function(exp_config){
   
-  experiment <- "inter_diseases"
+  experiment <- "sample_bias"
   # exp_config <- experiments.parameters[[experiment]]
   exp_results <- summary.collect_experiment_results(experiment,exp_config)
   # exp_dataset_props <-summary.read_exp_dataset_properties(experiment, exp_config)

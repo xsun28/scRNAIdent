@@ -1,4 +1,4 @@
-experiment <- "celltype_number"
+experiment <- "sample_bias"
 
 
 experiments.assign.data <- list(
@@ -26,7 +26,7 @@ experiments.methods <- list(
   celltype_structure=experiments.methods.base_config,
   batch_effects=experiments.methods.base_config, 
                        # list(cluster_batch_free=c('seurat',"sc3",'tscan','liger'), assign_batch_free=c('chetah','garnett'), marker_gene_assign_batch_free=c("cellassign"))),
-  inter_diseases = experiments.methods.base_config,
+  sample_bias = experiments.methods.base_config,
   celltype_complexity = experiments.methods.base_config,
   inter_species = experiments.methods.base_config,
   random_noise = experiments.methods.base_config, 
@@ -103,12 +103,14 @@ experiments.parameters <- list(
                                                                    dataset.interdatasets$pancreas5,dataset.interdatasets$ADASD2)
                            ),
   
-  inter_diseases = list(batch_free=F,target_train_num=1200, target_test_num=800,fixed_train=F,fixed_test=F,
+  sample_bias = list(batch_free=F,target_train_num=1200, target_test_num=800,fixed_train=F,fixed_test=F,
                         cv=FALSE,metrics=c('ARI','AMI','FMI'),marker_gene_file=NULL,use_intra_dataset=F,intra_dataset=list(),
-                        use_inter_dataset=T,inter_dataset=list(dataset.interdatasets$PBMC5,dataset.interdatasets$PBMC6,
-                                                               dataset.interdatasets$PBMC8,dataset.interdatasets$PBMC9,
-                                                               dataset.interdatasets$PBMC11,dataset.interdatasets$PBMC12,
-                                                               dataset.interdatasets$ADASD1,dataset.interdatasets$ADASD2)),
+                        use_inter_dataset=T,inter_dataset=list(list(datasets=dataset.interdatasets$PBMC32,inds=list(train_ind=1511,test_ind=1043)),
+                                                               list(datasets=dataset.interdatasets$PBMC5,inds=list(train_ind=1488,test_ind=1488)),
+                                                               list(datasets=dataset.interdatasets$PBMC23,inds=list(train_ind=1511,test_ind=1015)),
+                                                               list(datasets=dataset.interdatasets$PBMC16,inds=list(train_ind=1488,test_ind=1043))
+                                                               )
+                     ),
   
   celltype_number=list( cv=F,cv_fold=NULL, metrics=c('ARI','AMI','FMI',"BCubed"), batch_free=F,fixed_train=T,fixed_test=F,
                         marker_gene_file=NULL,trained=F,target_train_num=1200,target_test_num=1000,test_num=3, use_intra_dataset=F,intra_dataset=list(),
@@ -143,7 +145,7 @@ experiments.config.init <- function(experiment, train_dataset, test_dataset=NULL
          sequencing_depth = experiments.config.init.sequencing_depth(train_dataset, test_dataset, exp_config),
          celltype_structure = experiments.config.init.celltype_structure(train_dataset, test_dataset, exp_config),
          batch_effects = experiments.config.init.batch_effects(train_dataset, test_dataset, exp_config),
-         inter_diseases = experiments.config.init.inter_diseases(train_dataset, test_dataset, exp_config),
+         sample_bias = experiments.config.init.sample_bias(train_dataset, test_dataset, exp_config),
          celltype_complexity = experiments.config.init.celltype_complexity(train_dataset, test_dataset, exp_config),
          inter_species = experiments.config.init.inter_species(train_dataset, test_dataset, exp_config),
          random_noise = experiments.config.init.random_noise(train_dataset, test_dataset, exp_config),
@@ -260,7 +262,7 @@ experiments.config.init.batch_effects <- function(train_dataset, test_dataset=NU
   exp_config
 }
 
-experiments.config.init.inter_diseases <- function(train_dataset, test_dataset=NULL, exp_config){
+experiments.config.init.sample_bias <- function(train_dataset, test_dataset=NULL, exp_config){
   exp_config <- experiments.config.init.base(exp_config)
   exp_config
 }
@@ -333,7 +335,7 @@ experiments.config.init.celltype_number <- function(train_dataset, test_dataset=
 
 
 ########################
-experiments.config.update <- function(experiment, train_dataset, test_dataset=NULL, exp_config){
+experiments.config.update <- function(experiment, train_dataset, test_dataset=NULL, exp_config,...){
   switch(experiment,
          simple_accuracy=experiments.config.update.simple_accuracy(train_dataset, test_dataset, exp_config),
          cell_number = experiments.config.update.cell_number(train_dataset, test_dataset, exp_config),
@@ -341,7 +343,7 @@ experiments.config.update <- function(experiment, train_dataset, test_dataset=NU
          sequencing_depth = experiments.config.update.sequencing_depth(train_dataset, test_dataset, exp_config),
          celltype_structure = experiments.config.update.celltype_structure(train_dataset, test_dataset, exp_config),
          batch_effects = experiments.config.update.batch_effects(train_dataset, test_dataset, exp_config),
-         inter_diseases = experiments.config.update.inter_diseases(train_dataset, test_dataset, exp_config),
+         sample_bias = experiments.config.update.sample_bias(train_dataset, test_dataset, exp_config,...),
          celltype_complexity = experiments.config.update.celltype_complexity(train_dataset, test_dataset, exp_config),
          inter_species = experiments.config.update.inter_species(train_dataset, test_dataset, exp_config),
          random_noise = experiments.config.update.random_noise(train_dataset, test_dataset, exp_config),
@@ -396,7 +398,10 @@ experiments.config.update.batch_effects <- function(train_dataset, test_dataset=
 }
 
 
-experiments.config.update.inter_diseases <- function(train_dataset, test_dataset=NULL, exp_config){
+experiments.config.update.sample_bias <- function(train_dataset, test_dataset=NULL, exp_config,...){
+  extra_args <- list(...)
+  exp_config$train_ind <- extra_args$train_ind
+  exp_config$test_ind <- extra_args$test_ind
   exp_config
 }
 
