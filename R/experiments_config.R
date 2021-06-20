@@ -103,7 +103,7 @@ experiments.parameters <- list(
                                                                    dataset.interdatasets$pancreas5,dataset.interdatasets$ADASD2)
                            ),
   
-  sample_bias = list(batch_free=F,target_train_num=1200, target_test_num=800,fixed_train=F,fixed_test=F,
+  sample_bias = list(batch_free=F,train_sample_pctg=1,test_sample_pctg=1,fixed_train=F,fixed_test=F,
                         cv=FALSE,metrics=c('ARI','AMI','FMI'),marker_gene_file=NULL,use_intra_dataset=F,intra_dataset=list(),
                         use_inter_dataset=T,inter_dataset=list(list(datasets=dataset.interdatasets$PBMC32,inds=list(train_ind=1511,test_ind=1043)),
                                                                list(datasets=dataset.interdatasets$PBMC5,inds=list(train_ind=1488,test_ind=1488)),
