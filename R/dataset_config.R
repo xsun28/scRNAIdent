@@ -47,6 +47,8 @@ dataset.interdatasets <- list(
                               PBMC31 = list(train_dataset="GSE96583_batch1_samples.RDS",  test_dataset="GSE96583_batch1_samples.RDS"),
                               PBMC32 = list(train_dataset="GSE96583_batch2_samples.RDS",  test_dataset="GSE96583_batch2_samples.RDS"),
                               PBMC33 = list(train_dataset="GSE96583_batch3_samples.RDS",  test_dataset="GSE96583_batch3_samples.RDS"),
+                              PBMC34 = list(train_dataset="GSE96583_8_Stim_Pats.RDS",  test_dataset="GSE96583_8_Stim_Pats.RDS"),
+                              PBMC35 = list(train_dataset="GSE96583_8_Ctrl_Pats.RDS",  test_dataset="GSE96583_8_Ctrl_Pats.RDS"),
                               
                               pancreas1 = list(train_dataset="Muraro_pancreas_clean.RDS",  test_dataset="Segerstolpe_pancreas_clean.RDS"),
                               pancreas2 = list(train_dataset="Muraro_pancreas_clean.RDS",  test_dataset="Xin_pancreas_clean.RDS"),

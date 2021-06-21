@@ -103,12 +103,14 @@ experiments.parameters <- list(
                                                                    dataset.interdatasets$pancreas5,dataset.interdatasets$ADASD2)
                            ),
   
-  sample_bias = list(batch_free=F,train_sample_pctg=1,test_sample_pctg=1,fixed_train=F,fixed_test=F,
+  sample_bias = list(batch_free=F,target_train_num=1200, target_test_num=1000, fixed_train=F,fixed_test=T,sample_seed = 10,
                         cv=FALSE,metrics=c('ARI','AMI','FMI'),marker_gene_file=NULL,use_intra_dataset=F,intra_dataset=list(),
-                        use_inter_dataset=T,inter_dataset=list(list(datasets=dataset.interdatasets$PBMC32,inds=list(train_ind=1511,test_ind=1043)),
+                        use_inter_dataset=T,inter_dataset=list(list(datasets=dataset.interdatasets$PBMC34,inds=list(train_ind=1015,test_ind=1488)),
+                                                               list(datasets=dataset.interdatasets$PBMC35,inds=list(train_ind=1015,test_ind=1488)),
                                                                list(datasets=dataset.interdatasets$PBMC5,inds=list(train_ind=1488,test_ind=1488)),
-                                                               list(datasets=dataset.interdatasets$PBMC23,inds=list(train_ind=1511,test_ind=1015)),
-                                                               list(datasets=dataset.interdatasets$PBMC16,inds=list(train_ind=1488,test_ind=1043))
+                                                               list(datasets=dataset.interdatasets$PBMC11,inds=list(train_ind=1488,test_ind=1488)),
+                                                               list(datasets=dataset.interdatasets$PBMC23,inds=list(train_ind=1511,test_ind=1488)),
+                                                               list(datasets=dataset.interdatasets$PBMC24,inds=list(train_ind=1511,test_ind=1488))
                                                                )
                      ),
   
@@ -264,6 +266,7 @@ experiments.config.init.batch_effects <- function(train_dataset, test_dataset=NU
 
 experiments.config.init.sample_bias <- function(train_dataset, test_dataset=NULL, exp_config){
   exp_config <- experiments.config.init.base(exp_config)
+  exp_config$cluster_results <- list()
   exp_config
 }
 
@@ -402,6 +405,13 @@ experiments.config.update.sample_bias <- function(train_dataset, test_dataset=NU
   extra_args <- list(...)
   exp_config$train_ind <- extra_args$train_ind
   exp_config$test_ind <- extra_args$test_ind
+  if(!purrr::is_null(exp_config$cluster_results[[test_dataset]])){
+    exp_config$clustered <- T
+    print(str_glue("clustered results for {test_dataset} already generated"))
+  }else{
+    print(str_glue("clustered results for {test_dataset} not generated"))
+    exp_config$clustered <- F
+  }
   exp_config
 }
 

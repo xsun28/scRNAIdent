@@ -62,7 +62,7 @@ experiments.base.data_constructor <- function(experiment, exp_config){
     train_data <- constructor.data_constructor(all_train_data, config=exp_config,experiment=experiment,if_train = TRUE, sample_seed)
   }else{
     print("train sample is not fixed")
-    train_data <- constructor.data_constructor(all_train_data, config=exp_config,experiment=experiment,if_train = TRUE)
+    train_data <- constructor.data_constructor(all_train_data, config=exp_config,experiment=experiment,if_train = TRUE, sample_seed = exp_config$sample_seed)
   }
   # colData(train_data)$unique_id <- 1:dim(colData(train_data))[[1]]
   colData(train_data)$barcode <- colnames(train_data)
@@ -91,8 +91,7 @@ experiments.base.data_constructor <- function(experiment, exp_config){
       print(str_glue('train_dataset != test_dataset'))
       test_data <- utils.load_datasets(experiments.assign.data$test_dataset[[experiment]]) 
     }
-    test_data <- constructor.data_constructor(test_data, config=exp_config,
-                                              experiment = experiment,if_train = FALSE)
+    test_data <- constructor.data_constructor(test_data, config=exp_config, experiment = experiment,if_train = FALSE,sample_seed = exp_config$sample_seed)
   }
   # colData(test_data)$unique_id <- (dim(colData(train_data))[[1]]+1):(dim(colData(train_data))[[1]]+dim(colData(test_data))[[1]])
   colData(test_data)$barcode <- colnames(test_data)
@@ -458,6 +457,8 @@ experiments.sample_bias <- function(experiment){
   # datasets_perm2 <- gtools::permutations(n=length(experiments.data[[experiment]]),r=2,v=unlist(experiments.data[[experiment]]),repeats.allowed = F)
   experiments.config.check_config(base_exp_config)
   used_dataset <- if(base_exp_config$use_intra_dataset) base_exp_config$intra_dataset else base_exp_config$inter_dataset
+  init_exp_config <- experiments.config.init(experiment, train_dataset, test_dataset,base_exp_config)
+  exp_config <- init_exp_config
   for(j in seq_along(used_dataset)){
     if(base_exp_config$use_intra_dataset){
       train_dataset <- used_dataset[[j]]
@@ -469,10 +470,16 @@ experiments.sample_bias <- function(experiment){
       test_ind <- used_dataset[[j]]$inds$test_ind
     }
     experiments.config.update.train_test_datasets(experiment, train_dataset, test_dataset)
-    init_exp_config <- experiments.config.init(experiment, train_dataset, test_dataset,base_exp_config)
     
-    exp_config <-  experiments.config.update(experiment, train_dataset, test_dataset,init_exp_config,train_ind=train_ind,test_ind=test_ind)
+    exp_config <-  experiments.config.update(experiment, train_dataset, test_dataset,exp_config,train_ind=train_ind,test_ind=test_ind)
     base_results <- experiments.base(experiment,exp_config)
+    if(exp_config$fixed_test){
+      if(!purrr::is_null(base_results$cluster_results)){
+        exp_config$cluster_results[[test_dataset]] <- base_results$cluster_results
+      }else{
+        base_results$cluster_results <- exp_config$cluster_results[[test_dataset]]
+      }
+    }
     report_results <- do.call(experiments.analysis,base_results)
     results <- report_results$analy_results
     raw_results <- report_results$pred_results
