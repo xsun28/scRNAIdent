@@ -9,6 +9,7 @@ run_assign_methods <- function(method,train_data, test_data,exp_config){
          garnett = assign.garnett(train_data,test_data,exp_config),
          singlecellnet = assign.singlecellnet(train_data,test_data, exp_config),
          singleR = assign.singleR(train_data,test_data, exp_config),
+         seurat_mapping = assign.seurat(train_data,test_data, exp_config),
          stop("No such assigning method")
   )
   
@@ -18,15 +19,46 @@ run_cluster_methods <- function(method,data,exp_config){
   switch(method,
          sc3 = cluster.sc3(data,exp_config),
          liger = cluster.liger(data,exp_config),
-         seurat = cluster.seurat(data,exp_config),
+         seurat_clustering = cluster.seurat(data,exp_config),
          cidr = cluster.cidr(data,exp_config),
          tscan = cluster.tscan(data,exp_config),
          cidr = cluster.cidr(data,exp_config),
          monocle3 = cluster.monocle3(data,exp_config),
          pcaReduce = cluster.pcaReduce(data,exp_config),
+         raceID3 = cluster.raceID3(data,exp_config),
          stop("No such cluster method")
   )
 }
+
+######assigning using suerat
+assign.seurat <- function(train_data, test_data, exp_config) {
+  require(Seurat)
+  stopifnot(is(train_data,"SingleCellExperiment"))
+  stopifnot(is(test_data,"SingleCellExperiment"))
+  train_cnts <- counts(train_data)
+  test_cnts <- counts(test_data)
+  m_config <- if(purrr::is_null(exp_config$batch_free) || !exp_config$batch_free || !exists("methods.config.seurat.batch_free")) methods.config.seurat else methods.config.seurat.batch_free
+  ## PCA dimention redcution
+  
+  seuset <- CreateSeuratObject(train_cnts, project='supervised')
+  
+  seuset <- NormalizeData(object = seuset)
+  seuset <- FindVariableFeatures(object = seuset,nfeatures = m_config[['nfeatures']])
+  seuset <- ScaleData(object = seuset)
+  seuset <- RunPCA(object = seuset)
+  seuset$celltype <- train_data$label
+  seuset1 <- CreateSeuratObject(test_cnts, project='supervised')
+  seuset1 <- NormalizeData(seuset1, verbose = FALSE)
+  seuset1 <- FindVariableFeatures(seuset1, selection.method = "vst", nfeatures =  m_config[['nfeatures']],
+                                             verbose = FALSE)
+  anchors <- FindTransferAnchors(reference = seuset, query = seuset1, dims = 1:30, reference.reduction = "pca")
+  predictions <- TransferData(anchorset = anchors, refdata = seuset$celltype,
+                              dims = 1:30)
+  query <- AddMetaData(seuset1, metadata = predictions)
+  
+  unname(query$predicted.id)
+}
+
 
 
 ####assigning using scmap cluster
@@ -420,7 +452,7 @@ cluster.seurat <- function(data,exp_config) {
   cnts <- counts(data)
   m_config <- if(purrr::is_null(exp_config$batch_free) || !exp_config$batch_free || !exists("methods.config.seurat.batch_free")) methods.config.seurat else methods.config.seurat.batch_free
   ## PCA dimention redcution
-  seuset <- CreateSeuratObject(cnts, project='simple_accuracy')
+  seuset <- CreateSeuratObject(cnts, project='unsupervised')
   seuset <- NormalizeData(object = seuset)
   seuset <- FindVariableFeatures(object = seuset,nfeatures = m_config[['nfeatures']])
   seuset <- ScaleData(object = seuset)
@@ -636,13 +668,14 @@ cluster.monocle3 <- function(data,exp_config) {
   require(monocle3)
   m_config <- if(purrr::is_null(exp_config$batch_free) || !exp_config$batch_free || !exists("methods.config.monocle3.batch_free")) methods.config.monocle3 else methods.config.monocle3.batch_free
   num_dim <- if(purrr::is_null(m_config$num_dim)) 100 else m_config$num_dim
+  resolution <- if(purrr::is_null(m_config$resolution)) 1e-5 else m_config$resolution
   cds <- new_cell_data_set(as.matrix(counts(data)),
                            cell_metadata = colData(data),
                            gene_metadata = rowData(data))
   
   cds <- preprocess_cds(cds, num_dim = num_dim)
   cds <- reduce_dimension(cds,reduction_method = 'UMAP')
-  cds <- cluster_cells(cds, resolution=1e-5)
+  cds <- cluster_cells(cds, resolution=resolution)
   as.integer(monocle3::clusters(cds))
 
 }
@@ -660,3 +693,40 @@ cluster.pcaReduce <- function(data,exp_config) {
   Output_S[[1]][,K]
 }
 
+
+cluster.raceID3 <- function(data, exp_config){
+  stopifnot(is(data,"SingleCellExperiment"))
+  require(RaceID)
+  m_config <- if(purrr::is_null(exp_config$batch_free) || !exp_config$batch_free || !exists("methods.config.raceID3.batch_free")) methods.config.raceID3 else methods.config.raceID3.batch_free
+  mintotal <- if(purrr::is_null(m_config$mintotal)) 1000 else m_config$mintotal
+  sc <- SCseq(as.matrix(counts(data)))
+  sc <- filterdata(sc,mintotal=mintotal)
+  sc <- compdist(sc,metric="pearson")
+  
+  ret <- tryCatch(clustexp(sc), error=function(c) {
+    msg <- conditionMessage(c)
+    print(str_glue("error occured in raceID3: {msg}"))
+    error(logger, str_glue("error occured in raceID3 {msg}"))
+    structure(msg, class = "try-error")
+  })
+  
+  i = 0
+  while(inherits(ret,"try-error")){
+    if(i > 10||mintotal <= 0) return(NULL)
+    i = i+1
+    print(str_glue("in raceID3:{ret}"))
+    mintotal = mintotal/2
+    print(str_glue("new mintotal: {mintotal}"))
+    sc <- SCseq(as.matrix(counts(data)))
+    sc <- filterdata(sc,mintotal=mintotal)
+    sc <- compdist(sc,metric="pearson")
+    ret <- tryCatch(clustexp(sc), error=function(c) {
+      msg <- conditionMessage(c)
+      print(str_glue("error occured in raceID3: {msg}"))
+      error(logger, str_glue("error occured in raceID3 {msg}"))
+      structure(msg, class = "try-error")
+    })
+  }
+  sc <- findoutliers(ret)
+  as.integer(sc@cpart)
+}

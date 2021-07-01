@@ -274,6 +274,7 @@ utils.batch_effects.combat_seq <- function(batches){
 
 ####append one singlecellexperiment onto another
 utils.append_sce <- function(sce1,sce2){
+  require(scater)
   common_cols <- intersect(colnames(colData(sce1)),colnames(colData(sce2)))
   colDatas <- rbind(colData(sce1)[common_cols],colData(sce2)[common_cols])
   metaDatas <- bind_rows(metadata(sce1),metadata(sce2))

@@ -887,7 +887,8 @@ plot.sankey_plot <- function(raw_results,plot_params,fig_path,fig_name){
     path = fig_path,
     width = 3.5*n_methods,
     height = 3.5*n_methods,
-    units = "in"
+    units = "in",
+    limitsize = FALSE
   )
 }
 
@@ -909,7 +910,7 @@ plot.line_plot <- function(results,params,fig_path,fig_name){
     plot_str <- str_glue("{plot_str}+
       facet_wrap(~{params$facet_var},scales='free')"
     )
-  }else if(params$facet_grid){
+  }else if(!is_null(params$facet_grid)&&params$facet_grid){
     plot_str <- str_glue("{plot_str} + 
                           facet_grid({params$facet_grid_x} ~ {params$facet_grid_y},labeller = label_both,scales='free')"
     )

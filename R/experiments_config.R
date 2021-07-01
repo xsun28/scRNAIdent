@@ -1,4 +1,4 @@
-experiment <- "sample_bias"
+experiment <- "imbalance_impacts"
 
 
 experiments.assign.data <- list(
@@ -17,7 +17,7 @@ experiments.assign.data <- list(
   )
   
 ##for batch effects removed, scmap and singlecellnet doesn't work
-experiments.methods.base_config <- list(cluster=c('seurat','tscan','sc3','liger','cidr','monocle3','pcaReduce'),assign=c("cellassign",'scmap_cluster','scmap_cell','chetah','singlecellnet','garnett','singleR'))
+experiments.methods.base_config <- list(cluster=c('raceID3','seurat_clustering','tscan','sc3','liger','cidr','monocle3','pcaReduce'),assign=c("seurat_mapping","cellassign",'scmap_cluster','scmap_cell','chetah','singlecellnet','garnett','singleR'))
 experiments.methods <- list(
   simple_accuracy=experiments.methods.base_config, 
   cell_number=experiments.methods.base_config,
