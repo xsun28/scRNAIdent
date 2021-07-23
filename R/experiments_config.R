@@ -1,4 +1,4 @@
-experiment <- "imbalance_impacts"
+experiment <- "sample_bias"
 
 
 experiments.assign.data <- list(
@@ -37,30 +37,33 @@ experiments.methods <- list(
 
 ##########
 experiments.parameters <- list(
-  simple_accuracy=list(cv=TRUE, cv_fold=5,metrics=c('ARI','AMI','FMI'),batch_free=F,
+  simple_accuracy=list(cv=TRUE, cv_fold=5,metrics=c('ARI','AMI','FMI','v_measure'),batch_free=F,
                        marker_gene_file=NULL,use_intra_dataset=T,intra_dataset=dataset.datasets,
                        use_inter_dataset=F,inter_dataset=NULL,target_train_num=1200, target_test_num=NULL),
   
-  cell_number=list( cv=F,cv_fold=NULL, metrics=c('ARI','AMI','FMI'), batch_free=F,fixed_train=F,fixed_test=T,
+  cell_number=list( cv=F,cv_fold=NULL, metrics=c('ARI','AMI','FMI','v_measure'), batch_free=F,fixed_train=T,fixed_test=F,
                    marker_gene_file=NULL,trained=F,target_train_num=1200, target_test_num=800,
                    train_sample_start=200, test_sample_start=100,train_sample_increment=400,test_sample_increment=250,
                    test_num=4, use_intra_dataset=F,intra_dataset=list(),
-                   use_inter_dataset=T,inter_dataset=list(dataset.interdatasets$PBMC1,dataset.interdatasets$PBMC2,
-                                                          dataset.interdatasets$PBMC3,dataset.interdatasets$PBMC5,
-                                                          dataset.interdatasets$PBMC6,dataset.interdatasets$PBMC8,
-                                                          dataset.interdatasets$pancreas1,dataset.interdatasets$pancreas2,
-                                                          dataset.interdatasets$pancreas5,dataset.interdatasets$ADASD2
+                   use_inter_dataset=T,inter_dataset=list(dataset.interdatasets$PBMC9,dataset.interdatasets$PBMC24,
+                                                          dataset.interdatasets$PBMC17,dataset.interdatasets$PBMC21,
+                                                          dataset.interdatasets$PBMC13,dataset.interdatasets$PBMC29,
+                                                          dataset.interdatasets$PBMC5,dataset.interdatasets$PBMC1,
+                                                          dataset.interdatasets$pancreas2,dataset.interdatasets$pancreas3,
+                                                          dataset.interdatasets$pancreas6,dataset.interdatasets$ADASD2
                                                           )),
 
   
-  sequencing_depth=list(cv=F,cv_fold=5,metrics=c('ARI','AMI','FMI'),fixed_train=F,fixed_test=T,
+  sequencing_depth=list(cv=F,cv_fold=5,metrics=c('ARI','AMI','FMI','v_measure'),fixed_train=T,fixed_test=F,
                         marker_gene_file=NULL,batch_free=F,target_train_num=1200, target_test_num=800,test_num=5,
                         use_intra_dataset=F,intra_dataset=list(),
-                        use_inter_dataset=T,inter_dataset=list(dataset.interdatasets$PBMC1,dataset.interdatasets$PBMC2,
-                                                               dataset.interdatasets$PBMC3,dataset.interdatasets$PBMC5,
-                                                               dataset.interdatasets$PBMC6,dataset.interdatasets$PBMC8,
-                                                               dataset.interdatasets$pancreas1,dataset.interdatasets$pancreas2,
-                                                               dataset.interdatasets$pancreas5,dataset.interdatasets$ADASD2)),
+                        use_inter_dataset=T,inter_dataset=list(dataset.interdatasets$PBMC9,dataset.interdatasets$PBMC24,
+                                                               dataset.interdatasets$PBMC17,dataset.interdatasets$PBMC21,
+                                                               dataset.interdatasets$PBMC13,dataset.interdatasets$PBMC29,
+                                                               dataset.interdatasets$PBMC5,dataset.interdatasets$PBMC1,
+                                                               dataset.interdatasets$pancreas2,dataset.interdatasets$pancreas3,
+                                                               dataset.interdatasets$pancreas6,dataset.interdatasets$ADASD2
+                                                               )),
   
   # celltype_structure=list(train_sample_pctg=experiments.parameters.celltype_structure[[experiments.assign.data$train_dataset$celltype_structure]]$train_sample_pctg,
   #                         train_sample_num=experiments.parameters.celltype_structure[[experiments.assign.data$train_dataset$celltype_structure]]$train_sample_num,
@@ -69,23 +72,21 @@ experiments.parameters <- list(
   #                         cv=TRUE,cv_fold=5,metrics=c('wNMI','wRI'),batch_free=F,
   #                         structure_file="PBMC_celltypes.csv",marker_gene_file=NULL),
   
-  batch_effects=list(cv=FALSE,remove_batch=TRUE,metrics=c('ARI','AMI','FMI'),target_train_num=1200, target_test_num=800,
+  batch_effects=list(cv=FALSE,remove_batch=TRUE,metrics=c('ARI','AMI','FMI','v_measure'),target_train_num=1200, target_test_num=800,
                      marker_gene_file=NULL,fixed_train=T,fixed_test=T,batch_correct_method="combat_seq",use_intra_dataset=F,intra_dataset=list(),
-                     use_inter_dataset=T,inter_dataset=list(dataset.interdatasets$PBMC2,dataset.interdatasets$PBMC4,
-                                                            dataset.interdatasets$pancreas1,dataset.interdatasets$pancreas2,
-                                                            dataset.interdatasets$pancreas3,dataset.interdatasets$pancreas4,
-                                                            dataset.interdatasets$pancreas5,dataset.interdatasets$pancreas6)),
+                     use_inter_dataset=T,inter_dataset=list(dataset.interdatasets$PBMC9,dataset.interdatasets$PBMC24,
+                                                            dataset.interdatasets$PBMC17, dataset.interdatasets$PBMC1,
+                                                            dataset.interdatasets$pancreas2,dataset.interdatasets$pancreas3,
+                                                            dataset.interdatasets$pancreas6,dataset.interdatasets$ADASD2)),
   
-  imbalance_impacts = list(batch_free=F,target_train_num=1200, target_test_num=1000,fixed_train=T,fixed_test=F,
+  imbalance_impacts = list(batch_free=F,target_train_num=1200, target_test_num=1000,fixed_train=F,fixed_test=T,
                            all_type_pctgs = list(   "3"=list( list(0.33,0.33,0.34),
                                                             list(0.6,0.35,0.05),
-                                                            list(0.7,0.29,0.01),
                                                             list(0.9,0.095,0.005)
                                                             ),
                                                     "4"=list( list(0.25,0.25,0.25,0.25),
                                                             list(0.4,0.3,0.2,0.1),
                                                             list(0.6,0.2,0.15,0.05),
-                                                            list(0.8,0.12,0.07,0.01),
                                                             list(0.9,0.08,0.015,0.005)
                                                             ),
                                                     "5"=list( list(0.2,0.2,0.2,0.2,0.2),
@@ -95,16 +96,18 @@ experiments.parameters <- list(
                                                             list(0.9,0.04,0.03,0.025,0.005)
                                                             )
                                              ),
-                            cv=FALSE,metrics=c('ARI','AMI','FMI'),marker_gene_file=NULL,use_intra_dataset=F,intra_dataset=list(),
-                            use_inter_dataset=T,inter_dataset=list(dataset.interdatasets$PBMC1,dataset.interdatasets$PBMC2,
-                                                                   dataset.interdatasets$PBMC3,dataset.interdatasets$PBMC5,
-                                                                   dataset.interdatasets$PBMC6,dataset.interdatasets$PBMC8,
-                                                                   dataset.interdatasets$pancreas1,dataset.interdatasets$pancreas2,
-                                                                   dataset.interdatasets$pancreas5,dataset.interdatasets$ADASD2)
+                            cv=FALSE,metrics=c('ARI','AMI','FMI','v_measure'),marker_gene_file=NULL,use_intra_dataset=F,intra_dataset=list(),
+                            use_inter_dataset=T,inter_dataset=list(dataset.interdatasets$PBMC9,dataset.interdatasets$PBMC24,
+                                                                   dataset.interdatasets$PBMC17,dataset.interdatasets$PBMC21,
+                                                                   dataset.interdatasets$PBMC13,dataset.interdatasets$PBMC29,
+                                                                   dataset.interdatasets$PBMC5,dataset.interdatasets$PBMC1,
+                                                                   dataset.interdatasets$pancreas2,dataset.interdatasets$pancreas3,
+                                                                   dataset.interdatasets$pancreas6,dataset.interdatasets$ADASD2
+                                                                   )
                            ),
   
   sample_bias = list(batch_free=F,target_train_num=1200, target_test_num=1000, fixed_train=F,fixed_test=T,sample_seed = 10,
-                        cv=FALSE,metrics=c('ARI','AMI','FMI'),marker_gene_file=NULL,use_intra_dataset=F,intra_dataset=list(),
+                        cv=FALSE,metrics=c('ARI','AMI','FMI','v_measure'),marker_gene_file=NULL,use_intra_dataset=F,intra_dataset=list(),
                         use_inter_dataset=T,inter_dataset=list(list(datasets=dataset.interdatasets$PBMC34,inds=list(train_ind=1015,test_ind=1488)),
                                                                list(datasets=dataset.interdatasets$PBMC35,inds=list(train_ind=1015,test_ind=1488)),
                                                                list(datasets=dataset.interdatasets$PBMC5,inds=list(train_ind=1488,test_ind=1488)),
@@ -116,10 +119,11 @@ experiments.parameters <- list(
   
   celltype_number=list( cv=F,cv_fold=NULL, metrics=c('ARI','AMI','FMI',"BCubed"), batch_free=F,fixed_train=T,fixed_test=F,
                         marker_gene_file=NULL,trained=F,target_train_num=1200,target_test_num=1000,test_num=3, use_intra_dataset=F,intra_dataset=list(),
-                        use_inter_dataset=T,inter_dataset=list(dataset.interdatasets$PBMC1,dataset.interdatasets$PBMC2,
-                                                               dataset.interdatasets$PBMC3,dataset.interdatasets$PBMC4,
-                                                               dataset.interdatasets$PBMC7,dataset.interdatasets$PBMC10,
-                                                               dataset.interdatasets$pancreas3,dataset.interdatasets$pancreas4)
+                        use_inter_dataset=T,inter_dataset=list(dataset.interdatasets$PBMC9,dataset.interdatasets$PBMC24,
+                                                               dataset.interdatasets$PBMC17,dataset.interdatasets$PBMC21,
+                                                               dataset.interdatasets$PBMC13,dataset.interdatasets$PBMC29,
+                                                               dataset.interdatasets$pancreas2,dataset.interdatasets$pancreas3,
+                                                               dataset.interdatasets$pancreas6)
                         
                         ),
   
@@ -127,11 +131,13 @@ experiments.parameters <- list(
   unknown_types=list(cv=F,cv_fold=NULL, metrics=c('ARI','AMI','FMI'), batch_free=F,fixed_train=T,fixed_test=F,
                            marker_gene_file=NULL,trained=F,target_train_num=1200, target_test_num=800,
                            test_num=4, use_intra_dataset=F,intra_dataset=list(),
-                           use_inter_dataset=T,inter_dataset=list(dataset.interdatasets$PBMC1,dataset.interdatasets$PBMC2,
-                                                                  dataset.interdatasets$PBMC3,dataset.interdatasets$PBMC4,
-                                                                  dataset.interdatasets$PBMC7,dataset.interdatasets$PBMC10,
-                                                                  dataset.interdatasets$pancreas1,dataset.interdatasets$pancreas5,
-                                                                  dataset.interdatasets$pancreas3,dataset.interdatasets$ADASD2)
+                           use_inter_dataset=T,inter_dataset=list(dataset.interdatasets$PBMC9,dataset.interdatasets$PBMC24,
+                                                                  dataset.interdatasets$PBMC17,dataset.interdatasets$PBMC21,
+                                                                  dataset.interdatasets$PBMC13,dataset.interdatasets$PBMC29,
+                                                                  dataset.interdatasets$PBMC5,dataset.interdatasets$PBMC1,
+                                                                  dataset.interdatasets$pancreas2,dataset.interdatasets$pancreas3,
+                                                                  dataset.interdatasets$pancreas6,dataset.interdatasets$ADASD2
+                                                                  )
                            ),
   celltype_complexity = list(),
   inter_species = list(),

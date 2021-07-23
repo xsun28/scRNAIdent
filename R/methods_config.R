@@ -4,10 +4,10 @@ methods.config.tscan <- list(cvcutoff=0.01,k=3:20,minexpr_value=1,minexpr_percen
 methods.config.sc3 <- list(nfeatures=500,k=8,gene_filter = T)
 methods.config.sc3.batch_free <- list(nfeatures=500,k=8,gene_filter = FALSE)
 methods.config.cellassign <- list(learning_rate=1e-2,shrinkage=TRUE,marker_gene_method='seurat')
-methods.config.liger <- list(suggestK=F,k.suggest=20,lambda=NULL,resolution=NULL,thresh=NULL)
+methods.config.liger <- list(suggestK=F,k.suggest=20,lambda=NULL,resolution=1.0,thresh=NULL)
 methods.config.singlecellnet <- list(cross_species=FALSE,common_gene_file=NULL,ncells=50,nRand=70,nTrees=1000,nTopGenes=10,nTopGenePairs=25)
 methods.config.singleR <- list()
-methods.config.cidr <- list(K=8,min2=8)
+methods.config.cidr <- list(K=8,n=20,min2=8) ##n is the maximum cluster number used to search the true number of cluster
 methods.config.monocle3 <- list(num_dim=100, resolution=1e-5)
 methods.config.pcaReduce <- list(K=10)
 methods.config.raceID3 <- list(mintotal=1)

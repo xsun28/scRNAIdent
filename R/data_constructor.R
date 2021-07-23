@@ -25,7 +25,7 @@ constructor.data_constructor <- function(data,config,experiment,if_train=TRUE,sa
 }
 
 constructor.base <- function(data,config,if_train,sample_seed=NULL){
-  counts(data) <- as.matrix(counts(data))
+  #counts(data) <- as.matrix(counts(data))
   if(if_train){
     data <- utils.filter(data,kept_cell_types=config$train_kept_types)
     train_sample_pctg <- if(purrr::is_null(config$train_sample_pctg)) utils.calculate_sampling_pctg(data, config$target_train_num,config, if_train) else config$train_sample_pctg
@@ -43,6 +43,8 @@ constructor.base <- function(data,config,if_train,sample_seed=NULL){
     data <- utils.sampler(data,  sample_pctg = test_sample_pctg, types=types, sample_seed=sample_seed)
   }
   data <- data[!duplicated(rownames(data)),!duplicated(colnames(data))]
+  counts(data) <- as.matrix(counts(data))
+  return(data)
 }
 
 constructor.simple_accuracy <- function(data,config, if_train,sample_seed=NULL){

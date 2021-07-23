@@ -523,16 +523,23 @@ cluster.sc3 <- function(data,exp_config) {
   counts(data) <- as.matrix(counts(data))
   data <- logNormCounts(data)
   m_config <- if(purrr::is_null(exp_config$batch_free) || !exp_config$batch_free || !exists("methods.config.sc3.batch_free")) methods.config.sc3 else methods.config.sc3.batch_free
-  k <- m_config$k
   gene_filter <- m_config$gene_filter
   print(str_glue("gene filter for sc3 is {gene_filter}"))
   rowData(data)$feature_symbol <- rownames(data)
   data <- data[!duplicated(rowData(data)$feature_symbol),]
   data <- sc3_prepare(data,gene_filter = gene_filter)
-  if(purrr::is_null(k)){
-    data <- sc3_estimate_k(data)## estimate number of clusters
-    k <- metadata(sce)$sc3$k_estimation
+  ret <- tryCatch(sc3_estimate_k(data), error=function(c) {
+    msg <- conditionMessage(c)
+    print(str_glue("error occured {msg}"))
+    error(logger, str_glue("error occured in sc3 {msg}"))
+    structure(msg, class = "try-error")
+    })
+  if(!inherits(ret,"try-error")){
+    k <- metadata(ret)$sc3$k_estimation
+  }else{
+    k <- m_config$k
   }
+  
   data <- sc3_calc_dists(data)
   data <- sc3_calc_transfs(data)
   data <- sc3_kmeans(data, ks = k)
@@ -555,7 +562,17 @@ cluster.liger <- function(data,exp_config){
   liger_data <- scaleNotCenter(liger_data)
   if(m_config$suggestK==TRUE){
     print("suggesting K")
-    k.suggest <- suggestK(liger_data, num.cores = 5, gen.new = T, plot.log2 = F,nrep = 5)
+    ret <- tryCatch(suggestK(liger_data, num.cores = 5, gen.new = T, plot.log2 = F,nrep = 5), error=function(c) {
+      msg <- conditionMessage(c)
+      print(str_glue("error occured {msg}"))
+      error(logger, str_glue("error occured in liger {msg}"))
+      structure(msg, class = "try-error")
+    })
+    if(!inherits(ret,"try-error")){
+      k.suggest <- ret
+    }else{
+      k.suggest <- if(purrr::is_null(m_config$k.suggest))  25 else m_config$k.suggest
+    }
   }else{
     k.suggest <- if(purrr::is_null(m_config$k.suggest))  25 else m_config$k.suggest
   }
@@ -627,8 +644,9 @@ cluster.cidr <- function(data,exp_config) {
   sData <- scPCA(sData, plotPC=FALSE)
   sData <- nPC(sData)
   K <- m_config$K
+  n <- m_config$n
   if(purrr::is_null(K))
-    ret <- tryCatch(scCluster(sData), error=function(c) {
+    ret <- tryCatch(scCluster(sData, n=n), error=function(c) {
       msg <- conditionMessage(c)
       print(str_glue("error occured in cidr: {msg}"))
       error(logger, str_glue("error occured in cidr {msg}"))
@@ -702,7 +720,13 @@ cluster.raceID3 <- function(data, exp_config){
   sc <- SCseq(as.matrix(counts(data)))
   sc <- filterdata(sc,mintotal=mintotal)
   sc <- compdist(sc,metric="pearson")
-  
+  dist_m <- sc@distances
+  for(i in seq_along(dist_m)){
+    if(is.na(dist_m[i])||is.null(dist_m[i])){
+      dist_m[i] = 0
+    }
+  }
+  sc@distances <- dist_m
   ret <- tryCatch(clustexp(sc), error=function(c) {
     msg <- conditionMessage(c)
     print(str_glue("error occured in raceID3: {msg}"))

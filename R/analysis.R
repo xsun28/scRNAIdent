@@ -10,7 +10,8 @@ analysis.run <- function(results,methods,metrics,...){
                                  wRI="analysis.cluster.wRI",
                                  unlabeled_pctg="analysis.assign.unlabeled_pctg",
                                  cluster_num="analysis.cluster_num",
-                                 pred_type_max_pctg="analysis.max_type_pctg")
+                                 pred_type_max_pctg="analysis.max_type_pctg",
+                                 v_measure="analysis.cluster.v_measure")
   analysis_results <- as.data.frame(matrix(nrow = length(methods), ncol = length(metrics)))
   rownames(analysis_results) <- methods
   colnames(analysis_results) <- metrics
@@ -98,7 +99,12 @@ analysis.KL <- function(p,q){
   KL <- sum(unlist(p)*log(unlist(p))-unlist(p)*log(unlist(q)))
   return(KL)
 }
-
+########
+analysis.cluster.v_measure <- function(true,pred,beta=1,...){
+  require(FDRSeg)
+  v <- v_measure(as.numeric(as.factor(true)),as.numeric(as.factor(pred),beta = beta))
+  return(v)
+}
 ########
 analysis.cluster.bcubed <- function(true,pred,beta=1,...){
   extra_args <- list(...)
