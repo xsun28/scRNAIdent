@@ -1,4 +1,4 @@
-experiment <- "sample_bias"
+experiment <- "batch_effects"
 
 
 experiments.assign.data <- list(
@@ -73,7 +73,7 @@ experiments.parameters <- list(
   #                         structure_file="PBMC_celltypes.csv",marker_gene_file=NULL),
   
   batch_effects=list(cv=FALSE,remove_batch=TRUE,metrics=c('ARI','AMI','FMI','v_measure'),target_train_num=1200, target_test_num=800,
-                     marker_gene_file=NULL,fixed_train=T,fixed_test=T,batch_correct_method="combat_seq",use_intra_dataset=F,intra_dataset=list(),
+                     marker_gene_file=NULL,fixed_train=T,fixed_test=T,batch_correct_method="MNN",use_intra_dataset=F,intra_dataset=list(),
                      use_inter_dataset=T,inter_dataset=list(dataset.interdatasets$PBMC9,dataset.interdatasets$PBMC24,
                                                             dataset.interdatasets$PBMC17, dataset.interdatasets$PBMC1,
                                                             dataset.interdatasets$pancreas2,dataset.interdatasets$pancreas3,
@@ -117,7 +117,7 @@ experiments.parameters <- list(
                                                                )
                      ),
   
-  celltype_number=list( cv=F,cv_fold=NULL, metrics=c('ARI','AMI','FMI',"BCubed"), batch_free=F,fixed_train=T,fixed_test=F,
+  celltype_number=list( cv=F,cv_fold=NULL, metrics=c('ARI','AMI','FMI',"BCubed"), batch_free=F,fixed_train=F,fixed_test=T,
                         marker_gene_file=NULL,trained=F,target_train_num=1200,target_test_num=1000,test_num=3, use_intra_dataset=F,intra_dataset=list(),
                         use_inter_dataset=T,inter_dataset=list(dataset.interdatasets$PBMC9,dataset.interdatasets$PBMC24,
                                                                dataset.interdatasets$PBMC17,dataset.interdatasets$PBMC21,
