@@ -494,9 +494,13 @@ plot.unknown_types <- function(results,raw_results,fig_path,exp_config,...){
   
   
   ##########
-  unknown_type_results <- dplyr::select(single_method_results,c(type_accuracy,method,max_spearman,spearman_sprd,unknown_celltype,supervised)) %>%
-    gather("metric","value",-c(method,max_spearman,spearman_sprd,unknown_celltype,supervised)) %>% 
-    dplyr::mutate(type_accuracy=ifelse(purrr::is_null(type_accuracy)|is.na(type_accuracy),0,type_accuracy))
+  unknown_type_results <- dplyr::select(single_method_results,c(type_accuracy,type_fscore,type_bcubed_fbeta,method,max_spearman,spearman_sprd,unknown_celltype,supervised)) %>%
+    dplyr::mutate(type_accuracy=ifelse(purrr::is_null(type_accuracy)|is.na(type_accuracy),0,type_accuracy),
+                  type_fscore=ifelse(purrr::is_null(type_fscore)|is.na(type_fscore),0,type_fscore),
+                  type_bcubed_fbeta=ifelse(purrr::is_null(type_bcubed_fbeta)|is.na(type_bcubed_fbeta),0,type_bcubed_fbeta)
+                  ) %>%
+    gather("metric","value",-c(method,max_spearman,spearman_sprd,unknown_celltype,supervised)) 
+   
   
   plot_params <- list(x="method",y="value",fill="supervised",label="label",xlabel="method",
                       facet_wrap=T,dodged=T,facet_var='sim',width=10,height=7,nrow=length(unique(unknown_type_results$sim)))
@@ -505,8 +509,8 @@ plot.unknown_types <- function(results,raw_results,fig_path,exp_config,...){
   unknown_type_results$sim <- purrr::pmap_chr(dplyr::select(unknown_type_results,unknown_celltype,max_spearman,spearman_sprd),function(unknown_celltype,max_spearman,spearman_sprd){
                                                    str_glue("{unknown_celltype}|max_spearman={round(max_spearman,3)}|spearman_sprd={round(spearman_sprd,3)}")[[1]]
                                                   })
-  plot_params$ylabel <- "type_accuracy"
-  plot.bar_plot(unknown_type_results[unknown_type_results$metric=="type_accuracy",],plot_params,fig_path,"unknown_type_accuracy.pdf")
+  plot_params$ylabel <- "type_fscore"
+  plot.bar_plot(unknown_type_results[unknown_type_results$metric=="type_fscore",],plot_params,fig_path,"unknown_type_score.pdf")
 }
 
 

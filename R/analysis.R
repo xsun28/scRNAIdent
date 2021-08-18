@@ -40,8 +40,12 @@ analysis.assign.accuracy <- function(true,pred,macro=T){
     return(sum(accuracies$accuracy*accuracies$n)/length(true))
   }
 }
-
-
+####precision
+analysis.cluster.precision <- function(true,pred,true_label,cluster_num){
+  cluster_labels <- true[pred==cluster_num]
+  precision <- sum(cluster_labels==true_label)/length(cluster_labels)  ##precision of the cluster for the true label type
+  return(precision)
+}
 #######f-beta score
 analysis.cluster.fbeta <- function(true,pred,beta=1,true_label,cluster_num){
   cluster_labels <- true[pred==cluster_num]
@@ -124,6 +128,28 @@ analysis.cluster.bcubed <- function(true,pred,beta=1,...){
   }
   avg_recall <- total_recall/length(true)
   avg_precision <- total_precision/length(true)
+  fbeta_BCubed <- (beta ** 2 + 1) * avg_precision * avg_recall / (beta ** 2 * avg_precision + avg_recall)
+  fbeta_BCubed
+}
+
+
+########
+analysis.cluster.bcubed_single_type <- function(true,pred,beta=1,...){
+  extra_args <- list(...)
+  type <- extra_args$type
+  unique_cluster <- unique(pred)
+  total_recall <- 0
+  total_precision <- 0
+  type_num <- sum(true==type)
+  for(c in unique_cluster){
+    cluster_num <- sum(pred==c)
+    cluster_precision <- sum(true[which(pred==c)] == type)**2/cluster_num
+    cluster_recall <- sum(true[which(pred==c)] == type)**2/type_num
+    total_recall <- total_recall + cluster_recall
+    total_precision <- total_precision + cluster_precision
+  }
+  avg_recall <- total_recall/type_num
+  avg_precision <- total_precision/type_num
   fbeta_BCubed <- (beta ** 2 + 1) * avg_precision * avg_recall / (beta ** 2 * avg_precision + avg_recall)
   fbeta_BCubed
 }

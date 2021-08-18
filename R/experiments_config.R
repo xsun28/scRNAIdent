@@ -1,4 +1,4 @@
-experiment <- "batch_effects"
+experiment <- "unknown_types"
 
 
 experiments.assign.data <- list(
@@ -128,7 +128,7 @@ experiments.parameters <- list(
                         ),
   
 
-  unknown_types=list(cv=F,cv_fold=NULL, metrics=c('ARI','AMI','FMI'), batch_free=F,fixed_train=T,fixed_test=F,
+  unknown_types=list(cv=F,cv_fold=NULL, metrics=c('ARI','AMI','FMI'), batch_free=F,fixed_train=F,fixed_test=T,
                            marker_gene_file=NULL,trained=F,target_train_num=1200, target_test_num=800,
                            test_num=4, use_intra_dataset=F,intra_dataset=list(),
                            use_inter_dataset=T,inter_dataset=list(dataset.interdatasets$PBMC9,dataset.interdatasets$PBMC24,
@@ -289,7 +289,7 @@ experiments.config.init.unknown_types <-function(train_dataset, test_dataset=NUL
   train_type <- train_test_types$train_type
   test_type <- train_test_types$test_type
   exp_config$common_type <- intersect(train_type,test_type)
-  if(exp_config$fixed_train){
+  if(exp_config$fixed_test){
     exp_config$test_num <- min(length(exp_config$common_type),exp_config$test_num)
     exp_config$test_type <- exp_config$common_type
   }
@@ -458,8 +458,8 @@ experiments.config.update.celltype_number <- function(train_dataset, test_datase
 
 experiments.config.update.unknown_types <-function(train_dataset, test_dataset=NULL, exp_config){
   
-  if(exp_config$fixed_train){
-    exp_config$trained <- if(exp_config$current_increment_index==1) F else T
+  if(exp_config$fixed_test){
+    exp_config$clustered <- if(exp_config$current_increment_index==1) F else T
     test_dataset_name <- dataset.name.map1[[test_dataset]]
     exp_config$unknown_type <- exp_config$common_type[[exp_config$current_increment_index]]
     exp_config$train_type <- exp_config$common_type[-exp_config$current_increment_index]
