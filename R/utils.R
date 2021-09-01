@@ -30,7 +30,7 @@ utils.combine_SCEdatasets <- function(sces,if_combined=TRUE,colDatas_cols=NULL){
     if(if_combined){
       if(purrr::is_null(colDatas_cols)){
         colDatas_cols <- if('batch' %in% colnames(colData(sces[[1]]))) c('batch','label') else 'label'
-        }
+      }
       colDatas <- purrr::reduce((purrr::map(sces,~colData(.)[,colDatas_cols])),rbind)
      
       metaDatas <- purrr::reduce((purrr::map(sces,~metadata(.))),bind_rows)
@@ -55,6 +55,7 @@ utils.convert_to_SingleCellExperiment <- function(data_matrix,genes,cellIds,cold
   require(tidyverse)
   colnames(data_matrix) <- cellIds
   rownames(data_matrix) <- genes
+  coldata$unique_id <- 1:nrow(coldata)
   sce <- SingleCellExperiment(list(counts=data_matrix),colData=coldata,metadata=meta)
   sce <- addPerCellQC(sce)
   sce <- sce[,which(!quickPerCellQC(sce)$discard)]
@@ -118,8 +119,7 @@ utils.seqDepthSelector <- function(data, low_quantile,high_quantile){
 }
 
 ###label unassigned cells in the tibble results
-utils.label_unassigned <- function(test_results,assign=T){
-  cell_types <- unique(test_results$label)
+utils.label_unassigned <- function(cell_types,test_results,assign=T){
   for(col in colnames(test_results)){
     if(col=="label") next
     if(sum(purrr::map_lgl(test_results[[col]],is.na)) == length(test_results[[col]])) next

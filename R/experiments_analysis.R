@@ -20,7 +20,7 @@ experiments.analysis <- function(experiment, assign_results,cluster_results,exp_
 
 
 ###base function 
-experiments.analysis.base <- function(assign_results,cluster_results,exp_config){
+experiments.analysis.base <- function(assign_results,cluster_results,exp_config,cell_types){
   print("start analyzing assigned/unassigned assigning/clustering methods")
   if(missing(exp_config)){
     stop("missing exp_config in base analysis function")
@@ -28,7 +28,7 @@ experiments.analysis.base <- function(assign_results,cluster_results,exp_config)
   
   cluster_methods <- colnames(cluster_results)[colnames(cluster_results)!="label"]
   assign_methods <- colnames(assign_results)[colnames(assign_results)!="label"]
-  unlabeled_pctg_results <- analysis.run(assign_results,assign_methods,c("unlabeled_pctg"))
+  unlabeled_pctg_results <- analysis.run(assign_results,assign_methods,c("unlabeled_pctg"),cell_types=cell_types)
   supervised_cluster_num <- analysis.run(assign_results,assign_methods,c("cluster_num"))
   supervised_pred_type_max_pctg <- analysis.run(assign_results,assign_methods,c("pred_type_max_pctg"))
   assign_analysis_results <- analysis.run(assign_results,assign_methods,exp_config$metrics,types=unique(assign_results$label)) %>%
@@ -81,14 +81,20 @@ experiments.analysis.base <- function(assign_results,cluster_results,exp_config)
 }
 
 experiments.analysis.simple_accuracy <- function(assign_results,cluster_results,exp_config,...){
-  report_results <- experiments.analysis.base(assign_results,cluster_results,exp_config)
+  extra_args <- list(...)
+  test_cell_types <- unique(extra_args$test_dataset$label)
+  train_cell_types <- unique(extra_args$train_dataset$label)
+  report_results <- experiments.analysis.base(assign_results,cluster_results,exp_config,train_cell_types)
   combined_results <- bind_cols(assign_results,dplyr::select(cluster_results,-label))
   experiments.analysis.attach_dataset_props("simple_accuracy", exp_config,report_results=report_results,
                                             combined_results=combined_results,...)
 }
 
 experiments.analysis.cell_number <- function(assign_results,cluster_results,exp_config,...){
-  report_results <- experiments.analysis.base(assign_results,cluster_results,exp_config)
+  extra_args <- list(...)
+  test_cell_types <- unique(extra_args$test_dataset$label)
+  train_cell_types <- unique(extra_args$train_dataset$label)
+  report_results <- experiments.analysis.base(assign_results,cluster_results,exp_config,train_cell_types)
   combined_results <- bind_cols(assign_results,dplyr::select(cluster_results,-label))
   experiments.analysis.attach_dataset_props("cell_number", exp_config,report_results=report_results,
                                             combined_results=combined_results,...)
@@ -97,11 +103,13 @@ experiments.analysis.cell_number <- function(assign_results,cluster_results,exp_
 
 experiments.analysis.celltype_number <- function(assign_results,cluster_results,exp_config,...){
   extra_args <- list(...)
-  report_results <- experiments.analysis.base(assign_results,cluster_results,exp_config)
-  combined_results <- bind_cols(assign_results,dplyr::select(cluster_results,-label))
   test_cell_types <- unique(extra_args$test_dataset$label)
   train_cell_types <- unique(extra_args$train_dataset$label)
   cell_types <- if(exp_config$fixed_train) test_cell_types else train_cell_types
+  
+  report_results <- experiments.analysis.base(assign_results,cluster_results,exp_config,test_cell_types)###use test cell types to calculate extra type percentage
+  combined_results <- bind_cols(assign_results,dplyr::select(cluster_results,-label))
+
   methods <- colnames(combined_results)[colnames(combined_results)!="label"]
   supervised_methods <- colnames(assign_results)[colnames(assign_results)!="label"]
   unsupervised_methods <- colnames(cluster_results)[colnames(cluster_results)!="label"]
@@ -133,7 +141,7 @@ experiments.analysis.celltype_number <- function(assign_results,cluster_results,
       supervised <- F
     }else if(method %in% supervised_methods){
       type_unassigned_pctg <- purrr::map_dbl(test_cell_types, function(type){ type_pred_true <- dplyr::select(combined_results,method,label) %>% dplyr::filter(label==type)
-      analysis.assign.unlabeled_pctg(type_pred_true$label,type_pred_true[[method]])
+      analysis.assign.unlabeled_pctg(type_pred_true$label,type_pred_true[[method]])##calculate extra type percentage
       })
       type_accuracy <- purrr::map_dbl(test_cell_types, function(type){ type_pred_true <- dplyr::select(combined_results,method,label) %>% dplyr::filter(label==type)
       analysis.assign.accuracy(type_pred_true$label,type_pred_true[[method]])
@@ -167,21 +175,30 @@ experiments.analysis.celltype_number <- function(assign_results,cluster_results,
 
 
 experiments.analysis.sequencing_depth <- function(assign_results,cluster_results,exp_config,...){
-  report_results <- experiments.analysis.base(assign_results,cluster_results,exp_config)
+  extra_args <- list(...)
+  test_cell_types <- unique(extra_args$test_dataset$label)
+  train_cell_types <- unique(extra_args$train_dataset$label)
+  report_results <- experiments.analysis.base(assign_results,cluster_results,exp_config,train_cell_types)
   combined_results <- bind_cols(assign_results,dplyr::select(cluster_results,-label))
   experiments.analysis.attach_dataset_props("sequencing_depth", exp_config,report_results=report_results,
                                             combined_results=combined_results,...)
 }
 
 experiments.analysis.batch_effects <- function(assign_results,cluster_results,exp_config,...){
-  report_results <- experiments.analysis.base(assign_results,cluster_results,exp_config)
+  extra_args <- list(...)
+  test_cell_types <- unique(extra_args$test_dataset$label)
+  train_cell_types <- unique(extra_args$train_dataset$label)
+  report_results <- experiments.analysis.base(assign_results,cluster_results,exp_config,train_cell_types)
   combined_results <- bind_cols(assign_results,dplyr::select(cluster_results,-label))
   experiments.analysis.attach_dataset_props("batch_effects", exp_config,report_results=report_results,
                                             combined_results=combined_results,...)
 }
 
 experiments.analysis.sample_bias <- function(assign_results,cluster_results,exp_config,...){
-  report_results <- experiments.analysis.base(assign_results,cluster_results,exp_config)
+  extra_args <- list(...)
+  test_cell_types <- unique(extra_args$test_dataset$label)
+  train_cell_types <- unique(extra_args$train_dataset$label)
+  report_results <- experiments.analysis.base(assign_results,cluster_results,exp_config,train_cell_types)
   combined_results <- bind_cols(assign_results,dplyr::select(cluster_results,-label))
   experiments.analysis.attach_dataset_props("sample_bias", exp_config,report_results=report_results,
                                             combined_results=combined_results,...)
@@ -192,9 +209,10 @@ experiments.analysis.imbalance_impacts <- function(assign_results,cluster_result
   extra_args <- list(...)
   train_dataset <- extra_args$train_dataset
   test_dataset <- extra_args$test_dataset
-  
-  report_results <- experiments.analysis.base(assign_results,cluster_results,exp_config)
+  train_cell_types <- unique(extra_args$train_dataset$label)
+  report_results <- experiments.analysis.base(assign_results,cluster_results,exp_config,train_cell_types)
   combined_results <- bind_cols(assign_results,dplyr::select(cluster_results,-label))
+
   train_type_pctg <- dplyr::group_by(as.data.frame(colData(train_dataset)), label) %>% dplyr::summarize(type_pctg=round(n()/length(colnames(train_dataset)),3))
   test_type_pctg <- dplyr::group_by(as.data.frame(colData(test_dataset)), label) %>% dplyr::summarize(type_pctg=round(n()/length(colnames(test_dataset)),3))
   cell_types <- if(exp_config$fixed_train) test_type_pctg$label else train_type_pctg$label
@@ -228,7 +246,7 @@ experiments.analysis.imbalance_impacts <- function(assign_results,cluster_result
       supervised <- F
     }else if(method %in% supervised_methods){
       type_unassigned_pctg <- purrr::map_dbl(cell_types, function(type){ type_pred_true <- dplyr::select(combined_results,method,label) %>% dplyr::filter(label==type)
-      analysis.assign.unlabeled_pctg(type_pred_true$label,type_pred_true[[method]])
+      analysis.assign.unlabeled_pctg(train_cell_types,type_pred_true[[method]])
       })
       type_accuracy <- purrr::map_dbl(cell_types, function(type){ type_pred_true <- dplyr::select(combined_results,method,label) %>% dplyr::filter(label==type)
       analysis.assign.accuracy(type_pred_true$label,type_pred_true[[method]])
@@ -264,8 +282,10 @@ experiments.analysis.imbalance_impacts <- function(assign_results,cluster_result
 
 experiments.analysis.unknown_types <- function(assign_results,cluster_results,exp_config,...){
   require(tidyverse)
-  
-  report_results <- experiments.analysis.base(assign_results,cluster_results,exp_config)
+  extra_args <- list(...)
+  test_cell_types <- unique(extra_args$test_dataset$label)
+  train_cell_types <- unique(extra_args$train_dataset$label)
+  report_results <- experiments.analysis.base(assign_results,cluster_results,exp_config,train_cell_types)
   combined_results <- bind_cols(assign_results,dplyr::select(cluster_results,-label))
   unknown_type <- exp_config$unknown_type
   methods <- colnames(combined_results)[colnames(combined_results)!="label"]

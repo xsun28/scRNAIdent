@@ -1,4 +1,4 @@
-experiment <- "unknown_types"
+experiment <- "imbalance_impacts"
 
 
 experiments.assign.data <- list(
@@ -79,7 +79,7 @@ experiments.parameters <- list(
                                                             dataset.interdatasets$pancreas2,dataset.interdatasets$pancreas3,
                                                             dataset.interdatasets$pancreas6,dataset.interdatasets$ADASD2)),
   
-  imbalance_impacts = list(batch_free=F,target_train_num=1200, target_test_num=1000,fixed_train=F,fixed_test=T,
+  imbalance_impacts = list(batch_free=F,target_train_num=1200, target_test_num=1000,fixed_train=T,fixed_test=F,
                            all_type_pctgs = list(   "3"=list( list(0.33,0.33,0.34),
                                                             list(0.6,0.35,0.05),
                                                             list(0.9,0.095,0.005)
@@ -96,7 +96,7 @@ experiments.parameters <- list(
                                                             list(0.9,0.04,0.03,0.025,0.005)
                                                             )
                                              ),
-                            cv=FALSE,metrics=c('ARI','AMI','FMI','v_measure'),marker_gene_file=NULL,use_intra_dataset=F,intra_dataset=list(),
+                            cv=FALSE,metrics=c('ARI','AMI','FMI','v_measure',"BCubed"),marker_gene_file=NULL,use_intra_dataset=F,intra_dataset=list(),
                             use_inter_dataset=T,inter_dataset=list(dataset.interdatasets$PBMC9,dataset.interdatasets$PBMC24,
                                                                    dataset.interdatasets$PBMC17,dataset.interdatasets$PBMC21,
                                                                    dataset.interdatasets$PBMC13,dataset.interdatasets$PBMC29,
@@ -117,7 +117,7 @@ experiments.parameters <- list(
                                                                )
                      ),
   
-  celltype_number=list( cv=F,cv_fold=NULL, metrics=c('ARI','AMI','FMI',"BCubed"), batch_free=F,fixed_train=F,fixed_test=T,
+  celltype_number=list( cv=F,cv_fold=NULL, metrics=c('ARI','AMI','FMI',"BCubed"), batch_free=F,fixed_train=T,fixed_test=F,fixed_total_cell_num=F,max_total_cell_num=1500,
                         marker_gene_file=NULL,trained=F,target_train_num=1200,target_test_num=1000,test_num=3, use_intra_dataset=F,intra_dataset=list(),
                         use_inter_dataset=T,inter_dataset=list(dataset.interdatasets$PBMC9,dataset.interdatasets$PBMC24,
                                                                dataset.interdatasets$PBMC17,dataset.interdatasets$PBMC21,
@@ -128,7 +128,7 @@ experiments.parameters <- list(
                         ),
   
 
-  unknown_types=list(cv=F,cv_fold=NULL, metrics=c('ARI','AMI','FMI'), batch_free=F,fixed_train=F,fixed_test=T,
+  unknown_types=list(cv=F,cv_fold=NULL, metrics=c('ARI','AMI','FMI',"BCubed"), batch_free=F,fixed_train=T,fixed_test=T,
                            marker_gene_file=NULL,trained=F,target_train_num=1200, target_test_num=800,
                            test_num=4, use_intra_dataset=F,intra_dataset=list(),
                            use_inter_dataset=T,inter_dataset=list(dataset.interdatasets$PBMC9,dataset.interdatasets$PBMC24,
@@ -289,6 +289,7 @@ experiments.config.init.unknown_types <-function(train_dataset, test_dataset=NUL
   train_type <- train_test_types$train_type
   test_type <- train_test_types$test_type
   exp_config$common_type <- intersect(train_type,test_type)
+  exp_config$train_type <- exp_config$common_type
   if(exp_config$fixed_test){
     exp_config$test_num <- min(length(exp_config$common_type),exp_config$test_num)
     exp_config$test_type <- exp_config$common_type
@@ -312,6 +313,10 @@ experiments.config.init.celltype_number <- function(train_dataset, test_dataset=
   
   if(exp_config$fixed_train){
     test_dataset_name <- dataset.name.map1[[test_dataset]]
+    if(!exp_config$fixed_total_cell_num){
+      exp_config$test_sample_pctg <- exp_config$max_total_cell_num/dataset.properties[[test_dataset_name]]$total_num
+    }
+    
     if(purrr::is_null(exp_config$increment)){
       exp_config$increment <- floor(length(exp_config$common_type)/exp_config$test_num)
       while(exp_config$increment==0){  
@@ -328,6 +333,9 @@ experiments.config.init.celltype_number <- function(train_dataset, test_dataset=
     exp_config$test_number <- ceiling(min(max(length(exp_config$common_type)*0.4,3),length(exp_config$common_type)))
     exp_config$test_type <- exp_config$common_type[1:exp_config$test_number]
     train_dataset_name <- dataset.name.map1[[train_dataset]]
+    if(!exp_config$fixed_total_cell_num){
+      exp_config$train_sample_pctg <- exp_config$max_total_cell_num/dataset.properties[[train_dataset_name]]$total_num
+    }
     if(purrr::is_null(exp_config$increment)){
       exp_config$increment <- floor((length(exp_config$train_type)-exp_config$test_number)/(exp_config$test_num-1))
       while(exp_config$increment==0){  
@@ -462,7 +470,7 @@ experiments.config.update.unknown_types <-function(train_dataset, test_dataset=N
     exp_config$clustered <- if(exp_config$current_increment_index==1) F else T
     test_dataset_name <- dataset.name.map1[[test_dataset]]
     exp_config$unknown_type <- exp_config$common_type[[exp_config$current_increment_index]]
-    exp_config$train_type <- exp_config$common_type[-exp_config$current_increment_index]
+    # exp_config$train_type <- exp_config$common_type[-exp_config$current_increment_index]
     print("test dataset={test_dataset_name}")
   }
   exp_config

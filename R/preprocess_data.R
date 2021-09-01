@@ -73,6 +73,7 @@ preprocess_PBMC <- function(dataset){
     rowData(sce)$count <- nexprs(sce,byrow=TRUE)
     rowData(sce)$geneName <- rownames(sce)
     rowData(sce)$EnsembleId <- utils.convert2EnsemblIDs(rownames(sce))
+    colData(sce)$unique_id <- 1:ncol(sce)
     new_dataset_path <- utils.get_dataset_paths(data_home,str_glue(preprocesss.datasets[[dataset]][[2]]))
     write_rds(sce,new_dataset_path)
   }
@@ -94,6 +95,7 @@ preprocess_PBMC <- function(dataset){
   metadata(sces) <- list(study='PBMC', study_name="GSE96583_8_Stim_Pats")
   rowData(sces)$geneName <- rownames(sces)
   rowData(sces)$EnsembleId <- utils.convert2EnsemblIDs(rownames(sces))
+  colData(sces)$unique_id <- 1:ncol(sces)
   new_dataset_path <- utils.get_dataset_paths(data_home,preprocesss.datasets[[dataset]][[3]])
   write_rds(sces,new_dataset_path)
   
@@ -113,6 +115,7 @@ preprocess_PBMC <- function(dataset){
   metadata(sces) <- list(study='PBMC', study_name="GSE96583_8_Ctrl_Pats")
   rowData(sces)$geneName <- rownames(sces)
   rowData(sces)$EnsembleId <- utils.convert2EnsemblIDs(rownames(sces))
+  colData(sces)$unique_id <- 1:ncol(sces)
   new_dataset_path <- utils.get_dataset_paths(data_home,preprocesss.datasets[[dataset]][[4]])
   write_rds(sces,new_dataset_path)
 }
@@ -196,13 +199,14 @@ preprocess_midbrain <- function(dataset){
   new_mouse_sces <- new_mouse_sces[,which(!quickPerCellQC(new_mouse_sces)$discard)]
   rowData(new_mouse_sces) <- converted_genes
   rowData(new_mouse_sces)$count <- nexprs(new_mouse_sces,byrow=TRUE)
+  colData(new_mouse_sces)$unique_id <- 1:ncol(new_mouse_sces)
   
   sces[[2]] <- sces[[2]][,which(!quickPerCellQC(sces[[2]])$discard)]
   rowData(sces[[2]])$human_gene <- rowData(sces[[2]])$genes
   rowData(sces[[2]])$EnsembleId <- utils.convert2EnsemblIDs(rowData(sces[[2]])$human_gene)
   rowData(sces[[2]])$geneName <- rowData(sces[[2]])$human_gene
   rowData(sces[[2]])$count <- nexprs(sces[[2]],byrow=TRUE)
-  
+  colData(sces[[2]])$unique_id <- 1:ncol(sces[[2]])
 
   new_dataset_path <- utils.get_dataset_paths(data_home,preprocesss.datasets[[dataset]])
   metadata(new_mouse_sces) <- list(study="midbrain",study_name="midbrain_mouse")
@@ -225,6 +229,7 @@ preprocess_cellbench <- function(dataset){
     sce <- eval(as.name(dataset_names[[i]]))
     colData(sce)$sampleId <- rownames(colData(sce))
     colData(sce)$label <- colData(sce)$cell_line_demuxlet
+    colData(sce)$unique_id <- 1:ncol(sce)
     sce <- addPerCellQC(sce)
     sce <- sce[,which(!quickPerCellQC(sce)$discard)]
     counts(sce) <- as(counts(sce),'sparseMatrix')

@@ -65,7 +65,7 @@ experiments.base.data_constructor <- function(experiment, exp_config){
     train_data <- constructor.data_constructor(all_train_data, config=exp_config,experiment=experiment,if_train = TRUE, sample_seed = exp_config$sample_seed)
   }
   # colData(train_data)$unique_id <- 1:dim(colData(train_data))[[1]]
-  colData(train_data)$barcode <- colnames(train_data)
+  if(purrr::is_null(colData(train_data)$barcode)) colData(train_data)$barcode <- colnames(train_data)
   colnames(train_data) <- 1:length(colnames(train_data))
   
   ####construct test data
@@ -94,7 +94,7 @@ experiments.base.data_constructor <- function(experiment, exp_config){
     test_data <- constructor.data_constructor(test_data, config=exp_config, experiment = experiment,if_train = FALSE,sample_seed = exp_config$sample_seed)
   }
   # colData(test_data)$unique_id <- (dim(colData(train_data))[[1]]+1):(dim(colData(train_data))[[1]]+dim(colData(test_data))[[1]])
-  colData(test_data)$barcode <- colnames(test_data)
+  if(purrr::is_null(colData(test_data)$barcode)) colData(test_data)$barcode <- colnames(test_data)
   colnames(test_data) <- (dim(colData(train_data))[[1]]+1):(dim(colData(train_data))[[1]]+dim(colData(test_data))[[1]])    
   intersected_gene_train_test <- utils.intersect_on_genes(train_data,test_data)
   train_data <- intersected_gene_train_test$data1
@@ -156,12 +156,13 @@ experiments.base <- function(experiment, exp_config){
   }
   ####assign methods
   assign_results <- experiments.base.assign(experiment,train_dataset, test_dataset, exp_config)
-  assign_results <- utils.label_unassigned(assign_results,T)
+  train_cell_types <- unique(colData(train_dataset)$label)
+  assign_results <- utils.label_unassigned(train_cell_types,assign_results,T)
   ####cluster methods
   if(purrr::is_null(exp_config$fixed_test)||(!exp_config$fixed_test)||(!exp_config$clustered)){
     cluster_results <- if(experiment %in% c("batch_effects")) experiments.base.cluster(experiment,exp_config,total_dataset) else experiments.base.cluster(experiment,exp_config,test_dataset)
     if(experiment %in% c("batch_effects")) cluster_results <- cluster_results[test_samples,]
-    cluster_results <- utils.label_unassigned(cluster_results,F)
+    cluster_results <- utils.label_unassigned(NULL,cluster_results,F)
   }else{
     print("test dataset is fixed and cluster results already generated")
     cluster_results <- NULL
@@ -586,11 +587,14 @@ experiments.celltype_number <- function(experiment){
       print(str_glue('cell type num={val}'))
       base_results <- experiments.base(experiment,exp_config)
       if(exp_config$fixed_test){
+        exp_config$train_data <- base_results$train_dataset
         if(!purrr::is_null(base_results$cluster_results)){
           clustered_results <- base_results$cluster_results
         }else{
           base_results$cluster_results <- clustered_results
         }
+      }else if(exp_config$fixed_train){
+        exp_config$test_data <- base_results$test_dataset
       }
       report_results <- do.call(experiments.analysis,base_results)
       results <- report_results$analy_results%>% 
@@ -615,7 +619,7 @@ experiments.celltype_number <- function(experiment){
     
     final_results <- bind_rows(collapsed_combined_assign_results,collapsed_combined_cluster_results)
     output.sink(experiment,collapsed_combined_raw_results,final_results,exp_config,single_method_results=collapsed_combined_single_method_results)
-    plot.plot(experiment,final_results,collapsed_combined_raw_results, exp_config,single_method_results=collapsed_combined_single_method_results)
+    plot.plot(experiment,final_results,collapsed_combined_raw_results,exp_config,single_method_results=collapsed_combined_single_method_results)
     
     utils.clean_marker_files()
     final_results

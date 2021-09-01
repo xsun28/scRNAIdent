@@ -226,8 +226,8 @@ assign.garnett <- function(train_data,test_data,exp_config){
         stop("unkown train species")
       }
     }
-    num_unknown <- if(purrr::is_null(m_config[[study_name]]$num_unkown)) 50 else m_config[[study_name]]$num_unknown
-    min_observations <- if(purrr::is_null(m_config[[study_name]]$num_unknown)) 8 else m_config[[study_name]]$num_unknown
+    num_unknown <- if(purrr::is_null(m_config[[study_name]]$num_unkown)) 100 else m_config[[study_name]]$num_unknown
+    min_observations <- if(purrr::is_null(m_config[[study_name]]$min_observations)) 8 else m_config[[study_name]]$min_observations
     if(!(experiment %in% c("cell_number","sequencing_depth") && exp_config$trained)){
       cds_train <- assign.garnett.process_data(train_data, gene_name_type)
       classifier <- train_cell_classifier(cds = cds_train,

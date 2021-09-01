@@ -24,10 +24,10 @@ constructor.data_constructor <- function(data,config,experiment,if_train=TRUE,sa
   )
 }
 
-constructor.base <- function(data,config,if_train,sample_seed=NULL){
+constructor.base <- function(data,config,if_train,sample_seed=NULL,filter_gene=T){
   #counts(data) <- as.matrix(counts(data))
   if(if_train){
-    data <- utils.filter(data,kept_cell_types=config$train_kept_types)
+    data <- utils.filter(data,filter_gene=filter_gene,kept_cell_types=config$train_kept_types)
     train_sample_pctg <- if(purrr::is_null(config$train_sample_pctg)) utils.calculate_sampling_pctg(data, config$target_train_num,config, if_train) else config$train_sample_pctg
     print(str_glue("start sampling train data: {train_sample_pctg} percentage per cell type"))
     if(!purrr::is_null(sample_seed)) print(str_glue("sample_seed is {sample_seed}"))
@@ -96,8 +96,29 @@ constructor.imbalance_impacts <- function(data,config,if_train,sample_seed=NULL)
 }
 
 constructor.celltype_number <- function(data,config,if_train,sample_seed=NULL){
-  data <- if(if_train) data[,colData(data)$label %in% config$train_type] else data[,colData(data)$label %in% config$test_type]
-  constructor.base(data,config,if_train,sample_seed)
+
+  if((config$current_increment_index > 1) & config$fixed_test & if_train){
+    prev_data <- config$train_data 
+    incremented_cell_types <- setdiff(config$train_type,unique(colData(prev_data)$label))
+    incremented_data <- constructor.base(data[,colData(data)$label %in% incremented_cell_types],config,if_train,sample_seed)
+    colData(incremented_data)$barcode <- colnames(incremented_data)
+    prev_data1 <- data[rownames(incremented_data),which(sapply(data$unique_id,function(x){x %in% prev_data$unique_id}))]
+    colData(prev_data1)$barcode <- colnames(prev_data1)
+    constructed_data <- SingleCellExperiment::cbind(prev_data1, incremented_data)
+  }else if((config$current_increment_index > 1) & config$fixed_train & (!if_train)){
+    prev_data <- config$test_data 
+    incremented_cell_types <- setdiff(config$test_type,unique(colData(prev_data)$label))
+    incremented_data <- constructor.base(data[,colData(data)$label %in% incremented_cell_types],config,if_train,sample_seed)
+    colData(incremented_data)$barcode <- colnames(incremented_data)
+    prev_data1 <- data[rownames(incremented_data),which(sapply(data$unique_id,function(x){x %in% prev_data$unique_id}))]
+    colData(prev_data1)$barcode <- colnames(prev_data1)
+    constructed_data <- SingleCellExperiment::cbind(prev_data1, incremented_data)
+  }
+  else{
+    cell_types <- if(if_train) config$train_type else config$test_type
+    constructed_data <- constructor.base(data[,colData(data)$label %in% cell_types],config,if_train,sample_seed)
+  }
+  constructed_data
 }
 
 
@@ -179,8 +200,12 @@ constructor.sample_bias <- function(data,config,if_train,sample_seed=NULL){
 }
 
 constructor.unknown_types <- function(data,config,if_train,sample_seed=NULL){
-  data <- if(if_train) data[,colData(data)$label %in% config$train_type] else data[,colData(data)$label %in% config$test_type]
-  constructor.base(data,config,if_train,sample_seed)
+  #data <- if(if_train) data[,colData(data)$label %in% config$train_type] else data[,colData(data)$label %in% config$test_type]
+  constructed_data <- constructor.base(data,config,if_train,sample_seed)
+  if(if_train){
+    constructed_data[,-(colData(data)$label %in% config$unknown_type)] ####ensure the kept cell types are same in every round
+  }
+  constructed_data
 }
 
 
