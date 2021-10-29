@@ -20,6 +20,7 @@ constructor.data_constructor <- function(data,config,experiment,if_train=TRUE,sa
     inter_protocol = constructor.inter_protocol(data,config,if_train,sample_seed),
     imbalance_impacts = constructor.imbalance_impacts(data,config,if_train,sample_seed),
     unknown_types = constructor.unknown_types(data,config,if_train,sample_seed),
+    scalability = constructor.scalability(data,config,if_train,sample_seed),
     stop("Can't constructor dataset for unkown experiments")
   )
 }
@@ -48,6 +49,10 @@ constructor.base <- function(data,config,if_train,sample_seed=NULL,filter_gene=T
 }
 
 constructor.simple_accuracy <- function(data,config, if_train,sample_seed=NULL){
+  constructor.base(data,config,if_train,sample_seed)
+}
+
+constructor.scalability <- function(data, config, if_train, sample_seed=NULL){
   constructor.base(data,config,if_train,sample_seed)
 }
 

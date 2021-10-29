@@ -23,7 +23,7 @@ library(R.methodsS3)
 logger <- utils.get_logger("DEBUG",log_file)
 ##Wrapper
 runExperiments <- function(experiment=c("simple_accuracy","cell_number","celltype_number","sequencing_depth","celltype_structure",
-                                        "batch_effects","sample_bias","celltype_complexity","inter_species",
+                                        "batch_effects","sample_bias","scalability","celltype_complexity","inter_species",
                                         "random_noise","inter_protocol")){
   switch(experiment,
          simple_accuracy = experiments.simple_accuracy(experiment),
@@ -39,6 +39,7 @@ runExperiments <- function(experiment=c("simple_accuracy","cell_number","celltyp
          inter_protocol = experiments.inter_protocol(experiment),
          imbalance_impacts = experiments.imbalance_impacts(experiment),
          unknown_types = experiments.unknown_types(experiment),
+         scalability = experiments.scalability(experiment),
          stop("Unkown experiments")
          )
 }
@@ -155,19 +156,34 @@ experiments.base <- function(experiment, exp_config){
     test_dataset <- train_dataset
   }
   ####assign methods
-  assign_results <- experiments.base.assign(experiment,train_dataset, test_dataset, exp_config)
-  train_cell_types <- unique(colData(train_dataset)$label)
-  assign_results <- utils.label_unassigned(train_cell_types,assign_results,T)
-  ####cluster methods
-  if(purrr::is_null(exp_config$fixed_test)||(!exp_config$fixed_test)||(!exp_config$clustered)){
-    cluster_results <- if(experiment %in% c("batch_effects")) experiments.base.cluster(experiment,exp_config,total_dataset) else experiments.base.cluster(experiment,exp_config,test_dataset)
-    if(experiment %in% c("batch_effects")) cluster_results <- cluster_results[test_samples,]
-    cluster_results <- utils.label_unassigned(NULL,cluster_results,F)
+  if(!is_null(experiments.methods[[experiment]]$assign)){
+    assign_results_run_times <- experiments.base.assign(experiment,train_dataset, test_dataset, exp_config)
+    assign_times <- assign_results_run_times[[2]]
+    assign_results <- assign_results_run_times[[1]]
+    train_cell_types <- unique(colData(train_dataset)$label)
+    assign_results <- utils.label_unassigned(train_cell_types,assign_results,T)
   }else{
-    print("test dataset is fixed and cluster results already generated")
-    cluster_results <- NULL
+    assign_times <- NULL
+    assign_results <- NULL
   }
-  return(list(experiment=experiment,assign_results=assign_results,cluster_results=cluster_results,exp_config=exp_config,train_dataset=train_dataset,test_dataset=test_dataset,total_dataset=total_dataset))
+  ####cluster methods
+  if(!is_null(experiments.methods[[experiment]]$cluster)){
+    if(purrr::is_null(exp_config$fixed_test)||(!exp_config$fixed_test)||(!exp_config$clustered)){
+      cluster_results_run_times <- if(experiment %in% c("batch_effects")) experiments.base.cluster(experiment,exp_config,total_dataset) else experiments.base.cluster(experiment,exp_config,test_dataset)
+      cluster_times <- cluster_results_run_times[[2]]
+      cluster_results <- cluster_results_run_times[[1]]
+      if(experiment %in% c("batch_effects")) cluster_results <- cluster_results[test_samples,]
+      cluster_results <- utils.label_unassigned(NULL,cluster_results,F)
+    }else{
+      print("test dataset is fixed and cluster results already generated")
+      cluster_results <- NULL
+      cluster_times <- NULL
+    }
+  }else{
+    cluster_results <- NULL
+    cluster_times <- NULL
+  }
+  return(list(experiment=experiment,assign_results=assign_results,assign_times=assign_times,cluster_results=cluster_results,cluster_times=cluster_times,exp_config=exp_config,train_dataset=train_dataset,test_dataset=test_dataset,total_dataset=total_dataset))
 }
 
 ###simple accuracy experiment
@@ -695,7 +711,49 @@ experiments.unknown_types <- function(experiment){
 }
 
 
-
+###########
+experiments.scalability <- function(experiment) {
+  base_exp_config <- experiments.parameters[[experiment]]
+  experiments.config.check_config(base_exp_config)
+  used_dataset <- if(base_exp_config$use_intra_dataset) base_exp_config$intra_dataset else base_exp_config$inter_dataset
+  train_dataset <- used_dataset[[1]]
+  test_dataset <- used_dataset[[1]]
+  experiments.config.update.train_test_datasets(experiment, train_dataset, test_dataset)
+  init_exp_config <- experiments.config.init(experiment, train_dataset, test_dataset,base_exp_config)
+  test_num <- init_exp_config$test_num
+  all_cluster_times <- vector('list')
+  all_assign_times <- vector('list')
+  all_data <- utils.load_datasets(experiments.assign.data$train_dataset[[experiment]])
+  
+  for(i in 1:test_num){
+    exp_config <- init_exp_config
+    exp_config$current_increment_index <- i-1
+    exp_config <- experiments.config.update(experiment, train_dataset, test_dataset,exp_config)
+    val <- if(exp_config$fixed_train) exp_config$target_test_num else exp_config$target_train_num
+    print(str_glue('target sample num={val}'))
+    train_data <- constructor.data_constructor(all_data,config=exp_config,experiment = experiment,if_train = TRUE)
+    colData(train_data)$barcode <- colnames(train_data)
+    colnames(train_data) <- 1:length(colnames(train_data))
+    assign_results_run_times <- experiments.base.assign(experiment,train_data, train_data, exp_config)
+    assign_times <- assign_results_run_times[[2]]
+    assign_times$sample_num <- val
+    assign_times$dataset <- dataset.name.map1[[train_dataset]]
+    all_assign_times <- append(all_assign_times,list(assign_times))
+    
+    cluster_results_run_times <-  experiments.base.cluster(experiment,exp_config,train_data)
+    cluster_times <- cluster_results_run_times[[2]]
+    cluster_times$sample_num <- val
+    cluster_times$dataset <- dataset.name.map1[[train_dataset]]
+    all_cluster_times <- append(all_cluster_times,list(cluster_times))
+    
+  }
+  all_assign_times <- dplyr::bind_rows(all_assign_times)
+  all_assign_times$supervised <- T
+  all_cluster_times <- dplyr::bind_rows(all_cluster_times)
+  all_cluster_times$supervised <- F
+  all_times <- dplyr::bind_rows(all_assign_times,all_cluster_times)
+  output.sink(experiment,NULL,all_times,exp_config)
+}
 
 
 ############
@@ -717,19 +775,24 @@ experiments.run_assign <- function(methods, train_data, test_data=NULL, exp_conf
   if_cv <- exp_config$cv
   if(if_cv){
     print('start cross validation')
-    results <- experiments.run_cv(methods,train_data,exp_config)
+    cv_results <- experiments.run_cv(methods,train_data,exp_config)
+    results <- cv_results[[1]]
+    run_times <- cv_results[[2]]
   }else{
     results <- data.frame(matrix(nrow=dim(colData(test_data))[[1]],ncol=length(methods)))
     colnames(results) <- methods
     results <- mutate(results,label=as.character(colData(test_data)$label))
     # rownames(results) <- colData(test_data)$unique_id
     rownames(results) <- colnames(test_data)
+    run_times <- vector("list")
     for(m in methods){
       print(str_glue('start assign method {m}'))
+      start_time <- Sys.time()
       m_result <- utils.try_catch_method_error(run_assign_methods(m,train_data,test_data,exp_config))
       if(inherits(m_result,"try-error")){
         print(str_glue("error occurs in {m}:{m_result}"))
         error(logger, str_glue("error occurs in train={experiments.assign.data$train_dataset[[experiment]]}, test={experiments.assign.data$test_dataset[[experiment]]},{m}:{m_result}"))
+        run_times <- append(run_times,list(list(method=m,time=-1)))
         # results <- dplyr::select(results,-m)
       }else{
         print(str_glue("{m} finished correctly"))
@@ -737,10 +800,14 @@ experiments.run_assign <- function(methods, train_data, test_data=NULL, exp_conf
           m_result <- as.character(m_result)
         }
         results[[m]] <- m_result
+        run_time <- round(as.double(difftime(Sys.time(), start_time, u = 'secs')))
+        info(logger, str_glue("{experiment} run time for method={m},sample_size={ncol(train_data)}:{run_time} sec"))
+        run_times <- append(run_times,list(list(method=m,time=run_time)))
       }
     }
+    run_times <- dplyr::bind_rows(run_times)
   }
-  results
+  list(results=results,run_times=run_times)
 }
 
 
@@ -750,20 +817,27 @@ experiments.run_cluster <- function(methods,data,exp_config){
   results <- mutate(results,label=as.character(colData(data)$label))
   # rownames(results) <- colData(data)$unique_id
   rownames(results) <- colnames(data)
-  
+  run_times <- vector("list")
   for(m in methods){
     print(str_glue('start cluster method {m}'))
+    start_time <- Sys.time()
     m_result <- utils.try_catch_method_error(run_cluster_methods(m,data,exp_config))
     if(inherits(m_result,"try-error")){
       print(str_glue("error occurs in {m}:{m_result}"))
       error(logger, str_glue("error occurs in train={experiments.assign.data$train_dataset[[experiment]]}, test={experiments.assign.data$test_dataset[[experiment]]}, {m}:{m_result}"))
+      run_times <- append(run_times,list(list(method=m,time=-1)))
       # results <- dplyr::select(results,-m)
     }else{
       print(str_glue("{m} finished correctly"))
       results[[m]] <- m_result
+      run_time <- round(as.double(difftime(Sys.time(), start_time, u = 'secs')))
+      info(logger, str_glue("{experiment} run time for method={m},sample_size={ncol(data)}:{run_time} sec"))
+      run_times <- append(run_times,list(list(method=m,time=run_time)))
     }
+
   }
-  results
+  run_times <- dplyr::bind_rows(run_times)
+  list(results=results,run_times=run_times)
 }
 
 
@@ -778,16 +852,19 @@ experiments.run_cv <- function(methods, data,exp_config){
   colnames(combined_results) <- methods
   combined_results <- mutate(combined_results,label=as.character(colData(data)$label))
   rownames(combined_results) <- colnames(data)
+  run_times <- vector("list")
   for(i in seq_along(folds)){
     train_data <- data[,folds[[i]]]
     test_data <- data[,-folds[[i]]]
     for(m in methods){
       print(str_glue('start assign method {m} in {i}th fold of CV'))
+      start_time <- Sys.time()
       m_result <- utils.try_catch_method_error(run_assign_methods(m,train_data,test_data,exp_config))
       if(inherits(m_result,"try-error")){
         # combined_results[[m]][-folds[[i]]] <- NULL
         print(str_glue("error occurs in {m}, cv folds:{i}:{m_result}"))
         error(logger, str_glue("error occurs in {output.dataset_name[[experiment]]}, {m}, cv folds:{i}:{m_result}"))
+        run_times <- append(run_times,list(list(method=m,fold=i,seconds=-1)))
         next
       }else{
         print(str_glue("{m} in cv folds:{i} finished correctly"))
@@ -795,8 +872,13 @@ experiments.run_cv <- function(methods, data,exp_config){
           m_result <- as.character(m_result)
         }
         combined_results[[m]][-folds[[i]]] <- m_result
+        run_time <- round(as.double(difftime(Sys.time(), start_time, u = 'secs')))
+        info(logger, str_glue("{experiment} run time for method={m},sample_size={ncol(train_data)}, fold={i}:{run_time} sec"))
+        run_times <- append(run_times,list(list(method=m,fold=i,seconds=run_time)))
       }
     }
   }
-  combined_results
+  run_times <- dplyr::bind_rows(run_times)
+  run_times <- dplyr::group_by(run_times,method) %>% dplyr::summarize(time=mean(seconds,na.rm=T))
+  list(combined_results=combined_results,run_times=run_times)
 }

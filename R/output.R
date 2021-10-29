@@ -20,6 +20,7 @@ output.sink <- function(experiment,raw_results,results,exp_config=NULL,...){
          inter_protocol = output.inter_protocol(raw_results,results,output_dir),
          imbalance_impacts = output.imbalance_impacts(raw_results,results,output_dir,...),
          unknown_types = output.unknown_types(raw_results,results,output_dir,...),
+         scalability = output.scalability(results,output_dir,...),
          stop("Unkown experiments")
   )
 }
@@ -27,6 +28,17 @@ output.sink <- function(experiment,raw_results,results,exp_config=NULL,...){
 output.simple_accuracy <- function(raw_results,results,output_dir){
   print(str_glue('start writing {experiment} results to {output_dir}'))
   output.write_results(raw_results=raw_results,results=results,output_dir=output_dir)
+}
+
+output.scalability <- function(results,output_dir){
+  print(str_glue('start writing {experiment} results to {output_dir}'))
+  
+  if(!dir.exists(output_dir)){
+    dir.create(output_dir,recursive=T)
+  }
+
+  write_rds(results,str_glue('{output_dir}/results.rds'))
+  write_csv(results, str_glue('{output_dir}/results.csv'))
 }
 
 output.cell_number <- function(raw_results,results,output_dir){
