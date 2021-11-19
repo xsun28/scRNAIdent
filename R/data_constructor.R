@@ -109,7 +109,9 @@ constructor.celltype_number <- function(data,config,if_train,sample_seed=NULL){
     colData(incremented_data)$barcode <- colnames(incremented_data)
     prev_data1 <- data[rownames(incremented_data),which(sapply(data$unique_id,function(x){x %in% prev_data$unique_id}))]
     colData(prev_data1)$barcode <- colnames(prev_data1)
+    rowData(prev_data1) <- NULL
     constructed_data <- SingleCellExperiment::cbind(prev_data1, incremented_data)
+    rowData(constructed_data)$count <- nexprs(constructed_data,byrow=TRUE)
   }else if((config$current_increment_index > 1) & config$fixed_train & (!if_train)){
     prev_data <- config$test_data 
     incremented_cell_types <- setdiff(config$test_type,unique(colData(prev_data)$label))
@@ -117,7 +119,9 @@ constructor.celltype_number <- function(data,config,if_train,sample_seed=NULL){
     colData(incremented_data)$barcode <- colnames(incremented_data)
     prev_data1 <- data[rownames(incremented_data),which(sapply(data$unique_id,function(x){x %in% prev_data$unique_id}))]
     colData(prev_data1)$barcode <- colnames(prev_data1)
+    rowData(prev_data1) <- NULL
     constructed_data <- SingleCellExperiment::cbind(prev_data1, incremented_data)
+    rowData(constructed_data)$count <- nexprs(constructed_data,byrow=TRUE)
   }
   else{
     cell_types <- if(if_train) config$train_type else config$test_type
@@ -195,10 +199,10 @@ constructor.type_architecturer <- function(config,dataset){
 constructor.sample_bias <- function(data,config,if_train,sample_seed=NULL){
   if(if_train){
     train_ind <- config$train_ind
-    data <- data[,colData(data)$ind==train_ind]
+    if(!is_null(train_ind)) data <- data[,colData(data)$ind==train_ind]
   }else{
     test_ind <- config$test_ind
-    data <- data[,colData(data)$ind==test_ind]
+    if(!is_null(train_ind)) data <- data[,colData(data)$ind==test_ind]
   }
   data <- constructor.base(data,config,if_train,sample_seed)
   data 

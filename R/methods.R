@@ -526,11 +526,11 @@ cluster.tscan <- function(data,exp_config) {
       structure(msg, class = "try-error")
     })
   i = 0
-  K = 10
+  K = if(length(K)>1) K[1] else  K/2
   while(inherits(ret,"try-error")){ ###most try 10 iterations
-    if(i > 10 || K<=1) return(NULL)
+    if(i > 10 || K<=1 || exp_config$known_cluster_num) return(NULL)
     i = i+1
-    K = K -2
+    K = ceiling(K/2)
     print(str_glue("in tscan:{ret}"))
     print(str_glue("new k: {K}"))
     ret <- tryCatch(exprmclust(procdata, clusternum=K), error=function(c) {
@@ -586,6 +586,7 @@ cluster.sc3 <- function(data,exp_config) {
 #####liger
 cluster.liger <- function(data,exp_config){
   require(rliger)
+  num.cores <- detectCores()-2
   m_config <- if(purrr::is_null(exp_config$batch_free) || !exp_config$batch_free || !exists("methods.config.liger.batch_free")) methods.config.liger else methods.config.liger.batch_free
   stopifnot(is(data,"SingleCellExperiment"))
   data_list <- list(counts(data))
@@ -596,7 +597,7 @@ cluster.liger <- function(data,exp_config){
   liger_data <- scaleNotCenter(liger_data)
   if(m_config$suggestK==TRUE){
     print("suggesting K")
-    ret <- tryCatch(suggestK(liger_data, num.cores = 5, gen.new = T, plot.log2 = F,nrep = 5), error=function(c) {
+    ret <- tryCatch(suggestK(liger_data, num.cores = num.cores, gen.new = T, plot.log2 = F,nrep = 5), error=function(c) {
       msg <- conditionMessage(c)
       print(str_glue("error occured {msg}"))
       error(logger, str_glue("error occured in liger {msg}"))
@@ -605,6 +606,7 @@ cluster.liger <- function(data,exp_config){
     if(!inherits(ret,"try-error")){
       k.suggest <- ret
     }else{
+      info(logger,"in liger can not suggest K")
       k.suggest <- if(purrr::is_null(m_config$k.suggest))  25 else m_config$k.suggest
     }
   }else{
@@ -682,6 +684,7 @@ cluster.cidr <- function(data,exp_config) {
   }else{
     nCluster <- m_config$nCluster
   }
+  if(nCluster <= 1) return(NULL)
   n <- m_config$n
   if(purrr::is_null(nCluster))
     ret <- tryCatch(scCluster(sData, n=n), error=function(c) {
@@ -701,7 +704,7 @@ cluster.cidr <- function(data,exp_config) {
   i = 0
   K = 10
   while(inherits(ret,"try-error")){
-    if(i > 10||K <= 1) return(NULL)
+    if(i > 10||K <= 1||exp_config$known_cluster_num) return(NULL)
     i = i+1
     print(str_glue("in cidr:{ret}"))
     K = K -2
@@ -744,8 +747,15 @@ cluster.pcaReduce <- function(data,exp_config) {
   counts(data) <- as.matrix(counts(data))
   data <- logNormCounts(data)
   Input <- t(logcounts(data))
-  Output_S <- PCAreduce(Input, nbt=1, q=25, method='S')
-  K <- if(purrr::is_null(m_config$K)) 10 else m_config$K
+  if(exp_config$known_cluster_num){
+    q <- length(unique(colData(data)$label))-1
+    K <- 1  ###get results from Kth level in the hiearchy clustering
+  }else{
+    q <- if(purrr::is_null(m_config$q)) 25 else m_config$q
+    K <- if(purrr::is_null(m_config$K)) 1  else m_config$K
+  }
+  Output_S <- PCAreduce(Input, nbt=1, q=q, method='S')
+
   Output_S[[1]][,K]
 }
 
@@ -773,7 +783,7 @@ cluster.raceID3 <- function(data, exp_config){
     }
   }
   sc@distances <- dist_m
-  ret <- tryCatch(clustexp(sc), error=function(c) {
+  ret <- tryCatch(clustexp(sc,cln=cln,sat=sat), error=function(c) {
     msg <- conditionMessage(c)
     print(str_glue("error occured in raceID3: {msg}"))
     error(logger, str_glue("error occured in raceID3 {msg}"))
@@ -797,8 +807,12 @@ cluster.raceID3 <- function(data, exp_config){
       structure(msg, class = "try-error")
     })
   }
-  sc <- findoutliers(ret)
-  as.integer(sc@cpart)
+  if(exp_config$known_cluster_num){
+    return(ret@cluster$kpart)
+  }else{
+    sc <- findoutliers(ret)
+    return(as.integer(sc@cpart))
+  }
 }
 
 cluster.same_clustering <- function(data, exp_config){
@@ -810,13 +824,159 @@ cluster.same_clustering <- function(data, exp_config){
   dimensions <- if(purrr::is_null(m_config$dimensions)) 2 else m_config$dimensions
   perplexity <- if(purrr::is_null(m_config$perplexity)) 30 else m_config$perplexity
   mt.cutoff <- if(purrr::is_null(m_config$mt.cutoff)) 0.8 else m_config$mt.cutoff
-  cluster.result <- individual_clustering(inputTags = counts(data), mt_filter = TRUE,
+  cluster.result <- cluster.same_clustering.individual_clustering(inputTags = counts(data), mt_filter = TRUE,
                                           percent_dropout = percent_dropout, SC3 = T, CIDR = T, nPC.cidr = NULL, Seurat =T, nGene_filter = FALSE,
                                           nPC.seurat = NULL, resolution = resolution, tSNE = T, dimensions = dimensions, perplexity = perplexity, SIMLR = F, diverse = F, 
                                           save.results = FALSE,mt.cutoff=mt.cutoff, SEED = 123)
   cluster.ensemble <- SAMEclustering(Y = t(cluster.result), rep = 3, SEED = 123)
   as.integer(cluster.ensemble$BICcluster)
 }
+
+
+
+cluster.same_clustering.individual_clustering <- function(inputTags, mt_filter = TRUE, mt.pattern = "^MT-", mt.cutoff = 0.1, percent_dropout = 10,
+                                                          SC3 = TRUE, gene_filter = FALSE, svm_num_cells = 5000, CIDR = TRUE, nPC.cidr = NULL,
+                                                          Seurat = TRUE, nGene_filter = TRUE, low.genes = 200, high.genes = 8000, nPC.seurat = NULL, resolution = 0.7, 
+                                                          tSNE = TRUE, dimensions = 3, perplexity = 30, tsne_min_cells = 200, tsne_min_perplexity = 10, var_genes = NULL,
+                                                          SIMLR = TRUE, diverse = TRUE, save.results = FALSE, SEED = 1){
+  
+  cluster_number <- NULL
+  cluster_results <- NULL
+  inputTags = as.matrix(inputTags)
+  
+  # Filter out cells that have mitochondrial genes percentage over 5%
+  if (mt_filter == TRUE){
+    mito.genes <- grep(pattern = mt.pattern, x = rownames(x = inputTags), value = TRUE)
+    percent.mito <- Matrix::colSums(inputTags[mito.genes, ])/Matrix::colSums(inputTags)
+    inputTags <- inputTags[,which(percent.mito <= mt.cutoff)]
+  }
+  
+  ##### SC3
+  if(SC3 == TRUE){
+    message("Performing SC3 clustering...")
+    
+    sc3OUTPUT <- cluster.same_clustering.sc3_SAME(inputTags = inputTags, gene_filter = gene_filter, svm_num_cells = svm_num_cells, save.results = save.results, SEED = SEED)
+    cluster_results <- rbind(cluster_results, matrix(c(sc3OUTPUT), nrow = 1, byrow = TRUE))
+    cluster_number <- c(cluster_number, max(c(sc3OUTPUT)))
+  }
+  
+  
+  ##### CIDR
+  if(CIDR == TRUE){
+    message("Performing CIDR clustering...")
+    
+    cidrOUTPUT <- cidr_SAME(inputTags = inputTags, percent_dropout = percent_dropout, nPC.cidr = nPC.cidr, save.results = save.results, SEED = SEED)
+    
+    if(is.null(nPC.cidr)) {
+      nPC.cidr <- cidrOUTPUT@nPC
+    }
+    
+    cluster_results <- rbind(cluster_results, matrix(c(cidrOUTPUT@clusters), nrow = 1, byrow = TRUE))
+    cluster_number <- c(cluster_number,  cidrOUTPUT@nCluster)
+  }
+  
+  
+  ##### Seurat
+  if (Seurat == TRUE){
+    message("Performing Seurat clustering...")
+    
+    if(is.null(nPC.seurat)) {
+      nPC.seurat <- nPC.cidr
+    }
+    
+    seurat_output <- seurat_SAME(inputTags = inputTags, nGene_filter = nGene_filter, low.genes = low.genes, high.genes = high.genes, 
+                                 nPC.seurat = nPC.seurat, resolution = resolution, save.results = save.results, SEED = SEED)
+    cluster_results <- rbind(cluster_results, matrix(c(seurat_output), nrow = 1, byrow = TRUE))
+    cluster_number <- c(cluster_number, max(!is.na(seurat_output)))
+  }
+  
+  
+  ##### tSNE+kmeans
+  if(tSNE == TRUE){
+    message("Performing tSNE + k-means clustering...")
+    
+    ### Dimensionality reduction by Rtsne
+    if(length(inputTags[1,]) < tsne_min_cells) {
+      perplexity = tsne_min_perplexity
+    }
+    
+    tsne_kmeansOUTPUT <- tSNE_kmeans_SAME(inputTags = inputTags, percent_dropout = percent_dropout, dimensions = dimensions, perplexity = perplexity, 
+                                          k.min = 2, k.max = max(cluster_number), var_genes = var_genes, save.results = save.results, SEED = SEED)
+    cluster_results <- rbind(cluster_results, matrix(c(tsne_kmeansOUTPUT$cluster), nrow = 1, byrow = TRUE))
+    cluster_number <- c(cluster_number, max(as.numeric(tsne_kmeansOUTPUT$cluster)))
+  }
+  
+  ##### SIMLR
+  if(SIMLR == TRUE){
+    message("Performing SIMLR clustering...")
+    
+    simlrOUTPUT <- SIMLR_SAME(inputTags = inputTags, percent_dropout = percent_dropout, k.min = 2, k.max = max(cluster_number), save.results = save.results, SEED = SEED)
+    cluster_results <- rbind(cluster_results, simlrOUTPUT$y$cluster)
+  }
+  
+  ##### Individual method selection
+  if (dim(cluster_results)[1] == 5 && diverse == TRUE){
+    message("Selecting clusteirng methods for ensemble...")
+    
+    rownames(cluster_results) <- c("SC3","CIDR","Seurat","tSNE+kmeans","SIMLR")
+    
+    ARI=matrix(0,5,5)
+    rownames(ARI) <- c("SC3","CIDR","Seurat","tSNE+kmeans","SIMLR")
+    colnames(ARI) <- c("SC3","CIDR","Seurat","tSNE+kmeans","SIMLR")
+    
+    for(i in c("SC3","CIDR","Seurat","tSNE+kmeans","SIMLR")){
+      for(j in c("SC3","CIDR","Seurat","tSNE+kmeans","SIMLR")){
+        ARI[i,j] <- adjustedRandIndex(unlist(cluster_results[i,]), unlist(cluster_results[j,]))
+      }
+    }
+    m1 <- which.min(apply(ARI,1,var))
+    cluster_results <- cluster_results[-m1,]
+  }
+  
+  return(cluster_results)
+}
+
+
+cluster.same_clustering.sc3_SAME <- function(inputTags, gene_filter, svm_num_cells, save.results, SEED){
+  exp_cell_exprs <- NULL
+  sc3OUTPUT <- NULL
+  n_cores <- detectCores()-2
+  # cell expression
+  ### For count data, it would be normalized by the total cound number and then log2 transformed
+  exp_cell_exprs <- SingleCellExperiment(assays = list(counts = inputTags))
+  normcounts(exp_cell_exprs) <- t(t(inputTags)/colSums(inputTags))*1000000
+  logcounts(exp_cell_exprs) <- log2(normcounts(exp_cell_exprs) + 1)
+  
+  rowData(exp_cell_exprs)$feature_symbol <- rownames(exp_cell_exprs)
+  exp_cell_exprs <- exp_cell_exprs[!duplicated(rowData(exp_cell_exprs)$feature_symbol), ]
+  
+  ### Estimating optimal number of clustering
+  exp_cell_exprs <- sc3_estimate_k(exp_cell_exprs)
+  optimal_K <- metadata(exp_cell_exprs)$sc3$k_estimation
+  
+  ### Clustering by SC3 at the optimal K
+  if (ncol(inputTags) < svm_num_cells){
+    #print(optimal_K)
+    exp_cell_exprs <- sc3(exp_cell_exprs, ks = optimal_K, biology = FALSE, gene_filter = gene_filter, n_cores = n_cores, rand_seed = SEED)
+  } else if (ncol(inputTags) >= svm_num_cells){
+    ### Runing SVM
+    exp_cell_exprs <- sc3(exp_cell_exprs, ks = optimal_K, biology = FALSE, gene_filter = gene_filter,
+                          svm_max = svm_num_cells, svm_num_cells = svm_num_cells, n_cores = n_cores, rand_seed = SEED)
+    exp_cell_exprs <- sc3_run_svm(exp_cell_exprs, ks = optimal_K)
+  }
+  
+  if(save.results == TRUE){
+    save(exp_cell_exprs, file = "sc3OUTPUT.Rdata")
+  }
+  
+  ### Exporting SC3 results
+  p_Data <- colData(exp_cell_exprs)
+  col_name <- paste("sc3_", optimal_K, "_clusters", sep = '')
+  sc3OUTPUT <- p_Data[, grep(col_name, colnames(p_Data))]
+  return(sc3OUTPUT)
+}
+
+
 
 
 
@@ -844,7 +1004,7 @@ cluster.sharp <- function(data,exp_config){
     structure(msg, class = "try-error")
   })
   
-  i = 5
+  i = 1
   while(inherits(ret,"try-error")){
     if(i > 5 || ensize.K <= 1) return(NULL)
     i = i+1

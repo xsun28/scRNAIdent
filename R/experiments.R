@@ -116,7 +116,7 @@ experiments.base.assign <- function(experiment, train_dataset, test_dataset, exp
   if(missing(exp_config)){
     stop("missing exp_config in base assign function")
   }
-  print(str_glue("experiment {experiment} configuration: {exp_config}"))
+  # print(str_glue("experiment {experiment} configuration: {exp_config}"))
   methods <- experiments.methods[[experiment]]
   ##assigning methods
   assign_methods <- methods$assign

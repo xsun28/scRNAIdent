@@ -10,8 +10,8 @@ dataset.datasets <- list(
 #                          "GSE96583_batch3_samples.RDS","GSE96583_8_Stim_Pats.RDS","GSE96583_8_Ctrl_Pats.RDS",
 #                           "Muraro_pancreas_clean.RDS","Segerstolpe_pancreas_clean.RDS","Xin_pancreas_clean.RDS",
 #                           "ADASD_AD.RDS","ADASD_autism.RDS",
-                          "midbrain_human.RDS","midbrain_mouse.RDS"
-                          # "human_cell_landscape.RDS"
+                          # "midbrain_human.RDS","midbrain_mouse.RDS"
+                          "human_cell_landscape.RDS"
                  # cellbench=list(tenx="cellbench_10x.RDS",CELseq2="cellbench_CELseq2.RDS",Dropseq="cellbench_Dropseq.RDS")
                  )
 
@@ -62,7 +62,8 @@ dataset.interdatasets <- list(
                               ADASD1 = list(train_dataset="ADASD_AD.RDS",  test_dataset="ADASD_autism.RDS"),
                               ADASD2 = list(train_dataset="ADASD_autism.RDS",  test_dataset="ADASD_AD.RDS"),
                               midbrain1 = list(train_dataset="midbrain_human.RDS",  test_dataset="midbrain_mouse.RDS"),
-                              midbrain2 = list(train_dataset="midbrain_mouse.RDS",  test_dataset="midbrain_human.RDS")
+                              midbrain2 = list(train_dataset="midbrain_mouse.RDS",  test_dataset="midbrain_human.RDS"),
+                              hcl = list(train_dataset="human_cell_landscape.RDS",  test_dataset="human_cell_landscape.RDS")
                               # cellbench=list(tenx="cellbench_10x.RDS",CELseq2="cellbench_CELseq2.RDS",Dropseq="cellbench_Dropseq.RDS")
                             )
 
@@ -91,7 +92,7 @@ dataset.properties <- list(
                           cellbench_10x=list(sample_threshold=3,gene_name_type="ENSEMBL",logged=F),
                           cellbench_CELseq2=list(sample_threshold=3,gene_name_type="ENSEMBL",logged=F),
                           cellbench_Dropseq=list(sample_threshold=3,gene_name_type="ENSEMBL",logged=F),
-                          human_cell_landscape=list(sample_threshold=3,gene_name_type="SYMBOL",logged=F)
+                          human_cell_landscape=list(sample_threshold=3,total_num=599926,gene_name_type="SYMBOL",logged=F)
                       )
 
 dataset.name.map1 <- list(PBMC_AllCells_withLabels.RDS="PBMC_AllCells_withLabels",
