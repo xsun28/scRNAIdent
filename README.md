@@ -56,7 +56,6 @@ To run the experiment of amount of cells
 
 2. Specify the experimental parameters in the *experiments_config.R* 
 	* Set experiment name
-
 			experiment <- "cell_number"  
 
 	* Set experimental methods and parameters 
