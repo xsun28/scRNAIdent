@@ -58,14 +58,14 @@ analysis.cluster.fbeta <- function(true,pred,beta=1,true_label,cluster_num){
 analysis.cluster.ARI <- function(true,pred,...){
   require(aricode)
   pred[is.na(pred)] <- -1 ####replace na with -1 unclustered cells
-  ARI(true,pred)
+  aricode::ARI(true,pred)
 }
 
 ###Adjusted mutual information
 analysis.cluster.AMI <- function(true,pred,...){
   require(aricode)
   pred[is.na(pred)] <- -1
-  AMI(true,pred)
+  aricode::AMI(true,pred)
 }
 
 ###Fowlkes Mallows index

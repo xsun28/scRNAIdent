@@ -1,4 +1,4 @@
-experiment <- "imbalance_impacts"
+experiment <- "simple_accuracy"
 
 
 experiments.assign.data <- list(
@@ -7,17 +7,21 @@ experiments.assign.data <- list(
                      celltype_number = "midbrain_human.RDS",
                      sequencing_depth="ADASD_AD.RDS",
                      celltype_structure="GSE96583_8_Stim_Pats.RDS"),
-                     # inter_diseases="GSE96583_8_Ctrl_Pats.RDS"),
+  # inter_diseases="GSE96583_8_Ctrl_Pats.RDS"),
   test_dataset=list(simple_accuracy="PBMC_AllCells_withLabels.RDS",
                     cell_number="PBMC_AllCells_withLabels.RDS",
                     celltype_number = "midbrain_human.RDS",
                     sequencing_depth="ADASD_AD.RDS",
                     celltype_structure="GSE96583_8_Stim_Pats.RDS")
-                    # inter_diseases="GSE96583_8_Stim_Pats.RDS")
-  )
-  
+  # inter_diseases="GSE96583_8_Stim_Pats.RDS")
+)
+
 ##for batch effects removed, scmap and singlecellnet doesn't work
-experiments.methods.base_config <- list(cluster=c('raceID3','seurat_clustering','tscan','sc3','liger','cidr','monocle3','pcaReduce'),assign=c("seurat_mapping","cellassign",'scmap_cluster','scmap_cell','chetah','singlecellnet','garnett','singleR'))
+# experiments.methods.base_config <- list(cluster=c('sharp','same_clustering'),assign=c('chetah')) ####for adding two new methods
+# experiments.methods.base_config <- list(cluster=c('raceID3','seurat_clustering','tscan','sc3','liger','cidr','monocle3','pcaReduce','sharp','same_clustering'),assign=c("seurat_mapping","cellassign",'scmap_cluster','scmap_cell','chetah','singlecellnet','garnett','singleR'))
+# experiments.methods.base_config <- list(cluster=c('raceID3','tscan','sc3','cidr','pcaReduce','sharp'),assign=c('chetah'))####for known cluster number
+experiments.methods.base_config <- list(cluster=c('seurat_clustering','monocle3','liger','tscan'),assign=c("seurat_mapping",'scmap_cluster','chetah'))###for large scale exp
+
 experiments.methods <- list(
   simple_accuracy=experiments.methods.base_config, 
   cell_number=experiments.methods.base_config,
@@ -25,45 +29,53 @@ experiments.methods <- list(
   sequencing_depth=experiments.methods.base_config,
   celltype_structure=experiments.methods.base_config,
   batch_effects=experiments.methods.base_config, 
-                       # list(cluster_batch_free=c('seurat',"sc3",'tscan','liger'), assign_batch_free=c('chetah','garnett'), marker_gene_assign_batch_free=c("cellassign"))),
+  # list(cluster_batch_free=c('seurat',"sc3",'tscan','liger'), assign_batch_free=c('chetah','garnett'), marker_gene_assign_batch_free=c("cellassign"))),
   sample_bias = experiments.methods.base_config,
   celltype_complexity = experiments.methods.base_config,
   inter_species = experiments.methods.base_config,
   random_noise = experiments.methods.base_config, 
   inter_protocol = experiments.methods.base_config,
   imbalance_impacts = experiments.methods.base_config,
-  unknown_types = experiments.methods.base_config
+  unknown_types = experiments.methods.base_config,
+  scalability = list(cluster=c('liger'),assign=c('garnett','singlecellnet'))
 )
 
 ##########
 experiments.parameters <- list(
-  simple_accuracy=list(cv=TRUE, cv_fold=5,metrics=c('ARI','AMI','FMI','v_measure'),batch_free=F,
+  simple_accuracy=list(cv=TRUE, cv_fold=3,metrics=c('ARI','AMI','FMI','v_measure'),batch_free=F,
                        marker_gene_file=NULL,use_intra_dataset=T,intra_dataset=dataset.datasets,
-                       use_inter_dataset=F,inter_dataset=NULL,target_train_num=1200, target_test_num=NULL),
+                       use_inter_dataset=F,inter_dataset=NULL,known_cluster_num=F,target_train_num=100000, target_test_num=NULL),
   
-  cell_number=list( cv=F,cv_fold=NULL, metrics=c('ARI','AMI','FMI','v_measure'), batch_free=F,fixed_train=T,fixed_test=F,
-                   marker_gene_file=NULL,trained=F,target_train_num=1200, target_test_num=800,
-                   train_sample_start=200, test_sample_start=100,train_sample_increment=400,test_sample_increment=250,
-                   test_num=4, use_intra_dataset=F,intra_dataset=list(),
-                   use_inter_dataset=T,inter_dataset=list(dataset.interdatasets$PBMC9,dataset.interdatasets$PBMC24,
-                                                          dataset.interdatasets$PBMC17,dataset.interdatasets$PBMC21,
-                                                          dataset.interdatasets$PBMC13,dataset.interdatasets$PBMC29,
-                                                          dataset.interdatasets$PBMC5,dataset.interdatasets$PBMC1,
-                                                          dataset.interdatasets$pancreas2,dataset.interdatasets$pancreas3,
-                                                          dataset.interdatasets$pancreas6,dataset.interdatasets$ADASD2
-                                                          )),
-
+  cell_number=list( cv=F,cv_fold=NULL, metrics=c('ARI','AMI','FMI','v_measure'), batch_free=F,fixed_train=F,fixed_test=T,
+                    marker_gene_file=NULL,trained=F,target_train_num=120000, target_test_num=80000,
+                    train_sample_start=20000, test_sample_start=10000,train_sample_increment=40000,test_sample_increment=25000,
+                    test_num=4, use_intra_dataset=F,intra_dataset=dataset.datasets,known_cluster_num=F,
+                    use_inter_dataset=T,inter_dataset=list(
+                      # dataset.interdatasets$PBMC9,dataset.interdatasets$PBMC24,
+                      # dataset.interdatasets$PBMC17,dataset.interdatasets$PBMC21,
+                      # dataset.interdatasets$PBMC13,dataset.interdatasets$PBMC29,
+                      # dataset.interdatasets$PBMC5,dataset.interdatasets$PBMC1,
+                      # dataset.interdatasets$pancreas2,dataset.interdatasets$pancreas3,
+                      # dataset.interdatasets$pancreas6,dataset.interdatasets$ADASD2,
+                      # dataset.interdatasets$midbrain2,
+                      dataset.interdatasets$hcl
+                    )),
+  
   
   sequencing_depth=list(cv=F,cv_fold=5,metrics=c('ARI','AMI','FMI','v_measure'),fixed_train=T,fixed_test=F,
-                        marker_gene_file=NULL,batch_free=F,target_train_num=1200, target_test_num=800,test_num=5,
-                        use_intra_dataset=F,intra_dataset=list(),
-                        use_inter_dataset=T,inter_dataset=list(dataset.interdatasets$PBMC9,dataset.interdatasets$PBMC24,
-                                                               dataset.interdatasets$PBMC17,dataset.interdatasets$PBMC21,
-                                                               dataset.interdatasets$PBMC13,dataset.interdatasets$PBMC29,
-                                                               dataset.interdatasets$PBMC5,dataset.interdatasets$PBMC1,
-                                                               dataset.interdatasets$pancreas2,dataset.interdatasets$pancreas3,
-                                                               dataset.interdatasets$pancreas6,dataset.interdatasets$ADASD2
-                                                               )),
+                        marker_gene_file=NULL,batch_free=F,target_train_num=120000, target_test_num=80000,test_num=5,
+                        use_intra_dataset=F,intra_dataset=list(),known_cluster_num=F,
+                        use_inter_dataset=T,inter_dataset=list(
+                                                                #dataset.interdatasets$midbrain2
+                                                               # dataset.interdatasets$PBMC9,dataset.interdatasets$PBMC24,
+                                                               # dataset.interdatasets$PBMC17,dataset.interdatasets$PBMC21,
+                                                               # dataset.interdatasets$PBMC13,dataset.interdatasets$PBMC29,
+                                                               # dataset.interdatasets$PBMC5,dataset.interdatasets$PBMC1,
+                                                               # dataset.interdatasets$pancreas2,dataset.interdatasets$pancreas3,
+                                                               # dataset.interdatasets$pancreas6,
+                                                               # dataset.interdatasets$ADASD2
+                                                               dataset.interdatasets$hcl
+                        )                                      ),
   
   # celltype_structure=list(train_sample_pctg=experiments.parameters.celltype_structure[[experiments.assign.data$train_dataset$celltype_structure]]$train_sample_pctg,
   #                         train_sample_num=experiments.parameters.celltype_structure[[experiments.assign.data$train_dataset$celltype_structure]]$train_sample_num,
@@ -74,71 +86,86 @@ experiments.parameters <- list(
   
   batch_effects=list(cv=FALSE,remove_batch=TRUE,metrics=c('ARI','AMI','FMI','v_measure'),target_train_num=1200, target_test_num=800,
                      marker_gene_file=NULL,fixed_train=T,fixed_test=T,batch_correct_method="MNN",use_intra_dataset=F,intra_dataset=list(),
-                     use_inter_dataset=T,inter_dataset=list(dataset.interdatasets$PBMC9,dataset.interdatasets$PBMC24,
+                     use_inter_dataset=T,known_cluster_num=F,inter_dataset=list(dataset.interdatasets$PBMC9,dataset.interdatasets$PBMC24,
                                                             dataset.interdatasets$PBMC17, dataset.interdatasets$PBMC1,
                                                             dataset.interdatasets$pancreas2,dataset.interdatasets$pancreas3,
                                                             dataset.interdatasets$pancreas6,dataset.interdatasets$ADASD2)),
   
-  imbalance_impacts = list(batch_free=F,target_train_num=1200, target_test_num=1000,fixed_train=T,fixed_test=F,
+  imbalance_impacts = list(batch_free=F,target_train_num=120000, target_test_num=80000,fixed_train=F,fixed_test=T,
                            all_type_pctgs = list(   "3"=list( list(0.33,0.33,0.34),
-                                                            list(0.6,0.35,0.05),
-                                                            list(0.9,0.095,0.005)
-                                                            ),
-                                                    "4"=list( list(0.25,0.25,0.25,0.25),
-                                                            list(0.4,0.3,0.2,0.1),
-                                                            list(0.6,0.2,0.15,0.05),
-                                                            list(0.9,0.08,0.015,0.005)
-                                                            ),
-                                                    "5"=list( list(0.2,0.2,0.2,0.2,0.2),
-                                                            list(0.4,0.3,0.15,0.1,0.05),
-                                                            list(0.65,0.15,0.1,0.08,0.02),
-                                                            list(0.8,0.1,0.05,0.04,0.01),
-                                                            list(0.9,0.04,0.03,0.025,0.005)
-                                                            )
-                                             ),
-                            cv=FALSE,metrics=c('ARI','AMI','FMI','v_measure',"BCubed"),marker_gene_file=NULL,use_intra_dataset=F,intra_dataset=list(),
-                            use_inter_dataset=T,inter_dataset=list(dataset.interdatasets$PBMC9,dataset.interdatasets$PBMC24,
-                                                                   dataset.interdatasets$PBMC17,dataset.interdatasets$PBMC21,
-                                                                   dataset.interdatasets$PBMC13,dataset.interdatasets$PBMC29,
-                                                                   dataset.interdatasets$PBMC5,dataset.interdatasets$PBMC1,
-                                                                   dataset.interdatasets$pancreas2,dataset.interdatasets$pancreas3,
-                                                                   dataset.interdatasets$pancreas6,dataset.interdatasets$ADASD2
-                                                                   )
+                                                              list(0.6,0.35,0.05),
+                                                              list(0.9,0.095,0.005)
                            ),
+                           "4"=list( list(0.25,0.25,0.25,0.25),
+                                     list(0.4,0.3,0.2,0.1),
+                                     list(0.6,0.2,0.15,0.05),
+                                     list(0.9,0.08,0.015,0.005)
+                           ),
+                           "5"=list( list(0.2,0.2,0.2,0.2,0.2),
+                                     list(0.4,0.3,0.15,0.1,0.05),
+                                     list(0.65,0.15,0.1,0.08,0.02),
+                                     list(0.8,0.1,0.05,0.04,0.01),
+                                     list(0.9,0.04,0.03,0.025,0.005)
+                           )
+                           ),
+                           cv=FALSE,metrics=c('ARI','AMI','FMI','v_measure',"BCubed"),marker_gene_file=NULL,use_intra_dataset=F,intra_dataset=list(),
+                           use_inter_dataset=T,known_cluster_num=F,inter_dataset=list(
+                             # dataset.interdatasets$PBMC9,dataset.interdatasets$PBMC24,
+                             # dataset.interdatasets$PBMC17,dataset.interdatasets$PBMC21,
+                             # dataset.interdatasets$PBMC13,dataset.interdatasets$PBMC29,
+                             # dataset.interdatasets$PBMC5,dataset.interdatasets$PBMC1,
+                             # dataset.interdatasets$pancreas2,dataset.interdatasets$pancreas3,
+                             # dataset.interdatasets$pancreas6,dataset.interdatasets$ADASD2
+                             # dataset.interdatasets$midbrain2
+                             dataset.interdatasets$hcl
+                           )
+  ),
   
   sample_bias = list(batch_free=F,target_train_num=1200, target_test_num=1000, fixed_train=F,fixed_test=T,sample_seed = 10,
-                        cv=FALSE,metrics=c('ARI','AMI','FMI','v_measure'),marker_gene_file=NULL,use_intra_dataset=F,intra_dataset=list(),
-                        use_inter_dataset=T,inter_dataset=list(list(datasets=dataset.interdatasets$PBMC34,inds=list(train_ind=1015,test_ind=1488)),
-                                                               list(datasets=dataset.interdatasets$PBMC35,inds=list(train_ind=1015,test_ind=1488)),
-                                                               list(datasets=dataset.interdatasets$PBMC5,inds=list(train_ind=1488,test_ind=1488)),
-                                                               list(datasets=dataset.interdatasets$PBMC11,inds=list(train_ind=1488,test_ind=1488)),
-                                                               list(datasets=dataset.interdatasets$PBMC23,inds=list(train_ind=1511,test_ind=1488)),
-                                                               list(datasets=dataset.interdatasets$PBMC24,inds=list(train_ind=1511,test_ind=1488))
-                                                               )
-                     ),
+                     cv=FALSE,metrics=c('ARI','AMI','FMI','v_measure'),marker_gene_file=NULL,use_intra_dataset=F,intra_dataset=list(),
+                     use_inter_dataset=T,known_cluster_num=F,inter_dataset=list(
+                                                            # list(datasets=dataset.interdatasets$PBMC34,inds=list(train_ind=1015,test_ind=1488)),
+                                                            # list(datasets=dataset.interdatasets$PBMC35,inds=list(train_ind=1015,test_ind=1488)),
+                                                            # list(datasets=dataset.interdatasets$PBMC5,inds=list(train_ind=1488,test_ind=1488)),
+                                                            # list(datasets=dataset.interdatasets$PBMC11,inds=list(train_ind=1488,test_ind=1488)),
+                                                            # list(datasets=dataset.interdatasets$PBMC23,inds=list(train_ind=1511,test_ind=1488)),
+                                                            # list(datasets=dataset.interdatasets$PBMC24,inds=list(train_ind=1511,test_ind=1488)),
+                                                            list(datasets=dataset.interdatasets$ADASD2),
+                                                            list(datasets=dataset.interdatasets$midbrain2)
+                                                            )
+  ),
   
-  celltype_number=list( cv=F,cv_fold=NULL, metrics=c('ARI','AMI','FMI',"BCubed"), batch_free=F,fixed_train=T,fixed_test=F,fixed_total_cell_num=F,max_total_cell_num=1500,
-                        marker_gene_file=NULL,trained=F,target_train_num=1200,target_test_num=1000,test_num=3, use_intra_dataset=F,intra_dataset=list(),
-                        use_inter_dataset=T,inter_dataset=list(dataset.interdatasets$PBMC9,dataset.interdatasets$PBMC24,
-                                                               dataset.interdatasets$PBMC17,dataset.interdatasets$PBMC21,
-                                                               dataset.interdatasets$PBMC13,dataset.interdatasets$PBMC29,
-                                                               dataset.interdatasets$pancreas2,dataset.interdatasets$pancreas3,
-                                                               dataset.interdatasets$pancreas6)
+  celltype_number=list( cv=F,cv_fold=NULL, metrics=c('ARI','AMI','FMI',"BCubed"), batch_free=F,fixed_train=F,fixed_test=T,fixed_total_cell_num=F,max_total_cell_num=120000,
+                        marker_gene_file=NULL,trained=F,target_train_num=120000,target_test_num=80000,test_num=3, use_intra_dataset=F,intra_dataset=list(),
+                        use_inter_dataset=T,known_cluster_num=F,inter_dataset=list(
+                          # dataset.interdatasets$PBMC9,dataset.interdatasets$PBMC24,
+                          # dataset.interdatasets$PBMC17,dataset.interdatasets$PBMC21,
+                          # dataset.interdatasets$PBMC13,dataset.interdatasets$PBMC29,
+                          # dataset.interdatasets$pancreas2,dataset.interdatasets$pancreas3,
+                          # dataset.interdatasets$pancreas6
+                          # dataset.interdatasets$midbrain2
+                          dataset.interdatasets$hcl
+                          )
                         
-                        ),
+  ),
   
-
+  
   unknown_types=list(cv=F,cv_fold=NULL, metrics=c('ARI','AMI','FMI',"BCubed"), batch_free=F,fixed_train=T,fixed_test=T,
-                           marker_gene_file=NULL,trained=F,target_train_num=1200, target_test_num=800,
-                           test_num=4, use_intra_dataset=F,intra_dataset=list(),
-                           use_inter_dataset=T,inter_dataset=list(dataset.interdatasets$PBMC9,dataset.interdatasets$PBMC24,
-                                                                  dataset.interdatasets$PBMC17,dataset.interdatasets$PBMC21,
-                                                                  dataset.interdatasets$PBMC13,dataset.interdatasets$PBMC29,
-                                                                  dataset.interdatasets$PBMC5,dataset.interdatasets$PBMC1,
-                                                                  dataset.interdatasets$pancreas2,dataset.interdatasets$pancreas3,
-                                                                  dataset.interdatasets$pancreas6,dataset.interdatasets$ADASD2
-                                                                  )
-                           ),
+                     marker_gene_file=NULL,trained=F,target_train_num=1200, target_test_num=800,
+                     test_num=4, use_intra_dataset=F,intra_dataset=list(),
+                     use_inter_dataset=T,known_cluster_num=F,inter_dataset=list(
+                                                            # dataset.interdatasets$PBMC9,dataset.interdatasets$PBMC24,
+                                                            # dataset.interdatasets$PBMC17,dataset.interdatasets$PBMC21,
+                                                            # dataset.interdatasets$PBMC13,dataset.interdatasets$PBMC29,
+                                                            # dataset.interdatasets$PBMC5,dataset.interdatasets$PBMC1,
+                                                            # dataset.interdatasets$pancreas2,dataset.interdatasets$pancreas3,
+                                                            # dataset.interdatasets$pancreas6,dataset.interdatasets$ADASD2
+                                                            dataset.interdatasets$midbrain2
+                     )
+  ),
+  scalability=list(cv=F,cv_fold=NULL, marker_gene_file=NULL,test_num=5,
+                   sample_num_start=10000, sample_increment=10000, use_intra_dataset=T,intra_dataset=list("PBMC_AllCells_withLabels.RDS"),
+                   use_inter_dataset=F),
   celltype_complexity = list(),
   inter_species = list(),
   random_noise = list(),
@@ -160,6 +187,7 @@ experiments.config.init <- function(experiment, train_dataset, test_dataset=NULL
          inter_protocol = experiments.config.init.inter_protocol(train_dataset, test_dataset, exp_config),
          imbalance_impacts = experiments.config.init.imbalance_impacts(train_dataset, test_dataset, exp_config),
          unknown_types = experiments.config.init.unknown_types(train_dataset, test_dataset, exp_config),
+         scalability = experiments.config.init.scalability(train_dataset, test_dataset, exp_config),
          stop("Unkown experiments")
   )
 }
@@ -173,6 +201,11 @@ experiments.config.init.base <- function(exp_config){
   exp_config
 }
 
+experiments.config.init.scalability <-function(train_dataset, test_dataset=NULL, exp_config){
+  exp_config <- experiments.config.init.base(exp_config)
+  exp_config$have_test <- T
+  exp_config
+}
 
 experiments.config.init.simple_accuracy <-function(train_dataset, test_dataset=NULL, exp_config){
   exp_config <- experiments.config.init.base(exp_config)
@@ -219,7 +252,8 @@ experiments.config.init.cell_number <-function(train_dataset, test_dataset=NULL,
 experiments.config.init.sequencing_depth <-function(train_dataset, test_dataset=NULL,exp_config){
   
   calculate_quantile_increment <- function(dataset, exp_config, if_train){
-    total_dataset_num <- dataset.properties[[dataset]]$total_num
+   dataset_name <- dataset.name.map1[[dataset]]
+    total_dataset_num <- dataset.properties[[dataset_name]]$total_num
     print("calculate sampling increment for intra-dataset")
     if(if_train){
       target_train_num <- exp_config$target_train_num
@@ -255,8 +289,13 @@ experiments.config.init.imbalance_impacts <- function(train_dataset, test_datase
   common_type_num <- length(train_test_common_type)
   if(common_type_num > 5){
     common_type_num <- 5
-    train_data <- utils.load_datasets(train_dataset)
-    train_test_common_type <- (dplyr::group_by(as.data.frame(colData(train_data)),label) %>% dplyr::summarize(type_number=n()) %>% dplyr::arrange(desc(type_number)))[['label']][1:common_type_num]
+    if(exp_config$fixed_test){
+      train_data <- utils.load_datasets(train_dataset)
+      train_test_common_type <- (dplyr::filter(as.data.frame(colData(train_data)),label %in% train_test_common_type) %>% dplyr::group_by(label) %>% dplyr::summarize(type_number=n()) %>% dplyr::arrange(desc(type_number)))[['label']][1:common_type_num]
+    }else if(exp_config$fixed_train){
+      test_data <- utils.load_datasets(test_dataset)
+      train_test_common_type <- (dplyr::filter(as.data.frame(colData(test_data)),label %in% train_test_common_type) %>% dplyr::group_by(label) %>% dplyr::summarize(type_number=n()) %>% dplyr::arrange(desc(type_number)))[['label']][1:common_type_num]
+    }
   }
   exp_config$train_kept_types <- train_test_common_type
   exp_config$test_kept_types <- train_test_common_type
@@ -344,7 +383,7 @@ experiments.config.init.celltype_number <- function(train_dataset, test_dataset=
         exp_config$increment <- floor((length(exp_config$train_type)-length(exp_config$test_number))/exp_config$test_num)
       }
     }
-
+    
     print(str_glue("test dataset={train_dataset_name}"))
   }
   exp_config
@@ -367,12 +406,19 @@ experiments.config.update <- function(experiment, train_dataset, test_dataset=NU
          inter_protocol = experiments.config.update.inter_protocol(train_dataset, test_dataset, exp_config),
          imbalance_impacts = experiments.config.update.imbalance_impacts(train_dataset, test_dataset, exp_config),
          unknown_types = experiments.config.update.unknown_types(train_dataset, test_dataset, exp_config),
+         scalability = experiments.config.update.scalability(train_dataset, test_dataset, exp_config),
          stop("Unkown experiments")
-         )
+  )
 }
 
 
 experiments.config.update.simple_accuracy <-function(train_dataset, test_dataset=NULL, exp_config){
+  exp_config
+}
+
+experiments.config.update.scalability <-function(train_dataset, test_dataset=NULL, exp_config){
+  exp_config$target_test_num <- exp_config$sample_num_start + exp_config$current_increment_index*exp_config$sample_increment
+  exp_config$target_train_num <- exp_config$target_test_num
   exp_config
 }
 
@@ -437,7 +483,7 @@ experiments.config.update.imbalance_impacts <- function(train_dataset, test_data
   if(exp_config$fixed_test){
     exp_config$clustered <- if(exp_config$current_increment_index==0) F else T
   }
-
+  
   exp_config
 }
 
@@ -455,7 +501,7 @@ experiments.config.update.celltype_number <- function(train_dataset, test_datase
     exp_config$clustered <- if(exp_config$current_increment_index==1) F else T
     exp_config$train_number <- ifelse(exp_config$current_increment_index==1,exp_config$test_number,exp_config$train_number+exp_config$increment)
     exp_config$train_type <- c(exp_config$common_type,exp_config$train_uniq_type)[1:exp_config$train_number]
-
+    
     print(str_glue("fixed test with train types={exp_config$train_type}"))
   }
   exp_config

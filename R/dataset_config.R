@@ -5,11 +5,13 @@ raw_datasets <- list(PBMC=c("PBMC_AllCells_withLabels.RData","GSE96583_batch1_3_
                      midbrain="midbrain.RData",
                      cellbench="cellbench.RData")
 
-dataset.datasets <- list("PBMC_AllCells_withLabels.RDS","GSE96583_batch1_samples.RDS","GSE96583_batch2_samples.RDS",
-                         "GSE96583_batch3_samples.RDS","GSE96583_8_Stim_Pats.RDS","GSE96583_8_Ctrl_Pats.RDS",
-                          "Muraro_pancreas_clean.RDS","Segerstolpe_pancreas_clean.RDS","Xin_pancreas_clean.RDS",
-                          "ADASD_AD.RDS","ADASD_autism.RDS",
-                          "midbrain_human.RDS","midbrain_mouse.RDS"
+dataset.datasets <- list(
+  #                       "PBMC_AllCells_withLabels.RDS","GSE96583_batch1_samples.RDS","GSE96583_batch2_samples.RDS",
+#                          "GSE96583_batch3_samples.RDS","GSE96583_8_Stim_Pats.RDS","GSE96583_8_Ctrl_Pats.RDS",
+#                           "Muraro_pancreas_clean.RDS","Segerstolpe_pancreas_clean.RDS","Xin_pancreas_clean.RDS",
+#                           "ADASD_AD.RDS","ADASD_autism.RDS",
+                          # "midbrain_human.RDS","midbrain_mouse.RDS"
+                          "human_cell_landscape.RDS"
                  # cellbench=list(tenx="cellbench_10x.RDS",CELseq2="cellbench_CELseq2.RDS",Dropseq="cellbench_Dropseq.RDS")
                  )
 
@@ -60,35 +62,37 @@ dataset.interdatasets <- list(
                               ADASD1 = list(train_dataset="ADASD_AD.RDS",  test_dataset="ADASD_autism.RDS"),
                               ADASD2 = list(train_dataset="ADASD_autism.RDS",  test_dataset="ADASD_AD.RDS"),
                               midbrain1 = list(train_dataset="midbrain_human.RDS",  test_dataset="midbrain_mouse.RDS"),
-                              midbrain2 = list(train_dataset="midbrain_mouse.RDS",  test_dataset="midbrain_human.RDS")
+                              midbrain2 = list(train_dataset="midbrain_mouse.RDS",  test_dataset="midbrain_human.RDS"),
+                              hcl = list(train_dataset="human_cell_landscape.RDS",  test_dataset="human_cell_landscape.RDS")
                               # cellbench=list(tenx="cellbench_10x.RDS",CELseq2="cellbench_CELseq2.RDS",Dropseq="cellbench_Dropseq.RDS")
                             )
 
 
 dataset.properties <- list(
-                          PBMC_AllCells_withLabels=list(sample_threshold=3,gene_name_type="SYMBOL",total_num=61309),
-                          GSE96583_batch1_samples=list(sample_threshold=3,gene_name_type="SYMBOL",cell_type_map="PBMC_celltype_map.csv",total_num=3582),
-                          GSE96583_batch2_samples=list(sample_threshold=3,gene_name_type="SYMBOL",cell_type_map="PBMC_celltype_map.csv",total_num=4184),
-                          GSE96583_batch3_samples=list(sample_threshold=3,gene_name_type="SYMBOL",cell_type_map="PBMC_celltype_map.csv",total_num=6115),
-                          GSE96583_8_Stim_Pats=list(sample_threshold=3,gene_name_type="SYMBOL",cell_type_map="PBMC_celltype_map.csv",total_num=14126),
-                          GSE96583_8_Ctrl_Pats=list(sample_threshold=3,gene_name_type="SYMBOL",cell_type_map="PBMC_celltype_map.csv",total_num=14617),
-                          ADASD_AD=list(sample_threshold=3,gene_name_type="SYMBOL",total_num=70634),
-                          ADASD_autism=list(sample_threshold=3,gene_name_type="SYMBOL",total_num=104559),
+                          PBMC_AllCells_withLabels=list(sample_threshold=3,gene_name_type="SYMBOL",total_num=61309,logged=F),
+                          GSE96583_batch1_samples=list(sample_threshold=3,gene_name_type="SYMBOL",cell_type_map="PBMC_celltype_map.csv",total_num=3582,logged=F),
+                          GSE96583_batch2_samples=list(sample_threshold=3,gene_name_type="SYMBOL",cell_type_map="PBMC_celltype_map.csv",total_num=4184,logged=F),
+                          GSE96583_batch3_samples=list(sample_threshold=3,gene_name_type="SYMBOL",cell_type_map="PBMC_celltype_map.csv",total_num=6115,logged=F),
+                          GSE96583_8_Stim_Pats=list(sample_threshold=3,gene_name_type="SYMBOL",cell_type_map="PBMC_celltype_map.csv",total_num=14126,logged=F),
+                          GSE96583_8_Ctrl_Pats=list(sample_threshold=3,gene_name_type="SYMBOL",cell_type_map="PBMC_celltype_map.csv",total_num=14617,logged=F),
+                          ADASD_AD=list(sample_threshold=3,gene_name_type="SYMBOL",total_num=70634,logged=F),
+                          ADASD_autism=list(sample_threshold=3,gene_name_type="SYMBOL",total_num=104559,logged=F),
                           Muraro_pancreas=list(sample_threshold=2,gene_name_type="SYMBOL",total_num=2126,
                                                               cell_types=c('beta','alpha','delta',
                                                                           'acinar','ductal','gamma',
-                                                                          'endothelial')),
+                                                                          'endothelial'),logged=F),
                           Segerstolpe_pancreas=list(sample_threshold=2,gene_name_type="SYMBOL",total_num=3514,
                                                cell_types=c('beta','alpha','delta',
                                                             'acinar','ductal','gamma',
-                                                            'endothelial')),
+                                                            'endothelial'),logged=F),
                           Xin_pancreas=list(sample_threshold=2,gene_name_type="SYMBOL",total_num=1600,
-                                               cell_types=c('beta','alpha','delta','gamma')),
-                          midbrain_human=list(sample_threshold=2,total_num=1695,gene_name_type="SYMBOL"),
-                          midbrain_mouse=list(sample_threshold=2,total_num=1518,gene_name_type="SYMBOL"),
-                          cellbench_10x=list(sample_threshold=3,gene_name_type="ENSEMBL"),
-                          cellbench_CELseq2=list(sample_threshold=3,gene_name_type="ENSEMBL"),
-                          cellbench_Dropseq=list(sample_threshold=3,gene_name_type="ENSEMBL")
+                                               cell_types=c('beta','alpha','delta','gamma'),logged=F),
+                          midbrain_human=list(sample_threshold=2,total_num=1695,gene_name_type="SYMBOL",cell_type_map=list(Rgl2a="Rgl2",Rgl2b="Rgl2",Rgl2c="Rgl2"),logged=F),
+                          midbrain_mouse=list(sample_threshold=2,total_num=1518,gene_name_type="SYMBOL",cell_type_map=list(Gaba1a="Gaba",Gaba1b="Gaba",Gaba2="Gaba"),logged=F),
+                          cellbench_10x=list(sample_threshold=3,gene_name_type="ENSEMBL",logged=F),
+                          cellbench_CELseq2=list(sample_threshold=3,gene_name_type="ENSEMBL",logged=F),
+                          cellbench_Dropseq=list(sample_threshold=3,gene_name_type="ENSEMBL",logged=F),
+                          human_cell_landscape=list(sample_threshold=3,total_num=599926,gene_name_type="SYMBOL",logged=F)
                       )
 
 dataset.name.map1 <- list(PBMC_AllCells_withLabels.RDS="PBMC_AllCells_withLabels",
@@ -103,7 +107,8 @@ dataset.name.map1 <- list(PBMC_AllCells_withLabels.RDS="PBMC_AllCells_withLabels
                           ADASD_AD.RDS="ADASD_AD",
                           ADASD_autism.RDS="ADASD_autism",
                           midbrain_human.RDS="midbrain_human",
-                          midbrain_mouse.RDS="midbrain_mouse"
+                          midbrain_mouse.RDS="midbrain_mouse",
+                          human_cell_landscape.RDS="human_cell_landscape"
                           )
 
 dataset.name.map2 <- list(PBMC_AllCells_withLabels="PBMC_AllCells_withLabels.RDS",
@@ -118,5 +123,6 @@ dataset.name.map2 <- list(PBMC_AllCells_withLabels="PBMC_AllCells_withLabels.RDS
                           ADASD_AD="ADASD_AD.RDS",
                           ADASD_autism="ADASD_autism.RDS",
                           midbrain_human="midbrain_human.RDS",
-                          midbrain_mouse="midbrain_mouse.RDS"
+                          midbrain_mouse="midbrain_mouse.RDS",
+                          human_cell_landscape="human_cell_landscape.RDS"
                           )

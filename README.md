@@ -4,7 +4,7 @@
 
 *__scRNAIdent__* provides a modularized R pipeline tool for automating the evaluation and comparison of cell typing methods in scRNA-seq analysis. The The workflow of the pipeline is illustrated in the picture below.
 
-![workflow image](https://github.com/xsun28/scRNAIdent/blob/master/workflow.png?raw=true)
+![workflow image](https://github.com/xsun28/scRNAIdent/blob/master/workflow.jpg?raw=true)
 
 ## Pipeline modules
 In brevity, the pipeline consists of seven modules. These modules are functionally independent and can be easily modified for adding new cell typing methods or evaluation metrics. The modules are described in the following subsections.

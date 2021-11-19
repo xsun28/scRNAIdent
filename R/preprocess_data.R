@@ -5,24 +5,28 @@ source("R/utils.R")
 source("R/dataset_config.R")
 
 preprocesss.datasets <- list(PBMC=list("PBMC_AllCells_withLabels.RDS","GSE96583_batch{i}_samples.RDS","GSE96583_8_Stim_Pats.RDS","GSE96583_8_Ctrl_Pats.RDS"),
-                 pancreas=list(muraro="Muraro_pancreas_clean.RDS",
-                               seger="Segerstolpe_pancreas_clean.RDS",
-                               xin="Xin_pancreas_clean.RDS"
-                                ),
-                 ADASD=list(AD="ADASD_AD.RDS",autism="ADASD_autism.RDS"),
-                 midbrain=list(human="midbrain_human.RDS",mouse="midbrain_mouse.RDS"),
-                 cellbench=list(tenx="cellbench_10x.RDS",CELseq2="cellbench_CELseq2.RDS",Dropseq="cellbench_Dropseq.RDS")
-                )
+                             pancreas=list(muraro="Muraro_pancreas_clean.RDS",
+                                           seger="Segerstolpe_pancreas_clean.RDS",
+                                           xin="Xin_pancreas_clean.RDS"
+                             ),
+                             hcl=list("human_cell_landscape.RDS"),
+                             mca=list("mouse_cell_landscape.RDS"),
+                             ADASD=list(AD="ADASD_AD.RDS",autism="ADASD_autism.RDS"),
+                             midbrain=list(human="midbrain_human.RDS",mouse="midbrain_mouse.RDS"),
+                             cellbench=list(tenx="cellbench_10x.RDS",CELseq2="cellbench_CELseq2.RDS",Dropseq="cellbench_Dropseq.RDS")
+)
 
 
 
-preprocess_dataset <- function(dataset=c("PBMC","pancreas","midbrain","ADASD","cellbench")) {
+preprocess_dataset <- function(dataset=c("PBMC","pancreas","midbrain","ADASD","cellbench","hcl")) {
   switch(dataset,
          PBMC = preprocess_PBMC(dataset),
          pancreas = preprocess_pancreas(dataset),
          midbrain = preprocess_midbrain(dataset),
          ADASD = preprocess_ADASD(dataset),
          cellbench = preprocess_cellbench(dataset),
+         hcl = preprocess_human_cell_landscape(dataset),
+         mca = preprocess_mouse_cell_atlas(dataset),
          stop("Unknown datasets")
   )  
 }
@@ -57,10 +61,10 @@ preprocess_PBMC <- function(dataset){
   type_map <- read_csv(map_path)
   dataset_names <- load(dataset_paths[[2]])
   sces <- purrr::map(purrr::map(dataset_names,~eval(as.name(.))), ~{
-                                                    colData(.)$sampleId <- rownames(colData(.))
-                                                    colData(.)$label <- utils.convertCellTypes(colData(.)$cell.type,type_map)
-                                                    counts(.) <- as(counts(.),'sparseMatrix')
-                                                    return(.)})
+    colData(.)$sampleId <- rownames(colData(.))
+    colData(.)$label <- utils.convertCellTypes(colData(.)$cell.type,type_map)
+    counts(.) <- as(counts(.),'sparseMatrix')
+    return(.)})
   # sces <- purrr::map(sces,addPerCellQC)
   colData_cols <- colnames(colData(sces[[1]]))
   # sces <- utils.combine_SCEdatasets(sces,if_combined=T,colData_cols)
@@ -84,10 +88,10 @@ preprocess_PBMC <- function(dataset){
   type_map <- read_csv(map_path)
   dataset_names <- load(dataset_paths[[3]])
   sces <- purrr::map(eval(as.name(dataset_names[[1]])), ~{colData(.)$sampleId <- rownames(colData(.))
-                                                   colData(.)$label <- utils.convertCellTypes(colData(.)$cell,type_map)
-                                                   counts(.) <- as(counts(.),'sparseMatrix')
-                                                   return(.)})
-
+  colData(.)$label <- utils.convertCellTypes(colData(.)$cell,type_map)
+  counts(.) <- as(counts(.),'sparseMatrix')
+  return(.)})
+  
   colData_cols <- colnames(colData(sces[[1]]))
   sces <- utils.combine_SCEdatasets(sces,if_combined=T,colData_cols)
   sces <- sces[,!is.na(sces$label)]
@@ -104,10 +108,10 @@ preprocess_PBMC <- function(dataset){
   type_map <- read_csv(map_path)
   dataset_names <- load(dataset_paths[[4]])
   sces <- purrr::map(eval(as.name(dataset_names[[1]])), ~{colData(.)$sampleId <- rownames(colData(.))
-                                                   colData(.)$label <- utils.convertCellTypes(colData(.)$cell,type_map)
-                                                   counts(.) <- as(counts(.),'sparseMatrix')
-                                                   return(.)})
-
+  colData(.)$label <- utils.convertCellTypes(colData(.)$cell,type_map)
+  counts(.) <- as(counts(.),'sparseMatrix')
+  return(.)})
+  
   colData_cols <- colnames(colData(sces[[1]]))
   sces <- utils.combine_SCEdatasets(sces,if_combined=T,colData_cols)
   sces <- sces[,!is.na(sces$label)]
@@ -136,9 +140,9 @@ preprocess_pancreas <- function(dataset){
     labels <- eval(as.name(x[[3]]))
     sampleId <- if(length(sampleId)!=length(labels)) rep(NA,length(labels)) else sampleId
     genes <- purrr::map_chr(rownames(cnt),~str_split(.,"__")[[1]][1])
-
+    
     data <- utils.convert_to_SingleCellExperiment(cnt,genes,colnames(cnt),tibble(label=labels,sampleId=sampleId,ind=sampleId),
-                                            list(study='pancreas',study_name=study_name))
+                                                  list(study='pancreas',study_name=study_name))
     rowData(data)$geneName <- rownames(data)
     rowData(data)$EnsembleId <- utils.convert2EnsemblIDs(rownames(data))
     write_rds(data,new_dataset_path[[i]])
@@ -185,10 +189,10 @@ preprocess_midbrain <- function(dataset){
   dataset_paths <- utils.get_dataset_paths(raw_data_home,raw_datasets[[dataset]])
   dataset_names <- load(dataset_paths[[1]])
   sces <- purrr::map(purrr::map(dataset_names,~eval(as.name(.))), ~{colData(.)$sampleId <- rownames(colData(.))
-                                                      colData(.)$label <- colData(.)$celltypes
-                                                      colData(.)$species <- purrr::map_chr(colData(.)$celltypes,~str_sub(.,1,1))
-                                                      counts(.) <- as(counts(.),'sparseMatrix')
-                                                      return(.)})
+  colData(.)$label <- colData(.)$cps
+  colData(.)$species <- purrr::map_chr(colData(.)$celltypes,~str_sub(.,1,1))
+  counts(.) <- as(counts(.),'sparseMatrix')
+  return(.)})
   
   sces <- purrr::map(sces,addPerCellQC)
   converted_genes <- utils.convertMouseGeneList(rowData(sces[[1]])$genes)
@@ -200,6 +204,10 @@ preprocess_midbrain <- function(dataset){
   rowData(new_mouse_sces) <- converted_genes
   rowData(new_mouse_sces)$count <- nexprs(new_mouse_sces,byrow=TRUE)
   colData(new_mouse_sces)$unique_id <- 1:ncol(new_mouse_sces)
+  colData(new_mouse_sces)$label <- map_chr(new_mouse_sces$label, ~{new <- dataset.properties[["midbrain_mouse"]]$cell_type_map[[.]]
+  if(is_null(new)) return(.) else return(new)})
+  rownames(new_mouse_sces) <- converted_genes$human_gene
+  new_mouse_sces <- new_mouse_sces[-which(purrr::map_lgl(rownames(new_mouse_sces),is.na)),]
   
   sces[[2]] <- sces[[2]][,which(!quickPerCellQC(sces[[2]])$discard)]
   rowData(sces[[2]])$human_gene <- rowData(sces[[2]])$genes
@@ -207,7 +215,9 @@ preprocess_midbrain <- function(dataset){
   rowData(sces[[2]])$geneName <- rowData(sces[[2]])$human_gene
   rowData(sces[[2]])$count <- nexprs(sces[[2]],byrow=TRUE)
   colData(sces[[2]])$unique_id <- 1:ncol(sces[[2]])
-
+  colData(sces[[2]])$label <- map_chr(sces[[2]]$label, ~{new <- dataset.properties[["midbrain_human"]]$cell_type_map[[.]]
+  if(is_null(new)) return(.) else return(new)})
+  
   new_dataset_path <- utils.get_dataset_paths(data_home,preprocesss.datasets[[dataset]])
   metadata(new_mouse_sces) <- list(study="midbrain",study_name="midbrain_mouse")
   metadata(sces[[2]]) <- list(study="midbrain",study_name="midbrain_human")
@@ -239,6 +249,48 @@ preprocess_cellbench <- function(dataset){
     rowData(sce)$count <- nexprs(sce,byrow=TRUE)
     write_rds(sce,new_dataset_path[[i]])
   }
+}
+
+#####human cell landscape
+preprocess_human_cell_landscape <- function(dataset){
+  require(tidyverse)
+  hcl <- as.data.frame(read_tsv(str_glue("{raw_data_home}/human_cell_landscape.tsv")))
+  rownames(hcl) <- hcl[,1]
+  hcl <- hcl[,-1]
+  hcl_meta <- (read_tsv(str_glue("{raw_data_home}/human_cell_landscape_meta.tsv")))
+  exp_trans_hcl <- exp(hcl)-1
+  data <- utils.convert_to_SingleCellExperiment(as.matrix(exp_trans_hcl),rownames(exp_trans_hcl),colnames(exp_trans_hcl),tibble(label=hcl_meta$cell_type),list(study='hcl', study_name="human_cell_landscape"))
+  assay(data)$logcounts <- as.matrix(hcl)
+  rowData(data)$EnsembleId <- utils.convert2EnsemblIDs(rownames(data))
+  rowData(data)$geneName <- rownames(data)
+  rowData(data)$count <- nexprs(data,byrow=TRUE)
+  colData(data)$unique_id <- 1:ncol(data)
+  new_dataset_path <- utils.get_dataset_paths(data_home,preprocesss.datasets[[dataset]][[1]])
+  write_rds(data,new_dataset_path)
+  gc(T)
+}
+
+#####mouse cell atlas
+preprocess_mouse_cell_atlas <- function(dataset){
+  require(tidyverse)
+  mca <- as.data.frame(read_tsv(str_glue("{raw_data_home}/mouse_cell_atlas.tsv")))
+  rownames(mca) <- mca[,1]
+  mca <- mca[,-1]
+  mca_meta <- (read_tsv(str_glue("{raw_data_home}/mouse_cell_atlas_meta.tsv")))
+  data <- utils.convert_to_SingleCellExperiment(as.matrix(mca),rownames(mca),colnames(mca),tibble(label=mca_meta$celltype),list(study='mca', study_name="mouse_cell_atlas"))
+  rowData(data)$genes <- rownames(data)
+  converted_genes <- utils.convertMouseGeneList(rowData(data)$genes)
+  converted_genes <- merge(rowData(data),converted_genes,by="genes",all.x=T)
+  converted_genes$EnsembleId <- utils.convert2EnsemblIDs(converted_genes$human_gene)
+  converted_genes$geneName <- converted_genes$human_gene
+  
+  new_mouse_data <- data[converted_genes$genes,]
+  new_mouse_data <- new_mouse_data[,which(!quickPerCellQC(new_mouse_data)$discard)]
+  rowData(new_mouse_data) <- converted_genes
+  
+  new_dataset_path <- utils.get_dataset_paths(data_home,preprocesss.datasets[[dataset]][[1]])
+  write_rds(data,new_dataset_path)
+  gc(T)
 }
 
 ##remove batch effects of datasets and saves
